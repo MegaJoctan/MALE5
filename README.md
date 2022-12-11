@@ -45,28 +45,28 @@ Create a directory with the name MALE5 under your include directory in Metaedito
 Once the Library is installed and everything is set in the right directory, here is how to install and use the models; Look at the Linear regression example
 
 ``` MQL5
-    #include <MALE5\matrix_utils.mqh>
-    #include <MALE5\Linear Regression\Linear Regression.mqh>
+#include <MALE5\matrix_utils.mqh>
+#include <MALE5\Linear Regression\Linear Regression.mqh>
 
-    CLinearRegression *Linear_reg;
-    CMatrixutils matrix_utils;
-    //+------------------------------------------------------------------+
-    //| Expert initialization function                                   |
-    //+------------------------------------------------------------------+
-    int OnInit()
-    {
-    //---
+CLinearRegression *Linear_reg;
+CMatrixutils matrix_utils;
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+//---
+
+    matrix Matrix = matrix_utils.ReadCsv("NASDAQ_DATA.csv"); 
+
+    Linear_reg = new CLinearRegression(Matrix);
     
-        matrix Matrix = matrix_utils.ReadCsv("NASDAQ_DATA.csv"); 
-
-        Linear_reg = new CLinearRegression(Matrix);
-        
-        double acc =0; //Model accuracy
-        
-        Linear_reg.LRModelPred(Matrix,acc);
-        
-        Print("Trained Model Accuracy ",acc);
-    }
+    double acc =0; //Model accuracy
+    
+    Linear_reg.LRModelPred(Matrix,acc);
+    
+    Print("Trained Model Accuracy ",acc);
+}
 ```
 
 ## Opening an issue
