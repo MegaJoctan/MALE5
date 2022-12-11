@@ -15,7 +15,7 @@ This Library is:
 -   **Flexible** You can use it any program scripts, Indicator, EA's
 -   **Resources cheap** It doesn't consume a lot of memory neither the CPU, takes short time intervals to train
 
-ML Algorithms Available:
+**ML Algorithms Available:**
 
 *currently there are not many algorithms ready as I am a solodev finding a way through*
 
@@ -28,7 +28,7 @@ ML Algorithms Available:
 -   FeedForward Neural Network
 -   KNN nearest neighbors
 
-Clustering techniques | Unsupervised Learning:
+**Clustering techniques | Unsupervised Learning:**
 
 -   KNN clustering 
 
