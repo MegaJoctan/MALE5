@@ -12,6 +12,7 @@
 #include <MALE5\matrix_utils.mqh>
 #include <MALE5\KNN nearest neighbors\KNN_nearest_neighbors.mqh>
 #include <MALE5\Ridge & Lasso Regression\Ridge Regression.mqh>
+#include <MALE5\metrics.mqh>
 
 enum models //Models that need cross validation
   {
@@ -29,7 +30,7 @@ class CCrossValidation
       CMatrixutils      matrix_utils;
       CRidgeregression  *ridge_regression;
       CLinearRegression *Linear_reg;
-      CKNNNearestNeighbors *nearest_neighbors;
+      CKNNNearestNeighbors *nearest_neighbors; 
       
       matrix            Matrix;
       ulong             n;
@@ -38,7 +39,7 @@ class CCrossValidation
                         CCrossValidation(matrix& matrix_, models MODEL);
                        ~CCrossValidation(void);
                        
-                       vector LeaveOneOut(double init,double finale,double step);
+                       double LeaveOneOut(double init, double step, double finale);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -61,7 +62,7 @@ CCrossValidation::~CCrossValidation(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
+double CCrossValidation::LeaveOneOut(double init, double step, double finale)
  {
     matrix XMatrix;
     vector yVector;
@@ -74,27 +75,26 @@ vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
     vector validation_output(ulong(size));
     vector lambda_vector(ulong(size));
     
-    vector forecast(n-1); 
-    vector actual(n-1);
+    vector forecast(n); 
+    vector actual = yVector;
     
     double lambda = init;
     
-     for (int i=0; i<(int)finale/step; i++)
+     for (int i=0; i<size; i++)
        {
          lambda += step;
          
-          for (ulong j=0; j<n-1; j++)
+          for (ulong j=0; j<n; j++)
             {               
                train.Copy(Matrix);
                ZeroMemory(test);
                
                test = XMatrix.Row(j);
-               actual[j] = yVector[j];
                
                matrix_utils.MatrixRemoveRow(train,j);
                
-               //Print("Row ",j," test ",test,"\nTrain\n",train);
                vector coeff = {};
+               double acc =0;
                
                 switch(selected_model)
                   {
@@ -104,7 +104,7 @@ vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
                         coeff = ridge_regression.L2Norm(lambda); //ridge regression
                         
                         Linear_reg = new CLinearRegression(train,coeff);   
-                          
+
                         forecast[j] =  Linear_reg.LRModelPred(test);  
                         
                         //---
@@ -116,7 +116,7 @@ vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
                      
                     case KNN_NEAREST_NEIGHBORS:
                     
-                         nearest_neighbors = new CKNNNearestNeighbors(Matrix);
+                         nearest_neighbors = new CKNNNearestNeighbors(train);
                          
                          forecast[j] = nearest_neighbors.KNNAlgorithm(test);
                          
@@ -124,16 +124,15 @@ vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
                   }
             }
           
-          //Print("forecast\n",forecast);
+          //Print("---->\nforecast\n",forecast);
           //Print("actual\n",yVector);
-           
-          validation_output[i] = forecast.Loss(actual,LOSS_MSE); 
+          
+          validation_output[i] = forecast.Loss(actual,LOSS_MSE)/double(n); 
+          
           lambda_vector[i] = lambda;
           
           #ifdef DEBUG_MODE
-          
-            Print("mse ",validation_output[i]);
-            
+             //printf("%.5f LOOCV mse %.5f",lambda_vector[i],validation_output[i]);
           #endif           
        }
 
@@ -147,10 +146,11 @@ vector CCrossValidation::LeaveOneOut(double init,double finale,double step)
          
          string name = EnumToString(selected_model)+"\\LOOCV.csv";
          
-         matrix_utils.WriteCsv(name,store_matrix);
+         string header[2] = {"Validation output","lambda"};
+         matrix_utils.WriteCsv(name,store_matrix,header,10);
       #endif 
       
-    return(validation_output);
+    return(lambda_vector[validation_output.ArgMin()]);
  }
 
 //+------------------------------------------------------------------+
