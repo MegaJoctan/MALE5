@@ -16,7 +16,7 @@ public:
 
    string            csv_header[];
 
-   void              WriteCsv(string name, matrix &Matrix, int digits=5);
+   void              WriteCsv(string name, matrix &Matrix, string &header[] , int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
    matrix            VectorToMatrix(const vector &v);
    vector            MatrixToVector(const matrix &mat);
@@ -166,7 +166,7 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::WriteCsv(string name, matrix &Matrix, int digits=5)
+void CMatrixutils::WriteCsv(string name, matrix &Matrix, string &header[], int digits=5)
   {
    FileDelete(name);
    int handle = FileOpen(name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
@@ -178,9 +178,28 @@ void CMatrixutils::WriteCsv(string name, matrix &Matrix, int digits=5)
    else
      {       
       string concstring;
-      vector row;
-      FileSeek(handle,0,SEEK_SET);
+      vector row = {};
+      
+      //FileSeek(handle,0,SEEK_SET);
+      
+      vector colsinrows = Matrix.Row(0);
+      
+      if (ArraySize(header) != (int)colsinrows.Size())
+         {
+            Print("header and columns from the matrix vary is size ");
+            return;
+         }
 
+//---
+
+      string header_str = "";
+      for (int i=0; i<ArraySize(header); i++)
+         header_str += header[i] + (i+1 == colsinrows.Size() ? "" : ",");
+      
+      FileWrite(handle,header_str);
+      
+      FileSeek(handle,0,SEEK_SET);
+      
       for(ulong i=0; i<Matrix.Rows(); i++)
         {
          ZeroMemory(concstring);
@@ -190,8 +209,6 @@ void CMatrixutils::WriteCsv(string name, matrix &Matrix, int digits=5)
            {
             concstring += (string)NormalizeDouble(row[j],digits) + (cols == Matrix.Cols() ? "" : ",");
            }
-
-         //Print(concstring);
 
          FileSeek(handle,0,SEEK_END);
          FileWrite(handle,concstring);
