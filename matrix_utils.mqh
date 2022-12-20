@@ -16,7 +16,7 @@ public:
 
    string            csv_header[];
 
-   void              WriteCsv(string name, matrix &Matrix, string &header[] , int digits=5);
+   void              WriteCsv(string name, matrix &Matrix, int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
    matrix            VectorToMatrix(const vector &v);
    vector            MatrixToVector(const matrix &mat);
@@ -30,10 +30,7 @@ public:
    void              TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7);
    matrix            DesignMatrix(matrix &x_matrix);
    matrix            OneHotEncoding(vector &v, uint &classes);
-  };
-
-//+------------------------------------------------------------------+
-
+  }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -42,73 +39,57 @@ CMatrixutils::CMatrixutils(void)
 
   }
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CMatrixutils::~CMatrixutils(void)
   {
    ZeroMemory(csv_header);
   }
-
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 matrix CMatrixutils::VectorToMatrix(const vector &v)
-  {
-   matrix mat(v.Size(), 1); //The resulting matrix will be nx1 matrix
-
-   for(ulong i=0, index =0; i<mat.Rows(); i++)
-      for(ulong j=0; j<mat.Cols(); j++, index++)
-        {
-         mat[i][j] = v[index];
-        }
+  {   
+   matrix mat = {};
+   
+   if (!mat.Assign(v))
+      Print("Failed to turn the vector to a 1xn matrix");
+   
    return(mat);
   }
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 vector CMatrixutils::MatrixToVector(const matrix &mat)
   {
-   vector vec(mat.Rows()*mat.Cols()); 
-
-   for(ulong i=0, index = 0; i<mat.Rows(); i++)
-      for(ulong j=0; j<mat.Cols(); j++, index++)
-         vec[index] = mat[i][j];
-
-   return(vec);
+    vector v = {};
+    
+    if (!v.Assign(mat))
+      Print("Failed to turn the matrix to a vector");
+    
+    return(v);
   }
-
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void CMatrixutils::MatrixRemoveCol(matrix &mat, ulong col)
   {
-   matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one column
+   matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
 
-   for(ulong i=0; i<mat.Rows(); i++)
-      for(ulong j=0, new_cols=0; j<mat.Cols(); j++)
-        {
-         if(j == col)
-            continue;
-         else
-           {
-            new_matrix[i][new_cols] = mat[i][j];
-
-            new_cols++;
-           }
-        }
+   for (ulong i=0, new_col=0; i<mat.Cols(); i++) 
+     {
+        if (i == col)
+          continue;
+        else
+          {
+           new_matrix.Col(mat.Col(i),new_col);
+           new_col++;
+          }    
+     }
 
    mat.Copy(new_matrix);
   }
-
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -147,31 +128,25 @@ void CMatrixutils::MatrixRemoveMultCols(matrix &mat,int &cols[])
   }
 
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void CMatrixutils::MatrixRemoveRow(matrix &mat,ulong row)
   {
-   matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one column
-
-   for(ulong j=0; j<mat.Cols(); j++)
+   matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one Row
+ 
       for(ulong i=0, new_rows=0; i<mat.Rows(); i++)
         {
          if(i == row)
             continue;
          else
            {
-            new_matrix[new_rows][j] = mat[i][j];
-
+            new_matrix.Row(mat.Row(i),new_rows);
             new_rows++;
            }
         }
 
    mat.Copy(new_matrix);
   }
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -180,19 +155,18 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
    vector new_v(v.Size()-1);
 
    for(ulong i=0, count = 0; i<v.Size(); i++)
-      if(i == index)
+      if(i != index)
         {
-         new_v[count] = new_v[i];
+         new_v[count] = v[i];
          count++;
         }
+    v.Copy(new_v);
   }
-
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::WriteCsv(string name, matrix &Matrix, string &header[], int digits=5)
+void CMatrixutils::WriteCsv(string name, matrix &Matrix, int digits=5)
   {
    FileDelete(name);
    int handle = FileOpen(name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
@@ -204,28 +178,9 @@ void CMatrixutils::WriteCsv(string name, matrix &Matrix, string &header[], int d
    else
      {       
       string concstring;
-      vector row = {};
-      
-      //FileSeek(handle,0,SEEK_SET);
-      
-      vector colsinrows = Matrix.Row(0);
-      
-      if (ArraySize(header) != (int)colsinrows.Size())
-         {
-            Print("header and columns from the matrix vary is size ");
-            return;
-         }
-
-//---
-
-      string header_str = "";
-      for (int i=0; i<ArraySize(header); i++)
-         header_str += header[i] + (i+1 == colsinrows.Size() ? "" : ",");
-      
-      FileWrite(handle,header_str);
-      
+      vector row;
       FileSeek(handle,0,SEEK_SET);
-      
+
       for(ulong i=0; i<Matrix.Rows(); i++)
         {
          ZeroMemory(concstring);
@@ -236,14 +191,14 @@ void CMatrixutils::WriteCsv(string name, matrix &Matrix, string &header[], int d
             concstring += (string)NormalizeDouble(row[j],digits) + (cols == Matrix.Cols() ? "" : ",");
            }
 
+         //Print(concstring);
+
          FileSeek(handle,0,SEEK_END);
          FileWrite(handle,concstring);
         }
      }
    FileClose(handle);
   }
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -304,26 +259,17 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
 
    return(mat_);
   }
-
-//+------------------------------------------------------------------+
- 
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 vector CMatrixutils::ArrayToVector(const double &Arr[])
   {
-   vector v((ulong)ArraySize(Arr));
+   vector v = {};
 
-   for(ulong i=0; i<v.Size(); i++)
-      v[i] = Arr[i];
+   v.Assign(Arr);
 
    return (v);
   }
-
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -339,7 +285,8 @@ bool CMatrixutils::VectorToArray(const vector &v,double &arr[])
 
    return(true);
   }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1)
   {
@@ -353,10 +300,8 @@ void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vect
    y_vector = matrix_.Col(value);
    xmatrix.Copy(matrix_);
 
-   MatrixRemoveCol(xmatrix, value);
+   MatrixRemoveCol(xmatrix, value); //Remove the y column
   }
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -366,16 +311,15 @@ void CMatrixutils::TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMat
 
    int train = (int)MathCeil(total*train_size);
    int test = (int)MathFloor(total-train);
-
+   
    TrainMatrix.Resize(train,cols);
    TestMatrix.Resize(test,cols);
 
    int train_count = 0, test_count = 0;
 
    for(ulong i=0; i<matrix_.Rows(); i++)
-      //for (ulong j=0; j<matrix_.Cols(); j++)
      {
-      if(i <= (ulong)train)
+      if(i < (ulong)train)
         {
          TrainMatrix.Row(matrix_.Row(i),train_count);
          train_count++;
@@ -387,7 +331,8 @@ void CMatrixutils::TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMat
         }
      }
   }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 matrix CMatrixutils::DesignMatrix(matrix &x_matrix)
   {
@@ -407,9 +352,9 @@ matrix CMatrixutils::DesignMatrix(matrix &x_matrix)
 
    return (out_matrix);
   }
-
 //+------------------------------------------------------------------+
-
+//|                                                                  |
+//+------------------------------------------------------------------+
 matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
  {
    matrix mat = {}; 
@@ -435,14 +380,12 @@ matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
                count++;
                v_classes.Resize(count);
 
-               v_classes[count-1] = v[i];
-               //Print("v ",v[i]);
+               v_classes[count-1] = v[i]; 
 
                temp_t[j] = -1000; //modify so that it can no more be counted
               }
             else
-               break;
-            //Print("t vectors vector ",v);
+               break; 
            }
          else
             continue;
@@ -466,4 +409,6 @@ matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
    
    return(mat);
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
