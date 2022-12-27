@@ -10,17 +10,28 @@
 //+------------------------------------------------------------------+
 class CMatrixutils
   {
+  
+private:
+   void              Classes(const string &Array[], string &classes_arr[]);
+   vector            LabelEncoder(const string &Arr[]);
+   int               CSVOpen(string filename,string delimiter);
+   
+   double            MathRandom(double mini, double maxi);
+   int               MathRandom(int mini, int maxi);
+   
+  
 public:
                      CMatrixutils(void);
                     ~CMatrixutils(void);
 
    string            csv_header[];
-
-   void              WriteCsv(string name, matrix &Matrix, string &header[] , int digits=5);
+   
+   void              WriteCsv(string csv_name, matrix &Matrix, string &header[] , int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
-   matrix            VectorToMatrix(const vector &v);
+   matrix            ReadCsvEncode(string file_name, string delimiter=",");
+   matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
-   vector            ArrayToVector(const double &Arr[]);
+   vector            ArrayToVector(const double &Arr[]);  
    bool              VectorToArray(const vector &v,double &arr[]);
    void              MatrixRemoveCol(matrix &mat, ulong col);
    void              MatrixRemoveMultCols(matrix &mat, int &cols[]);
@@ -30,6 +41,11 @@ public:
    void              TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7);
    matrix            DesignMatrix(matrix &x_matrix);
    matrix            OneHotEncoding(vector &v, uint &classes);
+   vector            Classes(vector &v);
+   vector            Random(int min, int max, int size);
+   vector            Random(double min, double max, int size);
+   vector            Append(vector &v1, vector &v2); 
+   bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -48,13 +64,45 @@ CMatrixutils::~CMatrixutils(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::VectorToMatrix(const vector &v)
-  {   
+int CMatrixutils::CSVOpen(string filename,string delimiter)
+ { 
+    ResetLastError();
+    
+    int csv_handle  = FileOpen(filename,FILE_READ|FILE_CSV|FILE_ANSI,delimiter,CP_UTF8); 
+
+    if (csv_handle == INVALID_HANDLE)
+      {
+         Print(__FUNCTION__," Invalid csv handle err=",GetLastError());
+         return(INVALID_HANDLE);
+      }
+   return (csv_handle);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::VectorToMatrix(const vector &v, ulong cols=1)
+  {      
+   ulong rows = 0;
    matrix mat = {};
    
-   if (!mat.Assign(v))
-      Print("Failed to turn the vector to a 1xn matrix");
    
+    if ( v.Size() % cols > 0) //If there is a reminder
+      {
+        printf("Invalid rows %d and cols %d for this vector size ",rows,v.Size()/cols);
+        return mat;
+      }
+    else
+       rows = v.Size()/cols;
+
+//---
+
+   mat.Resize(rows, cols); 
+
+   for(ulong i=0, index =0; i<rows; i++)
+      for(ulong j=0; j<cols; j++, index++)
+        {
+         mat[i][j] = v[index];
+        }
    return(mat);
   }
 //+------------------------------------------------------------------+
@@ -66,6 +114,8 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
     
     if (!v.Assign(mat))
       Print("Failed to turn the matrix to a vector");
+    
+    v.Swap(v);
     
     return(v);
   }
@@ -166,15 +216,15 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::WriteCsv(string name, matrix &Matrix, string &header[], int digits=5)
+void CMatrixutils::WriteCsv(string csv_name, matrix &Matrix, string &header[], int digits=5)
   {
-   FileDelete(name);
-   int handle = FileOpen(name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
+   FileDelete(csv_name);
+   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
 
    ResetLastError();
 
    if(handle == INVALID_HANDLE)
-      printf("Invalid %s handle Error %d ",name,GetLastError());
+      printf("Invalid %s handle Error %d ",csv_name,GetLastError());
    else
      {       
       string concstring;
@@ -279,6 +329,140 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
+ {
+//--- Obtaining the columns
+
+   matrix Matrix={};
+
+   
+//--- Loading the entire Matrix to an Array
+
+   int csv_columns=0,  rows_total=0;
+   
+   int handle = CSVOpen(file_name,delimiter); 
+   
+   if (handle != INVALID_HANDLE)
+      {
+       while (!FileIsEnding(handle))
+         {
+           string data = FileReadString(handle);
+
+           csv_columns++;
+//---
+           if (FileIsLineEnding(handle)) break;
+         } 
+      }
+      
+   FileClose(handle);
+   
+   ArrayResize(csv_header,csv_columns);
+   
+//---
+
+   string toArr[];
+
+    int counter=0; 
+    for (int i=0; i<csv_columns; i++)
+      {                    
+        if ((handle = CSVOpen(file_name,delimiter)) != INVALID_HANDLE)
+         {  
+          int column = 0, rows=0;
+          while (!FileIsEnding(handle))
+            {
+              string data = FileReadString(handle);
+
+              column++;
+   //---      
+              if (column==i+1)
+                 {                      
+                     if (rows>=1 ) //Avoid the first column which contains the column's header
+                       {   
+                           counter++;
+                           
+                           ArrayResize(toArr,counter); //array size for all the columns 
+                           toArr[counter-1]=data;
+                           
+                       }
+                      else csv_header[column-1]  =  data;
+                 }
+   //---
+              if (FileIsLineEnding(handle))
+                {              
+                   rows++;
+                   column = 0;
+                }
+            } 
+          rows_total += rows-1; 
+        }
+       FileClose(handle); 
+     }
+
+//---
+    
+    ulong mat_cols = 0,mat_rows = 0;
+    
+    
+    if (ArraySize(toArr) % csv_columns !=0)
+     printf("This CSV file named %s has unequal number of columns = %d and rows %d Its size = %d",file_name,csv_columns,ArraySize(toArr) / csv_columns,ArraySize(toArr));
+    else 
+     {
+        mat_cols = (ulong)csv_columns;       
+        mat_rows = (ulong)ArraySize(toArr)/mat_cols;
+     }
+   
+   //ArrayPrint(toArr);
+
+//--- Encoding the CSV
+
+     Matrix.Resize(mat_rows,mat_cols);    
+      
+//---
+
+     string Arr[];
+      
+     int start =0;
+      
+     vector v = {};
+      
+       for (ulong j=0; j<mat_cols; j++)
+         {
+            ArrayCopy(Arr,toArr,0,start,(int)mat_rows);
+          
+            v = LabelEncoder(Arr);
+               
+            Matrix.Col(v, j);
+            
+            start += (int)mat_rows;
+         }
+      
+   return (Matrix);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::LabelEncoder(const string &Arr[])
+ {
+   string classes[];
+   
+   vector Encoded((ulong)ArraySize(Arr));
+   
+   Classes(Arr,classes);
+   
+   //ArrayPrint(classes);
+    
+    for (ulong A=0; A<classes.Size(); A++)
+      for (ulong i=0; i<Encoded.Size(); i++)
+        {
+           if (classes[A] == Arr[i])
+              Encoded[i] = (int)A;
+        }
+    
+   return Encoded;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 vector CMatrixutils::ArrayToVector(const double &Arr[])
   {
    vector v = {};
@@ -378,6 +562,72 @@ matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
    
 //---
 
+   vector v_classes = Classes(v);
+     
+//---
+
+     classes = (uint)v_classes.Size();
+     mat.Resize(v.Size(),v_classes.Size());
+     mat.Fill(-100);
+     
+     for (ulong i=0; i<mat.Rows(); i++)
+        for (ulong j=0; j<mat.Cols(); j++)
+           {
+               if (v[i] == v_classes[j])
+                  mat[i][j] = 1;
+               else 
+                  mat[i][j] = 0;     
+           }
+   
+   return(mat);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::Classes(const string &Array[],string &classes_arr[])
+ {
+   string temp_arr[];
+
+   ArrayResize(classes_arr,1);
+   ArrayCopy(temp_arr,Array);
+   
+   classes_arr[0] = Array[0];
+   
+   for(int i=0, count =1; i<ArraySize(Array); i++)  //counting the different neighbors
+     {
+      for(int j=0; j<ArraySize(Array); j++)
+        {
+         if(Array[i] == temp_arr[j] && temp_arr[j] != "nan")
+           {
+            bool count_ready = false;
+
+            for(int n=0; n<ArraySize(classes_arr); n++)
+               if(Array[i] == classes_arr[n])
+                    count_ready = true;
+
+            if(!count_ready)
+              {
+               count++;
+               ArrayResize(classes_arr,count);
+
+               classes_arr[count-1] = Array[i]; 
+
+               temp_arr[j] = "nan"; //modify so that it can no more be counted
+              }
+            else
+               break;
+            //Print("t vectors vector ",v);
+           }
+         else
+            continue;
+        }
+     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Classes(vector &v)
+ {
    vector temp_t = v, v_classes = {v[0]};
 
    for(ulong i=0, count =1; i<v.Size(); i++)  //counting the different neighbors
@@ -397,34 +647,99 @@ matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
                count++;
                v_classes.Resize(count);
 
-               v_classes[count-1] = v[i]; 
+               v_classes[count-1] = v[i];
+               //Print("v ",v[i]);
 
                temp_t[j] = -1000; //modify so that it can no more be counted
               }
             else
-               break; 
+               break;
+            //Print("t vectors vector ",v);
            }
          else
             continue;
         }
-     }
+     } 
+   return v_classes;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMatrixutils:: MathRandom(double mini, double maxi)
+  {
+     double f   = (MathRand() / 32767.0);
+     return mini + (f * (maxi - mini));
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+int CMatrixutils:: MathRandom(int mini, int maxi)
+  {
+     double f   = (MathRand() / 32767.0);
      
-//---
-
-     classes = (uint)v_classes.Size();
-     mat.Resize(v.Size(),v_classes.Size());
-     mat.Fill(-100);
-     
-     for (ulong i=0; i<mat.Rows(); i++)
-        for (ulong j=0; j<mat.Cols(); j++)
-           {
-               if (v[i] == v_classes[j])
-                  mat[i][j] = 1;
-               else 
-                  mat[i][j] = 0;     
-           }
+     return mini + int(f * (maxi - mini));
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Random(double min,double max,int size)
+ {
+   vector v(size);
    
-   return(mat);
+   for (ulong i=0; i<v.Size(); i++)
+      v[i] = MathRandom(min,max);
+      
+   return (v);    
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Random(int min,int max,int size)
+ {
+   vector v(size);
+   
+   for (ulong i=0; i<v.Size(); i++) 
+      v[i] = MathRandom(min,max); 
+
+   return (v);  
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Append(vector &v1, vector &v2)
+ {
+   vector v_out = v1;
+   
+   v_out.Resize(v1.Size()+v2.Size());
+   
+   for (ulong i=v2.Size(),i2=0; i<v_out.Size(); i++, i2++)
+      v_out[i] = v2[i2];
+   
+   return (v_out); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CMatrixutils::Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY)
+ {
+   if (total == WHOLE_ARRAY)
+      total = src.Size()-src_start;
+   
+   if ( total <= 0 || src.Size() == 0)
+    {
+       printf("Can't copy a vector | Size %d total %d src_start %d ",src.Size(),total,src_start);
+       return (false);
+    }
+   
+   dst.Resize(total);
+   dst.Fill(0);
+   
+   for (ulong i=src_start, index =0; i<total+src_start; i++)
+      {   
+          dst[index] = src[i];         
+          index++;
+      }
+   return (true);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
