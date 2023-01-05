@@ -36,16 +36,17 @@ public:
    void              MatrixRemoveCol(matrix &mat, ulong col);
    void              MatrixRemoveMultCols(matrix &mat, int &cols[]);
    void              MatrixRemoveRow(matrix &mat,ulong row);
-   void              VectorRemoveIndex(vector &v, ulong index);
+   void              VectorRemoveIndex(vector &v, ulong index);  
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1);
    void              TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7);
-   matrix            DesignMatrix(matrix &x_matrix);
-   matrix            OneHotEncoding(vector &v, uint &classes);
-   vector            Classes(vector &v);
-   vector            Random(int min, int max, int size);
-   vector            Random(double min, double max, int size);
-   vector            Append(vector &v1, vector &v2); 
+   matrix            DesignMatrix(matrix &x_matrix);              
+   matrix            OneHotEncoding(vector &v, uint &classes);    //ONe hot encoding 
+   vector            Classes(vector &v);                          //Identifies classes available in a vector
+   vector            Random(int min, int max, int size);          //Generates a random integer vector of a given size
+   vector            Random(double min, double max, int size);    //Generates a random vector of a given size
+   vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
+   vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -740,6 +741,24 @@ bool CMatrixutils::Copy(const vector &src,vector &dst,ulong src_start,ulong tota
           index++;
       }
    return (true);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Search(const vector &v,int value)
+ {
+   vector v_out ={};
+   
+   for (ulong i=0, count =0; i<v.Size(); i++)
+      if (value == v[i])
+        {
+          count++;
+          
+          v_out.Resize(count);    
+          
+          v_out[count-1] = (int)i;
+        }
+    return v_out;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
