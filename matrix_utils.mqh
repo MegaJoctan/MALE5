@@ -40,13 +40,15 @@ public:
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1);
    void              TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7);
    matrix            DesignMatrix(matrix &x_matrix);              
-   matrix            OneHotEncoding(vector &v, uint &classes);    //ONe hot encoding 
+   matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);                          //Identifies classes available in a vector
    vector            Random(int min, int max, int size);          //Generates a random integer vector of a given size
    vector            Random(double min, double max, int size);    //Generates a random vector of a given size
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
+   
+   matrix            DBtoMatrix(int handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -557,7 +559,7 @@ matrix CMatrixutils::DesignMatrix(matrix &x_matrix)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
+matrix CMatrixutils::OneHotEncoding(vector &v)
  {
    matrix mat = {}; 
    
@@ -567,7 +569,7 @@ matrix CMatrixutils::OneHotEncoding(vector &v, uint &classes)
      
 //---
 
-     classes = (uint)v_classes.Size();
+
      mat.Resize(v.Size(),v_classes.Size());
      mat.Fill(-100);
      
@@ -709,12 +711,15 @@ vector CMatrixutils::Random(int min,int max,int size)
 //+------------------------------------------------------------------+
 vector CMatrixutils::Append(vector &v1, vector &v2)
  {
-   vector v_out = v1;
+   vector v_out = v1; 
    
    v_out.Resize(v1.Size()+v2.Size());
    
-   for (ulong i=v2.Size(),i2=0; i<v_out.Size(); i++, i2++)
-      v_out[i] = v2[i2];
+   for (ulong i=0; i<v1.Size(); i++)
+      v_out[i] = v1[i]; 
+   
+   for (ulong i=v1.Size(),index =0; i<v_out.Size(); i++, index++)
+       v_out[i] = v2[index]; 
    
    return (v_out); 
  }
@@ -759,6 +764,66 @@ vector CMatrixutils::Search(const vector &v,int value)
           v_out[count-1] = (int)i;
         }
     return v_out;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::DBtoMatrix(int handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
+ {
+  matrix Matrix = {};
+  
+  if(handle == INVALID_HANDLE)
+     {
+      printf("db handle failed, Err = %d",GetLastError());
+      DatabaseClose(handle);
+      return Matrix;
+     }
+
+//---
+
+   string sql =  "SELECT * FROM "+table_name;
+   int request = DatabasePrepare(handle,sql);     
+   
+   ulong cols = DatabaseColumnsCount(request), rows =0;
+   
+   ArrayResize(column_names,(int)cols);
+
+//---
+
+   Matrix.Resize(cols,0); 
+   
+    for (int j=0; DatabaseRead(request); j++)
+      {  
+        rows = (ulong)j+1;
+        Matrix.Resize(cols,rows);
+         
+         for (ulong k=0; k<cols; k++)
+           {
+             DatabaseColumnDouble(request,(int)k,Matrix[k][j]);
+             
+             if (j==0)  DatabaseColumnName(request,(int)k,column_names[k]);
+           }
+          
+         if (total != WHOLE_ARRAY)
+            if (j >= total)     break;
+      }
+
+//---
+   
+   DatabaseFinalize(request);
+   DatabaseClose(handle);
+   
+   Matrix = Matrix.Transpose(); //very crucial step
+   
+   #ifdef DEBUG_MODE
+     Print("---> finished reading DB "); 
+     
+      ArrayPrint(column_names);
+      for (ulong i=0; i<5; i++)     Print(Matrix.Row(i));
+   #endif 
+   
+   
+  return Matrix;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
