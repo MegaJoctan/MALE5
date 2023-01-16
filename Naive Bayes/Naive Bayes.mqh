@@ -1,0 +1,367 @@
+//+------------------------------------------------------------------+
+//|                                                  Naive Bayes.mqh |
+//|                                    Copyright 2022, Fxalgebra.com |
+//|                        https://www.mql5.com/en/users/omegajoctan |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2022, Fxalgebra.com"
+#property link      "https://www.mql5.com/en/users/omegajoctan"
+//+------------------------------------------------------------------+
+//| defines                                                          |
+//+------------------------------------------------------------------+
+
+#include <MALE5\matrix_utils.mqh>
+#include <MALE5\preprocessing.mqh>
+//+------------------------------------------------------------------+
+//|         Bayessian Normal Distribution Class                      |
+//+------------------------------------------------------------------+
+
+class CNaiveBayes
+  {
+protected:
+   CMatrixutils      matrix_utils; 
+   
+                     ulong  n;
+                     matrix XMatrix;
+                     vector YVector;
+                       
+                     
+                     vector classes;       //classes available 
+                     vector c_prior_proba; //class prior probability
+                     vector c_evidence;    //class evidence
+                     
+                     vector calcProba(vector &v_features);
+                     
+public:
+                     CNaiveBayes(matrix &dataset);
+                    ~CNaiveBayes(void);
+                    
+                     vector NaiveBayes(vector &x_vector);
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CNaiveBayes::CNaiveBayes(matrix &dataset)
+ {
+   matrix_utils.XandYSplitMatrices(dataset,XMatrix,YVector);
+   
+   classes = matrix_utils.Classes(YVector);
+   
+   c_evidence.Resize((ulong)classes.Size());
+   
+   n = YVector.Size();
+   
+   if (n==0) { Print("--> n == 0 | Naive Bayes class failed"); return; }
+   
+//---
+
+   vector v = {};
+   for (ulong i=0; i<c_evidence.Size(); i++)
+       {
+         v = matrix_utils.Search(YVector,(int)classes[i]);
+         
+         c_evidence[i] = (int)v.Size();
+       }
+
+//---
+    
+   
+   c_prior_proba.Resize(classes.Size());
+   
+   for (ulong i=0; i<classes.Size(); i++)
+      c_prior_proba[i] = c_evidence[i]/(double)n;
+   
+    
+  
+   #ifdef DEBUG_MODE
+      Print("Prior Class Proba ",c_prior_proba,"\nEvidence ",c_evidence);
+   #endif 
+    
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CNaiveBayes::~CNaiveBayes(void)
+ {
+   ZeroMemory(XMatrix);
+   ZeroMemory(YVector); 
+   ZeroMemory(c_prior_proba);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CNaiveBayes::NaiveBayes(vector &x_vector)
+ {   
+   vector v = calcProba(x_vector);
+   
+   double sum = v.Sum();
+   
+   for (ulong i=0; i<v.Size(); i++) //converting the values into probabilities
+      v[i] = NormalizeDouble(v[i]/sum,2);       
+   
+   return(v);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CNaiveBayes::calcProba(vector &v_features)
+ {
+    vector proba_v(classes.Size()); //vector to return
+    
+    if (XMatrix.Rows() != n || v_features.Size() != XMatrix.Cols())
+      {
+         printf("FATAL | Can't calculate probability, Features matrix Rows = %d while n = %d \nOr fetures columns size = %d is not equal to XMatrix columns =%d",XMatrix.Rows(),n,v_features.Size(),XMatrix.Cols());
+         return proba_v;
+      }
+
+//---
+    
+    vector v = {}; 
+    
+    for (ulong c=0; c<classes.Size(); c++)
+      {
+        double proba = 1;
+          for (ulong i=0; i<XMatrix.Cols(); i++)
+            {
+                v = XMatrix.Col(i);
+                
+                int count =0;
+                for (ulong j=0; j<v.Size(); j++)
+                  {
+                     if (v_features[i] == v[j] && classes[c] == YVector[j])
+                        count++;
+                  }
+                  
+                proba *= count==0 ? 1 : count/(double)c_evidence[c]; //do not calculate if there isn't enought evidence'
+            }
+          
+        proba_v[c] = proba*c_prior_proba[c];
+     }
+     
+    return proba_v;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|            NORMAL DISTRIBUTION CLASS                             |
+//|   suitable for classification of discrete values, that have      |
+//|   been load to a matrix using the method ReadCSVEncode from      |
+//|   matrix_utils.mqh                                               |
+//|                                                                  |
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+class CNormDistribution
+  {
+
+public:
+   
+   double m_mean; //Assign the value of the mean
+   double m_std;  //Assign the value of Variance
+   
+                     CNormDistribution(void);
+                    ~CNormDistribution(void);
+                    
+                     double PDF(double x); //Probability density function
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+CNormDistribution::CNormDistribution(void)
+ {
+   
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+CNormDistribution::~CNormDistribution(void)
+ {
+   ZeroMemory(m_mean);
+   ZeroMemory(m_std);
+ }
+ 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+double CNormDistribution::PDF(double x)
+ {
+   double nurm = MathPow((x - m_mean),2)/(2*MathPow(m_std,2));
+   nurm = exp(-nurm);
+   
+   double denorm = 1.0/(MathSqrt(2*M_PI*MathPow(m_std,2)));
+      
+  return(nurm*denorm);
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|          GAUSSIAN NAIVE BAYES CLASS                              |
+//|                                                                  |
+//|   Suitable for classification based on features with             |
+//|   continuous variables,                                          |
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+class CGaussianNaiveBayes
+  {
+   protected:
+   
+      CNormDistribution norm_distribution;
+      
+      vector            c_prior_proba; //prior probability
+      vector            c_evidence;
+      ulong             n;
+      
+   protected:
+   
+      CMatrixutils       matrix_utils;
+      CNormDistribution  bayessian_norm;
+      
+      matrix             XMatrix;
+      vector             YVector; 
+      ulong              cols;  //columns in XMatrix
+      
+      vector             classes; //Target classes 
+      
+      vector             calcProba(vector &v_features);
+   
+   public:                         
+                        CGaussianNaiveBayes(matrix &Matrix);
+                       ~CGaussianNaiveBayes(void);
+                        
+                        int GaussianNaiveBayes(vector &x_features);
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &Matrix)
+ { 
+      
+   matrix_utils.XandYSplitMatrices(Matrix,XMatrix,YVector);
+   
+   
+   
+   classes = matrix_utils.Classes(YVector);
+   
+   cols = XMatrix.Cols();
+    
+   
+//---
+   
+   c_evidence.Resize((ulong)classes.Size());
+   
+   n = YVector.Size();
+   
+   if (n==0) { Print("---> n == 0 | Gaussian Naive Bayes class failed"); return; }
+   
+//---
+
+   vector v = {};
+   for (ulong i=0; i<c_evidence.Size(); i++)
+       {
+         v = matrix_utils.Search(YVector,(int)classes[i]);
+         
+         c_evidence[i] = (int)v.Size();
+       }
+
+   
+   c_prior_proba.Resize(classes.Size());
+   
+   for (ulong i=0; i<classes.Size(); i++)
+      c_prior_proba[i] = c_evidence[i]/(double)n;
+
+//---       
+   
+   
+   #ifdef DEBUG_MODE
+      Print("---> GROUPS ",classes);
+      Print("\n---> Prior_proba ",c_prior_proba," Evidence ",c_evidence);
+   #endif 
+   
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CGaussianNaiveBayes::~CGaussianNaiveBayes(void)
+ {
+   ZeroMemory(XMatrix);
+   ZeroMemory(YVector);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
+ { 
+   vector p = calcProba(x_features);
+  
+   
+   return((int)classes[p.ArgMax()]);
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+vector CGaussianNaiveBayes::calcProba(vector &v_features)
+ {    
+    vector proba_v(classes.Size()); //vector to return
+    
+    if (XMatrix.Rows() != n || v_features.Size() != XMatrix.Cols())
+      {
+         printf("FATAL | Can't calculate probability, Features matrix Rows = %d while n = %d \nOr fetures columns size = %d is not equal to XMatrix columns =%d",XMatrix.Rows(),n,v_features.Size(),XMatrix.Cols());
+         return proba_v;
+      }
+
+//---
+    
+    vector v = {}; 
+    
+    for (ulong c=0; c<classes.Size(); c++)
+      {
+        double proba = 1;
+          for (ulong i=0; i<XMatrix.Cols(); i++)
+            {
+                v = XMatrix.Col(i);
+                
+                int count =0;
+                vector calc_v = {};
+                
+                for (ulong j=0; j<v.Size(); j++)
+                  {
+                     if (classes[c] == YVector[j])
+                       {
+                         count++;
+                         calc_v.Resize(count);
+                         
+                         calc_v[count-1] = v[j];
+                       }
+                  }
+                
+                //Print("--> calc_v ",calc_v);
+                
+                norm_distribution.m_mean = calc_v.Mean(); //Assign these to Gaussian Normal distribution
+                norm_distribution.m_std = calc_v.Std();   
+                
+                //printf("mean %.5f std %.5f ",norm_distribution.m_mean,norm_distribution.m_std);
+                
+                proba *= count==0 ? 1 : norm_distribution.PDF(v_features[i]); //do not calculate if there isn't enought evidence'
+            }
+          
+        proba_v[c] = proba*c_prior_proba[c];
+        
+        //Print(">> Proba ",proba," prior proba ",c_prior_proba);
+     }
+     
+    return proba_v;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
