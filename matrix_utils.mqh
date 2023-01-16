@@ -32,23 +32,27 @@ public:
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
    vector            ArrayToVector(const double &Arr[]);  
+   vector            ArrayToVector(const int &Arr[]);
    bool              VectorToArray(const vector &v,double &arr[]);
+   bool              VectorToArray(const vector &v,int &arr[]);
    void              MatrixRemoveCol(matrix &mat, ulong col);
    void              MatrixRemoveMultCols(matrix &mat, int &cols[]);
    void              MatrixRemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1);
-   void              TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7);
+   void              TrainTestSplitMatrices(matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7,uint random_state=NULL);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);                          //Identifies classes available in a vector
-   vector            Random(int min, int max, int size);          //Generates a random integer vector of a given size
-   vector            Random(double min, double max, int size);    //Generates a random vector of a given size
+   vector            Random(int min, int max, int size,uint random_stat=NULL);          //Generates a random integer vector of a given size
+   vector            Random(double min, double max, int size,uint random_stat=NULL);    //Generates a random vector of a given size
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
+   void              ReverseOrder(vector &v);
+   matrix            HadamardProduct(matrix &a, matrix &b);
    
-   matrix            DBtoMatrix(int handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
+   matrix            DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -477,6 +481,18 @@ vector CMatrixutils::ArrayToVector(const double &Arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
+vector CMatrixutils::ArrayToVector(const int &Arr[])
+  {
+   vector v = {};
+
+   v.Assign(Arr);
+
+   return (v);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 bool CMatrixutils::VectorToArray(const vector &v,double &arr[])
   {
    ArrayResize(arr,(int)v.Size());
@@ -486,6 +502,22 @@ bool CMatrixutils::VectorToArray(const vector &v,double &arr[])
 
    for(ulong i=0; i<v.Size(); i++)
       arr[i] = v[i];
+
+   return(true);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CMatrixutils::VectorToArray(const vector &v,int &arr[])
+  {
+   ArrayResize(arr,(int)v.Size());
+
+   if(ArraySize(arr) == 0)
+      return(false);
+
+   for(ulong i=0; i<v.Size(); i++)
+      arr[i] = (int)v[i];
 
    return(true);
   }
@@ -509,16 +541,45 @@ void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vect
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::TrainTestSplitMatrices(const matrix &matrix_,matrix &TrainMatrix,matrix &TestMatrix,double train_size=0.7)
+void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &TrainMatrix,matrix &TestMatrix,double train_size=0.7,uint random_state=NULL)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
+   
+//--- Random pseudo numbers
+   
+ if (random_state != NULL)
+  {
+   MathSrand(random_state);
+   
+   vector index_v = Random(0,(uint)total,(uint)total);
+   
+   int index_arr[];
+   VectorToArray(index_v,index_arr);
+   
+   ArraySort(index_arr);
 
-   int train = (int)MathCeil(total*train_size);
-   int test = (int)MathFloor(total-train);
+   index_v = ArrayToVector(index_arr);
+   
+   matrix temp_matrix = matrix_;
+   
+   vector row_v = {};
+   for (ulong i=0; i<temp_matrix.Rows(); i++)
+      {
+         row_v = temp_matrix.Row(ulong(index_v[i]));
+
+         matrix_.Row(row_v,i);
+      } 
+   
+   ZeroMemory(temp_matrix);
+  } 
+//---
+
+   int train = (int)MathFloor(total*train_size);
+   int test = (int)total-train;
    
    TrainMatrix.Resize(train,cols);
    TestMatrix.Resize(test,cols);
-
+   
    int train_count = 0, test_count = 0;
 
    for(ulong i=0; i<matrix_.Rows(); i++)
@@ -651,7 +712,7 @@ vector CMatrixutils::Classes(vector &v)
                v_classes.Resize(count);
 
                v_classes[count-1] = v[i];
-               //Print("v ",v[i]);
+               //Print("v_classes ",v_classes);
 
                temp_t[j] = -1000; //modify so that it can no more be counted
               }
@@ -685,8 +746,11 @@ int CMatrixutils:: MathRandom(int mini, int maxi)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Random(double min,double max,int size)
+vector CMatrixutils::Random(double min,double max,int size,uint random_state=NULL)
  {
+  if (random_state != NULL)
+    MathSrand(random_state);
+    
    vector v(size);
    
    for (ulong i=0; i<v.Size(); i++)
@@ -697,8 +761,11 @@ vector CMatrixutils::Random(double min,double max,int size)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Random(int min,int max,int size)
+vector CMatrixutils::Random(int min,int max,int size,uint random_state=NULL)
  {
+  if (random_state != NULL)
+    MathSrand(random_state);
+    
    vector v(size);
    
    for (ulong i=0; i<v.Size(); i++) 
@@ -768,21 +835,58 @@ vector CMatrixutils::Search(const vector &v,int value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::DBtoMatrix(int handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
+
+void CMatrixutils::ReverseOrder(vector &v)
+ {
+  vector v_temp = v;
+  
+   for (ulong i=0, j=v.Size()-1; i<v.Size(); i++, j--)
+        v[i] = v_temp[j];
+        
+   ZeroMemory(v_temp);
+ }
+
+//+------------------------------------------------------------------+
+//|   Hadamard product --> is a binary operation that takes two      |
+//|    matrices of the same dimensions and produces another matrix   |
+//|   of the same dimension as the operands. | This operation is     |
+//|  widely known as element wise multiplication                     |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::HadamardProduct(matrix &a,matrix &b)
+ {  
+  matrix c = {};
+  if (a.Rows() != b.Rows() || a.Cols() != b.Cols())
+    {
+      Print("Cannot calculate Hadamard product | matrix a and b are not having the same size ");
+      return c;
+    }
+//---
+         
+    return a*b;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
  {
   matrix Matrix = {};
   
-  if(handle == INVALID_HANDLE)
+  
+  #ifdef DEBUG_MODE
+     Print("---> loading database ");
+  #endif 
+  
+  if(db_handle == INVALID_HANDLE)
      {
       printf("db handle failed, Err = %d",GetLastError());
-      DatabaseClose(handle);
+      DatabaseClose(db_handle);
       return Matrix;
      }
 
 //---
 
    string sql =  "SELECT * FROM "+table_name;
-   int request = DatabasePrepare(handle,sql);     
+   int request = DatabasePrepare(db_handle,sql);     
    
    ulong cols = DatabaseColumnsCount(request), rows =0;
    
@@ -806,17 +910,21 @@ matrix CMatrixutils::DBtoMatrix(int handle, string table_name,string &column_nam
           
          if (total != WHOLE_ARRAY)
             if (j >= total)     break;
+            
+         #ifdef  DEBUG_MODE
+            printf("Row ----> %d ",j);
+         #endif 
       }
 
 //---
    
    DatabaseFinalize(request);
-   DatabaseClose(handle);
+   DatabaseClose(db_handle);
    
    Matrix = Matrix.Transpose(); //very crucial step
    
    #ifdef DEBUG_MODE
-     Print("---> finished reading DB "); 
+     printf("---> finished reading DB size=(%dx%d)",rows,cols); 
      
       ArrayPrint(column_names);
       for (ulong i=0; i<5; i++)     Print(Matrix.Row(i));
