@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
 //|                                                 matrix_utils.mqh |
-//|                                  Copyright 2022, MetaQuotes Ltd. |
-//|                                             https://www.mql5.com |
+//|                                  Copyright 2022, Omega Joctan  . |
+//|                        https://www.mql5.com/en/users/omegajoctan |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2022, MetaQuotes Ltd."
-#property link      "https://www.mql5.com"
+#property copyright "Copyright 2022, Omega Joctan"
+#property link      "https://www.mql5.com/en/users/omegajoctan"
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
@@ -35,12 +35,12 @@ public:
    vector            ArrayToVector(const int &Arr[]);
    bool              VectorToArray(const vector &v,double &arr[]);
    bool              VectorToArray(const vector &v,int &arr[]);
-   void              MatrixRemoveCol(matrix &mat, ulong col);
-   void              MatrixRemoveMultCols(matrix &mat, int &cols[]);
-   void              MatrixRemoveRow(matrix &mat,ulong row);
+   void              RemoveCol(matrix &mat, ulong col);
+   void              RemoveMultCols(matrix &mat, int &cols[]);
+   void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1);
-   void              TrainTestSplitMatrices(matrix &matrix_,matrix &TrainMatrix, matrix &TestMatrix,double train_size = 0.7,uint random_state=NULL);
+   void              TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,uint random_state=NULL);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);                          //Identifies classes available in a vector
@@ -120,7 +120,7 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
     vector v = {};
     
     if (!v.Assign(mat))
-      Print("Failed to turn the matrix to a vector");
+      Print(__FUNCTION__," Failed to turn the matrix to a vector");
     
     v.Swap(v);
     
@@ -130,7 +130,7 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::MatrixRemoveCol(matrix &mat, ulong col)
+void CMatrixutils::RemoveCol(matrix &mat, ulong col)
   {
    matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
 
@@ -151,7 +151,7 @@ void CMatrixutils::MatrixRemoveCol(matrix &mat, ulong col)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::MatrixRemoveMultCols(matrix &mat,int &cols[])
+void CMatrixutils::RemoveMultCols(matrix &mat,int &cols[])
   {
    ulong size = (int)ArraySize(cols);
 
@@ -180,14 +180,14 @@ void CMatrixutils::MatrixRemoveMultCols(matrix &mat,int &cols[])
         {
          column_vector = mat.Col(i);
          if(column_vector.Sum()==0)
-            MatrixRemoveCol(mat,i);
+            RemoveCol(mat,i);
         }
   }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::MatrixRemoveRow(matrix &mat,ulong row)
+void CMatrixutils::RemoveRow(matrix &mat,ulong row)
   {
    matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one Row
  
@@ -536,14 +536,16 @@ void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vect
    y_vector = matrix_.Col(value);
    xmatrix.Copy(matrix_);
 
-   MatrixRemoveCol(xmatrix, value); //Remove the y column
+   RemoveCol(xmatrix, value); //Remove the y column
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &TrainMatrix,matrix &TestMatrix,double train_size=0.7,uint random_state=NULL)
+void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,uint random_state=NULL)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
+   
+   ulong last_col = cols-1;
    
 //--- Random pseudo numbers
    
@@ -577,21 +579,28 @@ void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &TrainMatrix,ma
    int train = (int)MathFloor(total*train_size);
    int test = (int)total-train;
    
-   TrainMatrix.Resize(train,cols);
-   TestMatrix.Resize(test,cols);
+   x_train.Resize(train,cols-1);
+   x_test.Resize(test,cols-1);
+   
+   y_train.Resize(train);
+   y_test.Resize(test);
    
    int train_count = 0, test_count = 0;
-
+   
+   Copy(matrix_.Col(last_col),y_train,0,train);
+   Copy(matrix_.Col(last_col),y_test,train);
+ 
    for(ulong i=0; i<matrix_.Rows(); i++)
      {
       if(i < (ulong)train)
         {
-         TrainMatrix.Row(matrix_.Row(i),train_count);
+         x_train.Row(matrix_.Row(i),train_count);
+         
          train_count++;
         }
       else
         {
-         TestMatrix.Row(matrix_.Row(i),test_count);
+         x_test.Row(matrix_.Row(i),test_count);
          test_count++;
         }
      }
@@ -800,7 +809,7 @@ bool CMatrixutils::Copy(const vector &src,vector &dst,ulong src_start,ulong tota
    
    if ( total <= 0 || src.Size() == 0)
     {
-       printf("Can't copy a vector | Size %d total %d src_start %d ",src.Size(),total,src_start);
+       printf("%s Can't copy a vector | Size %d total %d src_start %d ",__FUNCTION__,src.Size(),total,src_start);
        return (false);
     }
    
