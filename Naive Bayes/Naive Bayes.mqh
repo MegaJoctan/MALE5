@@ -32,17 +32,20 @@ protected:
                      vector calcProba(vector &v_features);
                      
 public:
-                     CNaiveBayes(matrix &dataset);
+                     CNaiveBayes(matrix &x_matrix, vector &y_vector);
                     ~CNaiveBayes(void);
                     
-                     vector NaiveBayes(vector &x_vector);
+                     int NaiveBayes(vector &x_vector);
+                     vector NaiveBayes(matrix &x_matrix);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CNaiveBayes::CNaiveBayes(matrix &dataset)
+CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
  {
-   matrix_utils.XandYSplitMatrices(dataset,XMatrix,YVector);
+ 
+   XMatrix.Copy(x_matrix);
+   YVector.Copy(YVector);
    
    classes = matrix_utils.Classes(YVector);
    
@@ -89,7 +92,7 @@ CNaiveBayes::~CNaiveBayes(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CNaiveBayes::NaiveBayes(vector &x_vector)
+int CNaiveBayes::NaiveBayes(vector &x_vector)
  {   
    vector v = calcProba(x_vector);
    
@@ -98,7 +101,27 @@ vector CNaiveBayes::NaiveBayes(vector &x_vector)
    for (ulong i=0; i<v.Size(); i++) //converting the values into probabilities
       v[i] = NormalizeDouble(v[i]/sum,2);       
    
-   return(v);
+   
+   vector p = v;
+  
+   return((int)classes[p.ArgMax()]);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CNaiveBayes::NaiveBayes(matrix &x_matrix)
+ {
+  ulong rows = x_matrix.Rows();
+ 
+  vector v(rows), pred(rows); 
+  
+   for (ulong i=0; i<rows; i++)
+    { 
+       v = x_matrix.Row(i);
+       pred[i] = NaiveBayes(v);
+    }
+    
+   return pred;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -222,7 +245,6 @@ class CGaussianNaiveBayes
    protected:
    
       CMatrixutils       matrix_utils;
-      CNormDistribution  bayessian_norm;
       
       matrix             XMatrix;
       vector             YVector; 
@@ -233,26 +255,25 @@ class CGaussianNaiveBayes
       vector             calcProba(vector &v_features);
    
    public:                         
-                        CGaussianNaiveBayes(matrix &Matrix);
+                        CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector);
                        ~CGaussianNaiveBayes(void);
                         
                         int GaussianNaiveBayes(vector &x_features);
+                        vector GaussianNaiveBayes(matrix &x_matrix);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &Matrix)
+CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
  { 
       
-   matrix_utils.XandYSplitMatrices(Matrix,XMatrix,YVector);
-   
-   
+   XMatrix.Copy(x_matrix);
+   YVector.Copy(y_vector);
    
    classes = matrix_utils.Classes(YVector);
    
    cols = XMatrix.Cols();
     
-   
 //---
    
    c_evidence.Resize((ulong)classes.Size());
@@ -305,7 +326,23 @@ int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
    
    return((int)classes[p.ArgMax()]);
  }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CGaussianNaiveBayes::GaussianNaiveBayes(matrix &x_matrix)
+ {
+  ulong rows = x_matrix.Rows();
+ 
+  vector v(rows), pred(rows); 
+  
+   for (ulong i=0; i<rows; i++)
+    { 
+       v = x_matrix.Row(i);
+       pred[i] = GaussianNaiveBayes(v);
+    }
+    
+   return pred;
+ }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
