@@ -10,7 +10,7 @@
 //| Script program start function                                    |
 //+------------------------------------------------------------------+
 
-#include <matrix_utils.mqh>
+#include "matrix_utils.mqh";
 CMatrixutils matrix_utils;
 
 matrix data_matrix(1000,6);
@@ -65,6 +65,7 @@ void OnStart()
       data_matrix.Col(bulls_vector,4);
       data_matrix.Col(price,5);
       
-      matrix_utils.WriteCsv("Oscillators.csv",data_matrix);
+      string header[6] = {"Stochastic","Rsi","Volume","Bears","bulls","EURUSD"};
+      matrix_utils.WriteCsv("Oscillators.csv",data_matrix,header);
   }
 //+------------------------------------------------------------------+

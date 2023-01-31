@@ -7,11 +7,10 @@
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 
 //+------------------------------------------------------------------+
-
-#include <MALE5\metrics.mqh>;
+ 
 #include <MALE5\preprocessing.mqh>
 #include <MALE5\matrix_utils.mqh>
-#include <MALE5\Linear Regression\Linear Regression.mqh>;
+#include <MALE5\Linear Regression\Linear Regression.mqh>
 
 //+------------------------------------------------------------------+
 
@@ -19,8 +18,7 @@ class CRidgeregression
   {
    private:
    
-   CPreprocessing pre_processing;
-   CMetrics metrics;
+   CPreprocessing pre_processing; 
    CMatrixutils matrix_utils;
    CLinearRegression *Linear_reg;
   
