@@ -30,21 +30,21 @@ public:
                     double adjusted_r(vector &A, vector &F,uint indep_vars=1);
 //---
                 
-                   struct confusion_m
-                    {
-                        double accuracy;
-                        vector precision;
-                        vector recall;
-                        vector f1_score;
-                        vector specificity;
-                        vector support;
+                    struct confusion_m
+                     {
+                         double accuracy;
+                         vector<double> precision;
+                         vector<double> recall;
+                         vector<double> f1_score;
+                         vector<double> specificity;
+                         vector<double> support;
                         
-                        vector avg;
-                        vector w_avg;
+                         vector<double> avg;
+                         vector<double> w_avg;
                         
-                    } confusion_matrix_struct;
+                     } confusion_matrix_struct;
                     
-                    double confusion_matrix(vector &A, vector &F,vector &classes, bool plot=true);
+                    double confusion_matrix(vector &A, vector &F,vector &classes, bool report_show=true);
                     
                     double RSS(vector &A, vector &F);
                     double MSE(vector &A, vector &F);
@@ -55,7 +55,7 @@ public:
 
 CMetrics::CMetrics(void)
   {
-  
+    ZeroMemory(confusion_matrix_struct);
   }
 
 //+------------------------------------------------------------------+
@@ -88,7 +88,8 @@ double CMetrics::r_squared(vector &A,vector &P)
    
    return(1-(rss/tss));      
  }
- 
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
 double CMetrics::adjusted_r(vector &A,vector &F,uint indep_vars=1)
@@ -104,10 +105,12 @@ double CMetrics::adjusted_r(vector &A,vector &F,uint indep_vars=1)
    
    return(1-( (1-r2)*(N-1) )/(N - indep_vars -1));
  }
- 
-//+------------------------------------------------------------------+
 
-double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=true)
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+ 
+double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool report_show=true)
  {     
     ulong TP=0, TN=0, FP=0, FN=0;
      
@@ -147,6 +150,8 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
    confusion_matrix_struct.precision.Resize(classes.Size());
    vector col_v = {};
    
+   double value = 0;
+   
    for (ulong i=0; i<classes.Size(); i++)
       {
          col_v = conf_m.Col(i);
@@ -155,7 +160,9 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
          TP = (ulong)diag[i];
          FP = (ulong)col_v.Sum();
          
-         confusion_matrix_struct.precision[i] = NormalizeDouble(TP/double(TP+FP),8);
+         value = TP/double(TP+FP);     
+         
+         confusion_matrix_struct.precision[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
       }
 
 //--- recall
@@ -171,7 +178,9 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
          TP = (ulong)diag[i];
          FN = (ulong)row_v.Sum();
          
-         confusion_matrix_struct.recall[i] = NormalizeDouble(TP/double(TP+FN),8);
+         value = TP/double(TP+FN);
+         
+         confusion_matrix_struct.recall[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
       }
 
 //--- specificity
@@ -194,7 +203,9 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
           FP = (ulong)col_v.Sum();
           TN = (ulong)temp_mat.Sum(); 
           
-          confusion_matrix_struct.specificity[i] = NormalizeDouble(TN/double(TN+FP),8);
+          value = TN/double(TN+FP);
+          
+          confusion_matrix_struct.specificity[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
       }
 
 //--- f1 score
@@ -204,7 +215,10 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
    for (ulong i=0; i<classes.Size(); i++)
      {
        confusion_matrix_struct.f1_score[i] = 2*((confusion_matrix_struct.precision[i]*confusion_matrix_struct.recall[i])/(confusion_matrix_struct.precision[i]+confusion_matrix_struct.recall[i]));      
-       confusion_matrix_struct.f1_score[i] = NormalizeDouble(confusion_matrix_struct.f1_score[i],8);
+       
+       value = confusion_matrix_struct.f1_score[i];
+       
+       confusion_matrix_struct.f1_score[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
      }
 
 //--- support
@@ -253,7 +267,7 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
    
 //--- Report
    
-   if (plot)
+   if (report_show)
     {
       string report = "\n_\t\t\t\tPrecision \tRecall \tSpecificity \tF1 score \tSupport";
       
@@ -261,13 +275,14 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool plot=
          {
            report += "\n\t"+string(classes[i]);
              //for (ulong j=0; j<3; j++)
-               report += StringFormat("\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t %.1f",confusion_matrix_struct.precision[i],confusion_matrix_struct.recall[i],confusion_matrix_struct.specificity[i],confusion_matrix_struct.f1_score[i],confusion_matrix_struct.support[i]);
+             
+               report += StringFormat("\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f",confusion_matrix_struct.precision[i],confusion_matrix_struct.recall[i],confusion_matrix_struct.specificity[i],confusion_matrix_struct.f1_score[i],confusion_matrix_struct.support[i]);
          }
      
-      report += StringFormat("\n\nAccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%.2f\n",confusion_matrix_struct.accuracy);
+      report += StringFormat("\n\nAccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%.2f\n",confusion_matrix_struct.accuracy);
        
-      report += StringFormat("Average \t %.2f \t\t %.2f \t\t %.2f \t\t %.2f \t\t %.1f",confusion_matrix_struct.avg[0],confusion_matrix_struct.avg[1],confusion_matrix_struct.avg[2],confusion_matrix_struct.avg[3],confusion_matrix_struct.avg[4]);
-      report += StringFormat("\nW Avg \t\t\t %.2f \t\t %.2f \t\t %.2f \t\t %.2f \t\t %.1f",confusion_matrix_struct.w_avg[0],confusion_matrix_struct.w_avg[1],confusion_matrix_struct.w_avg[2],confusion_matrix_struct.w_avg[3],confusion_matrix_struct.w_avg[4]);
+      report += StringFormat("Average \t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_matrix_struct.avg[0],confusion_matrix_struct.avg[1],confusion_matrix_struct.avg[2],confusion_matrix_struct.avg[3],confusion_matrix_struct.avg[4]);
+      report += StringFormat("\nW Avg \t\t\t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_matrix_struct.w_avg[0],confusion_matrix_struct.w_avg[1],confusion_matrix_struct.w_avg[2],confusion_matrix_struct.w_avg[3],confusion_matrix_struct.w_avg[4]);
           
       Print("Confusion Matrix\n",conf_m);    
       Print("\nClassification Report\n",report);
