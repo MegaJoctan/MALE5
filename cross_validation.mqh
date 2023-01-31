@@ -91,7 +91,7 @@ double CCrossValidation::LeaveOneOut(double init, double step, double finale)
                
                test = XMatrix.Row(j);
                
-               matrix_utils.MatrixRemoveRow(train,j);
+               matrix_utils.RemoveRow(train,j);
                
                vector coeff = {};
                double acc =0;
@@ -132,7 +132,7 @@ double CCrossValidation::LeaveOneOut(double init, double step, double finale)
           lambda_vector[i] = lambda;
           
           #ifdef DEBUG_MODE
-             //printf("%.5f LOOCV mse %.5f",lambda_vector[i],validation_output[i]);
+             printf("%.5f LOOCV mse %.5f",lambda_vector[i],validation_output[i]);
           #endif           
        }
 
