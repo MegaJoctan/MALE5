@@ -8,328 +8,292 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
+//| Regression NN class 
 
-#include <preprocessing.mqh>;
-#include <matrix_utils.mqh>;
+#include <MALE5\preprocessing.mqh>;
+#include <MALE5\matrix_utils.mqh>;
+#include <MALE5\metrics.mqh>
 
-CPreprocessing pre_processing;
-CMatrixutils   matrix_utils;
-
-//+------------------------------------------------------------------+
+#ifndef RANDOM_STATE 
+ #define  RANDOM_STATE 42
  
-
-enum LOSS_TYPE
-  {
-    MSE, //for regression
-    BCE  //for classification
-  } L_FX;
-
-//---
-
-enum nn_optimizers
-  {
-     ADAM,
-     SGD
-  } nn_optimizer;
-
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
 class CNeuralNets
   {
+   CPreprocessing pre_processing;
+   CMatrixutils   matrix_utils;
+   CMetrics       metrics;
+   
    protected:
+                  bool                     SoftMaxLayer;
+                  ENUM_ACTIVATION_FUNCTION A_FX;                  
                   matrix                   XMatrix;
-                  matrix                   YMatrix;
+                  vector                   YVector;
                   
-                  ulong                    m_hlnodes;
+                  ulong                    m_hLayers;
                   vector                   m_targetVector;
+                  vector                   classes;
                   
                   ulong                    m_rows, m_cols;
+                  ulong                    m_inputs;
                   uint                     m_outputs;  //MLP outputs
-                  matrix<double>           w1; //Weights on the input layer to hidden
-                  matrix<double>           w2; //weights on the hidden layer to output
+   
+                  string   CalcTimeElapsed(double seconds);
+                  bool    isNNClassification();
                   
-                  matrix HL_MATRIX; //hidden layer matrix
-                  matrix OL_MATRIX; //Output layer matrix
+   protected:
+                  vector W; //Weights vector
+                  vector B; //Bias vector 
+                  vector W_CONFIG; 
+                  vector HL_CONFIG;
+                  vector IN_CONFIG; //All the inputs from hidden layer to the next layer
                   
-                  ENUM_ACTIVATION_FUNCTION A_FX; 
-
-                  matrix OneHotEncoding(vector &v, uint &classes);
-                  uint   OutputNodeDxd(ENUM_ACTIVATION_FUNCTION ActivationFx,uint dt_clas);
-                  
+                  void   SoftMaxLayerFX(matrix<double> &mat);
+                                    
    public:
-                  CNeuralNets(matrix &Matrix, ENUM_ACTIVATION_FUNCTION ActivationFX, ulong hl_nodes, LOSS_TYPE loss_function);
+                  
+                  CNeuralNets(matrix &xmatrix, vector &yvector, ENUM_ACTIVATION_FUNCTION ActivationFX, vector &HL_CONFIG, bool SoftMaxLyr=false);
                  ~CNeuralNets(void);
                   
-                  
-                  vector FeedForwardMLP(vector& V_in);       
-                  void   TrainFeedForwardMLP(matrix& mat_out);
-                  void   BackPropagation(nn_optimizers optimizer, double alpha=0.01, uint iterations = 100);
+                  vector  FeedForwardMLP(vector& V_in);  
                            
   };
 
 //+------------------------------------------------------------------+
 
-CNeuralNets::CNeuralNets(matrix &Matrix, ENUM_ACTIVATION_FUNCTION ActivationFX, ulong hl_nodes, LOSS_TYPE loss_function)
+CNeuralNets::CNeuralNets(matrix &xmatrix, vector &yvector, ENUM_ACTIVATION_FUNCTION ActivationFX, vector &HL_CONFIG_, bool SoftMaxLyr=false)
  {
-    A_FX = ActivationFX;
-    L_FX = loss_function;
-    m_hlnodes = hl_nodes;
-    
-    m_rows = Matrix.Rows();
-    m_cols = Matrix.Cols(); 
+ 
+    A_FX = ActivationFX; 
 
-//---
-  
-    XMatrix.Copy(Matrix);
-    XMatrix.Reshape(m_rows,m_cols-1); //remove target variable
-    pre_processing.MinMaxScaler(XMatrix);
-    
-    vector y = Matrix.Col(m_cols-1);
-    YMatrix = OneHotEncoding(y,m_outputs);
-  
-//---
-   
-    //uint dt_classes = PrepareData(Matrix,YMatrix);
-    //m_outputs = OutputNodeDxd(ActivationFX,dt_classes); 
-    //the output nodes on the final layer of a MLP depends on the classes in dataset and 
-    //the king of activation function selected for the network
-
-//---
-    
-    
-   #ifdef  DEBUG_MODE
-     {
-       m_cols = m_cols-1;
-       w1.Resize(m_hlnodes,m_cols);
-       
-       ulong count1 = 1;
-       
-       for (ulong i=0; i<w1.Rows(); i++)
-         for (ulong j=0; j<w1.Cols(); j++, count1++)
-             {
-               w1[i][j] = (double)count1/10.0;
-             }
-       
-       w2.Resize(m_outputs,m_hlnodes);
-       
-       for (ulong i=0, count=count1; i<w2.Rows(); i++)
-         for (ulong j=0; j<w2.Cols(); j++,count++)
-            { 
-               w2[i][j] = (double)count/10.0;
-            }
-     } 
-   #endif
-    
-//---
-
-   #ifdef  DEBUG_MODE
-   
-         Print("w1 matrix\n",w1,"\nw2 matrix\n",w2);
+//--
      
-         printf("Init A_FX %s hl_nodes %d Loss_FX %s Output Nodes %d",EnumToString(ActivationFX),hl_nodes,EnumToString(loss_function),m_outputs);
-         Print("xmatrix\n",XMatrix,"\nYmatrix\n",YMatrix); 
-         
-   #endif      
+    XMatrix = xmatrix;
+    YVector = yvector;
+
+    SoftMaxLayer = SoftMaxLyr;
+    
+
+    m_inputs = XMatrix.Cols();
+    m_rows = XMatrix.Rows();
+    m_cols = XMatrix.Cols(); 
+
+   
+//--- Decide the outputs of NN
+   
+    if (A_FX == AF_SIGMOID || SoftMaxLayer)
+       {
+          classes = matrix_utils.Classes(YVector);
+          m_outputs = (uint)classes.Size();
+       }
+       
+    else  m_outputs = 1;
+
+//---
+
+    HL_CONFIG.Copy(HL_CONFIG_);
+    
+    IN_CONFIG.Resize(1);
+    IN_CONFIG[0] = int(m_inputs);
+
+    IN_CONFIG =matrix_utils.Append(IN_CONFIG,HL_CONFIG);
+    
+//---
+
+    HL_CONFIG.Resize(HL_CONFIG.Size()+1); //Add the output layer
+    HL_CONFIG[HL_CONFIG.Size()-1] = m_outputs; //Append one node to the output layer
+    
+    B.Resize((ulong)HL_CONFIG.Sum());
+    
+    m_hLayers = HL_CONFIG.Size();    
+   
+//--- GENERATE WEIGHTS
+   
+    vector v(HL_CONFIG.Size());
+  
+    ulong inputs = m_inputs; 
+    
+    for (ulong i=0; i<v.Size(); i++)
+      {
+         v[i] = inputs*HL_CONFIG[i];
+         inputs = (ulong)HL_CONFIG[i];
+      }
+     
+     W_CONFIG = v;
+     
+     W = matrix_utils.Random(0.0, 1.0, (int)v.Sum(),RANDOM_STATE);
+    
+//--- GENERATE BIAS
+    
+     B = matrix_utils.Random(0.0,1.0,(int)B.Size(),RANDOM_STATE);
+   
+      #ifdef  DEBUG_MODE 
+    
+            Print( "<------------------- NN INFO  ------------------------->\n",
+                      "HL_CONFIG ",HL_CONFIG," WEIGHTS ",W.Size(),"\n","TOTAL HL(S) ",m_hLayers,"\n",
+                      "W_CONFIG ",W_CONFIG," ACTIVATION ",EnumToString(A_FX),"\n",
+                      "NN INPUTS ",m_inputs," OUTPUT ",m_outputs,"\n",
+                      "IN_CONFIG ",IN_CONFIG," Softmax Layer ",bool(SoftMaxLayer),"\n",
+                      "BIAS ",B,"\n",
+                      "--------------------        ------------------------->"
+                 );
+            
+      #endif      
 
  }
 
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
 CNeuralNets::~CNeuralNets(void)
  {
    ZeroMemory(XMatrix);
-   ZeroMemory(YMatrix);
+   ZeroMemory(YVector);
+   
+   SoftMaxLayer = false;
+   
+   ZeroMemory(W);
+   ZeroMemory(B); 
+   ZeroMemory(W_CONFIG); 
+   ZeroMemory(HL_CONFIG);
+   ZeroMemory(IN_CONFIG);
+   
+   ZeroMemory(XMatrix);
+   ZeroMemory(YVector);
+    
+   ZeroMemory(m_targetVector);
+   ZeroMemory(classes);
  }
-
 
 //+------------------------------------------------------------------+
-
-uint CNeuralNets::OutputNodeDxd(ENUM_ACTIVATION_FUNCTION ActivationFx,uint dt_clas)
- {
-    switch(ActivationFx)
-      {
-       case  AF_ELU:           return 1;          break;  //Exponential Linear Unit
-       case  AF_EXP:           return 1;          break;  //Exponential
-       case  AF_GELU:          return 1;          break;  //Gaussian Error Linear Unit
-       case AF_LINEAR:         return 1;          break;  //Linear
-       case AF_LRELU:          return 1;          break;  //Leaky Rectified linear unit
-       case AF_RELU:           return 1;          break;  //Rectified linear unit
-       case AF_SELU:           return 1;          break;  //Scaled exponential linear unit
-       case AF_TRELU:          return 1;          break;  //Threshold Rectified linear unit
-       case AF_SOFTPLUS:       return 1;          break;  //Softplus
-       
-       case AF_HARD_SIGMOID:  return dt_clas;          break;  //Hard Sigmoid 
-       case AF_SIGMOID:       return dt_clas;          break;  //Sigmoid
-       case AF_SWISH:         return dt_clas;          break;  //Swish
-       case AF_SOFTSIGN:      return dt_clas;          break;  //Softsign
-       case AF_TANH:          return dt_clas;          break;  //The hyperbolic tangent Function
-       
-       default:
-         Print("Unknown Activation Function");
-         break;
-      }
-  return(0); 
- }
-
+//|                                                                  |
 //+------------------------------------------------------------------+
 
 vector CNeuralNets::FeedForwardMLP(vector &V_in)
  {    
-   V_in.Resize(V_in.Size()); //This line should be removed
+   matrix L_INPUT = {}, L_OUTPUT={}, L_WEIGHTS = {};
+   vector v_weights ={};
    
-   matrix m_in = matrix_utils.VectorToMatrix(V_in); //Input matrix
-   //Print("w1\n",w1,"\nm_in\n",m_in);
+   ulong start = 0;             
    
-   HL_MATRIX = w1.MatMul(m_in);
-   HL_MATRIX.Activation(HL_MATRIX,A_FX);  //Passing them to Activation F(x)
-      
-   //Print("w2\n",w2,"\nHL_MATRIX\n",HL_MATRIX);
-      
-   OL_MATRIX = w2.MatMul(HL_MATRIX);
-   OL_MATRIX.Activation(OL_MATRIX,A_FX); //passing the output to an Activation F(x)
+   L_INPUT = matrix_utils.VectorToMatrix(V_in); 
    
-   return(matrix_utils.MatrixToVector(OL_MATRIX));
- }
- 
-//+------------------------------------------------------------------+
-
-void CNeuralNets::BackPropagation(nn_optimizers optimizer, double alpha=0.010000,uint iterations=100)
- {   
-   double cost=0;
+   vector L_BIAS_VECTOR = {};
+   matrix L_BIAS_MATRIX = {};
    
-   nn_optimizer = optimizer;
+   ulong b_start = 0;
    
-   XMatrix.Resize(XMatrix.Rows(),2);
-   
-    for (uint iters=0; iters<iterations; iters++)
+   for (ulong i=0; i<W_CONFIG.Size(); i++)
       {
-        vector v_in, v_out={}, y_v = {}; 
-        matrix DXOUT_MATRIX, DXHL_MATRIX, DX_DY;
-        matrix w2_temp = w2;
-        matrix INPUT_MATRIX;
-        
-        //Print("w1\n",w1,"\nw2\n",w2);
-        
-        for(ulong i=0; i<m_rows; i++) //Loop the entire dataset
-           {
-              v_in = XMatrix.Row(i);
-              y_v = YMatrix.Row(i);
-              
-              INPUT_MATRIX = matrix_utils.VectorToMatrix(v_in);
-              
-              v_out = FeedForwardMLP(v_in);
-              
-              HL_MATRIX.Derivative(DXHL_MATRIX,A_FX);
-              
-              //dx_out = v_out - y_v;
-              DXOUT_MATRIX = matrix_utils.VectorToMatrix(v_out - y_v);
-              
-              //Print("DXOUT MATRIX\n",DXOUT_MATRIX,"\nDXHL\n",DXHL_MATRIX);
-              
-              DXHL_MATRIX = DXHL_MATRIX.Transpose();
-              
-              DX_DY = DXOUT_MATRIX.MatMul(DXHL_MATRIX);// * HL_MATRIX;
-              DX_DY = DX_DY.MatMul(HL_MATRIX);
+         Print("--? ",i);
+         
+         matrix_utils.Copy(W,v_weights,start,ulong(W_CONFIG[i]));
+         
+         L_WEIGHTS = matrix_utils.VectorToMatrix(v_weights,L_INPUT.Rows());
+         
+         matrix_utils.Copy(B,L_BIAS_VECTOR,b_start,(ulong)HL_CONFIG[i]);
+         L_BIAS_MATRIX = matrix_utils.VectorToMatrix(L_BIAS_VECTOR);
+         
+         Print("L_WEIGHTS\n",L_WEIGHTS,"\nL_INPUT\n",L_INPUT,"\nL_BIAS\n",L_BIAS_MATRIX);
+         
+         L_OUTPUT = L_WEIGHTS.MatMul(L_INPUT);
 
-              //Print("DX_DY\n",DX_DY);
-              
-              //w2 = w2 - (DX_DY * alpha);
-              for (ulong r=0; r<w2.Rows(); r++)
-                 for (ulong c=0; c<w2.Cols(); c++)
-                   {
-                     w2[r][c] = w2[r][c] - DX_DY[r][0] * alpha;
-                   }
+         L_OUTPUT = L_OUTPUT+L_BIAS_MATRIX; //Add bias
 
-//--- w2
-
-              DXOUT_MATRIX = DXOUT_MATRIX.Transpose();
-              //Print("DXOUT_MATRIX\n",DXOUT_MATRIX,"\nw2_temp\n",w2_temp);
-              DX_DY = DXOUT_MATRIX.MatMul(w2_temp);
-              
-              DXHL_MATRIX = DXHL_MATRIX.Transpose();
-              //Print("DX_DY\n",DX_DY,"\nDXHL_MATRIX\n",DXHL_MATRIX);
-              
-              DX_DY = DX_DY.MatMul(DXHL_MATRIX);
-              
-              //INPUT_MATRIX = INPUT_MATRIX.Transpose();
-              
-              //Print("dxdy\n",DX_DY,"\nINPUT_MATRIX\n",INPUT_MATRIX);
-              
-              DX_DY = INPUT_MATRIX.MatMul(DX_DY);
-              
-              //Print("DX_DY\n",DX_DY,"\nw1\n",w1);     
-              
-              for (ulong r=0; r<w1.Rows(); r++)
-                 for (ulong c=0; c<w1.Cols(); c++)
-                     w1[r][c] = w1[r][c] - DX_DY[c][0] * alpha;
-              
-           }
-        
-            #ifdef  DEBUG_MODE
-                       Print("------> Loss = ",v_out.Loss(y_v,LOSS_BCE));
-            #endif 
-      }
- }
- 
-//+------------------------------------------------------------------+ 
-
-matrix CNeuralNets::OneHotEncoding(vector &v, uint &classes)
- {
-   matrix mat = {}; 
-   
 //---
-
-   vector temp_t = v, v_classes = {v[0]};
-
-   for(ulong i=0, count =1; i<v.Size(); i++)  //counting the different neighbors
-     {
-      for(ulong j=0; j<v.Size(); j++)
-        {
-         if(v[i] == temp_t[j] && temp_t[j] != -1000)
-           {
-            bool count_ready = false;
-
-            for(ulong n=0; n<v_classes.Size(); n++)
-               if(v[i] == v_classes[n])
-                    count_ready = true;
-
-            if(!count_ready)
-              {
-               count++;
-               v_classes.Resize(count);
-
-               v_classes[count-1] = v[i];
-               //Print("v ",v[i]);
-
-               temp_t[j] = -1000; //modify so that it can no more be counted
-              }
-            else
-               break;
-            //Print("t vectors vector ",v);
-           }
+         
+         if (i==W_CONFIG.Size()-1) //Last layer
+          {
+             if (SoftMaxLayer)  
+               SoftMaxLayerFX(L_OUTPUT);
+             else
+               L_OUTPUT.Activation(L_OUTPUT, A_FX);
+          }
          else
-            continue;
-        }
-     }
-     
+            L_OUTPUT.Activation(L_OUTPUT, A_FX);
+            
 //---
 
-     classes = (uint)v_classes.Size();
-     mat.Resize(v.Size(),v_classes.Size());
-     mat.Fill(-100);
-     
-     for (ulong i=0; i<mat.Rows(); i++)
-        for (ulong j=0; j<mat.Cols(); j++)
-           {
-               if (v[i] == v_classes[j])
-                  mat[i][j] = 1;
-               else 
-                  mat[i][j] = 0;     
-           }
+         L_INPUT.Copy(L_OUTPUT); //Assign outputs to the inputs
+         start += (ulong)W_CONFIG[i]; //New weights copy
+         b_start += (ulong)HL_CONFIG[i];
+         
+      }
+   Print("outputs\n ",L_OUTPUT);
    
-   return(mat);
+   return(matrix_utils.MatrixToVector(L_OUTPUT));
  }
- 
+
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
- 
+void CNeuralNets::SoftMaxLayerFX(matrix<double> &mat)
+ {
+   vector<double> ret = matrix_utils.MatrixToVector(mat);
+   
+   ret.Activation(ret, AF_SOFTMAX);
+   
+   mat = matrix_utils.VectorToMatrix(ret, mat.Cols());
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CNeuralNets::isNNClassification(void)
+ { 
+    switch(A_FX)
+      {
+       case  AF_ELU:           return false;          break;  //Exponential Linear Unit
+       case  AF_EXP:           return false;          break;  //Exponential
+       case  AF_GELU:          return false;          break;  //Gaussian Error Linear Unit
+       case AF_LINEAR:         return false;          break;  //Linear
+       case AF_LRELU:          return false;          break;  //Leaky Rectified linear unit
+       case AF_RELU:           return false;          break;  //Rectified linear unit
+       case AF_SELU:           return false;          break;  //Scaled exponential linear unit
+       case AF_TRELU:          return false;          break;  //Threshold Rectified linear unit
+       case AF_SOFTPLUS:       return false;          break;  //Softplus
+       
+       case AF_HARD_SIGMOID:  return true;          break;  //Hard Sigmoid 
+       case AF_SIGMOID:       return true;          break;  //Sigmoid
+       case AF_SWISH:         return true;          break;  //Swish
+       case AF_SOFTSIGN:      return true;          break;  //Softsign
+       case AF_TANH:          return true;          break;  //The hyperbolic tangent Function
+       
+       default:
+         Print("Unknown Activation Function");
+         return false;
+         break;
+      }
+      
+  return(false); 
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+string CNeuralNets::CalcTimeElapsed(double seconds)
+ {
+  string time_str = "";
+  
+  uint minutes=0, hours=0;
+  
+   if (seconds >= 60)
+     time_str = StringFormat("%d Minutes and %.3f Seconds ",minutes=(int)round(seconds/60.0), ((int)seconds % 60));     
+   if (minutes >= 60)
+     time_str = StringFormat("%d Hours %d Minutes and %.3f Seconds ",hours=(int)round(minutes/60.0), minutes, ((int)seconds % 60));
+   else
+     time_str = StringFormat("%.3f Seconds ",seconds);
+     
+   return time_str;
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
