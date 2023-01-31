@@ -8,6 +8,10 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
+#ifndef COLS
+   #define  COLS 1
+#endif 
+
 class CMatrixutils
   {
   
@@ -26,9 +30,10 @@ public:
 
    string            csv_header[];
    
-   void              WriteCsv(string csv_name, matrix &Matrix, string &header[] , int digits=5);
+   void              WriteCsv(string csv_name, matrix &matrix_, string &header[] , int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
    matrix            ReadCsvEncode(string file_name, string delimiter=",");
+   bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
    vector            ArrayToVector(const double &Arr[]);  
@@ -39,16 +44,19 @@ public:
    void              RemoveMultCols(matrix &mat, int &cols[]);
    void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
-   void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1);
-   void              TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,uint random_state=NULL);
+   void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1);
+   void              TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);                          //Identifies classes available in a vector
-   vector            Random(int min, int max, int size,uint random_stat=NULL);          //Generates a random integer vector of a given size
-   vector            Random(double min, double max, int size,uint random_stat=NULL);    //Generates a random vector of a given size
+   vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
+   vector            Random(double min, double max, int size,int random_state=-1);    //Generates a random vector of a given size
+   void              Shuffle(vector &v, int random_state=-1);
+   void              Shuffle(matrix &matrix_,int random_state=-1);
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
+   vector            Search(const vector &v,double value);
    void              ReverseOrder(vector &v);
    matrix            HadamardProduct(matrix &a, matrix &b);
    
@@ -223,7 +231,7 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::WriteCsv(string csv_name, matrix &Matrix, string &header[], int digits=5)
+void CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], int digits=5)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
@@ -239,7 +247,7 @@ void CMatrixutils::WriteCsv(string csv_name, matrix &Matrix, string &header[], i
       
       //FileSeek(handle,0,SEEK_SET);
       
-      vector colsinrows = Matrix.Row(0);
+      vector colsinrows = matrix_.Row(0);
       
       if (ArraySize(header) != (int)colsinrows.Size())
          {
@@ -257,14 +265,14 @@ void CMatrixutils::WriteCsv(string csv_name, matrix &Matrix, string &header[], i
       
       FileSeek(handle,0,SEEK_SET);
       
-      for(ulong i=0; i<Matrix.Rows(); i++)
+      for(ulong i=0; i<matrix_.Rows(); i++)
         {
          ZeroMemory(concstring);
 
-         row = Matrix.Row(i);
+         row = matrix_.Row(i);
          for(ulong j=0, cols =1; j<row.Size(); j++, cols++)
            {
-            concstring += (string)NormalizeDouble(row[j],digits) + (cols == Matrix.Cols() ? "" : ",");
+            concstring += (string)NormalizeDouble(row[j],digits) + (cols == matrix_.Cols() ? "" : ",");
            }
 
          FileSeek(handle,0,SEEK_END);
@@ -340,10 +348,10 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
  {
 //--- Obtaining the columns
 
-   matrix Matrix={};
+   matrix matrix_={};
 
    
-//--- Loading the entire Matrix to an Array
+//--- Loading the entire matrix_ to an Array
 
    int csv_columns=0,  rows_total=0;
    
@@ -422,7 +430,7 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
 
 //--- Encoding the CSV
 
-     Matrix.Resize(mat_rows,mat_cols);    
+     matrix_.Resize(mat_rows,mat_cols);    
       
 //---
 
@@ -438,12 +446,12 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
           
             v = LabelEncoder(Arr);
                
-            Matrix.Col(v, j);
+            matrix_.Col(v, j);
             
             start += (int)mat_rows;
          }
       
-   return (Matrix);
+   return (matrix_);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -466,6 +474,66 @@ vector CMatrixutils::LabelEncoder(const string &Arr[])
         }
     
    return Encoded;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",")
+ {
+
+   int rows_total=0;
+
+   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
+
+   ResetLastError();
+
+   if(handle == INVALID_HANDLE)
+     {
+         printf("Invalid %s handle Error %d ",file_name,GetLastError());
+         Print(GetLastError()==0?" TIP | File Might be in use Somewhere else or in another Directory":"");
+         return false;
+     }
+
+   else
+     {
+      int column = 0, rows=0;
+
+      while(!FileIsEnding(handle))
+        {
+         string data = FileReadString(handle);
+
+         //---
+         if(rows ==0)
+           {
+            ArrayResize(csv_header,column+1);
+            csv_header[column] = data;
+           }
+
+         if(rows>0)  //Avoid the first column which contains the column's header
+            array[rows-1,column] = data;
+
+         column++;
+
+         //---
+
+         if(FileIsLineEnding(handle))
+           {
+            rows++;
+            
+            ArrayResize(array,rows);
+
+            column = 0;
+           }
+        }
+
+      rows_total = rows;
+
+      FileClose(handle);
+     }
+   
+   ArrayResize(array,rows_total-1);
+   
+   return (true);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -524,56 +592,76 @@ bool CMatrixutils::VectorToArray(const vector &v,int &arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_index=-1)
+void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1)
   {
-   ulong value = y_index;
+   y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
 
-   if(y_index == -1)
-      value = matrix_.Cols()-1;  //Last column in the matrix
-
-//---
-
-   y_vector = matrix_.Col(value);
+   y_vector = matrix_.Col(y_column);
    xmatrix.Copy(matrix_);
 
-   RemoveCol(xmatrix, value); //Remove the y column
+   RemoveCol(xmatrix, y_column); //Remove the y column
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,uint random_state=NULL)
+void CMatrixutils::Shuffle(vector &v, int random_state=-1)
+ {
+   if (random_state != -1)
+     MathSrand(random_state);
+     
+   int swap_index;
+   double temp;
+   
+   int SIZE = (int)v.Size();
+   
+   for (int i=0; i<SIZE; i++)
+      {
+         swap_index = rand() % SIZE;
+         
+         temp = v[i];
+         
+         v[i] = v[swap_index];
+         v[swap_index] = temp;
+      }   
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::Shuffle(matrix &matrix_,int random_state=-1)
+ {
+   if (random_state != -1)
+     MathSrand(random_state);
+  
+   int ROWS=(int)matrix_.Rows(), COL=(int)matrix_.Cols();   
+   
+   int swap_index;
+   vector temp(COL);
+   
+   for (int i=0; i<ROWS; i++)
+      {
+         swap_index = rand() % ROWS;
+         
+         temp = matrix_.Row(i);
+               
+         matrix_.Row(matrix_.Row(swap_index),i);
+         
+         matrix_.Row(temp,swap_index);
+      }   
+
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,int random_state=-1)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
    
    ulong last_col = cols-1;
    
-//--- Random pseudo numbers
+//--- Random pseudo matrix
    
- if (random_state != NULL)
-  {
-   MathSrand(random_state);
+   Shuffle(matrix_,random_state);
    
-   vector index_v = Random(0,(uint)total,(uint)total);
-   
-   int index_arr[];
-   VectorToArray(index_v,index_arr);
-   
-   ArraySort(index_arr);
-
-   index_v = ArrayToVector(index_arr);
-   
-   matrix temp_matrix = matrix_;
-   
-   vector row_v = {};
-   for (ulong i=0; i<temp_matrix.Rows(); i++)
-      {
-         row_v = temp_matrix.Row(ulong(index_v[i]));
-
-         matrix_.Row(row_v,i);
-      } 
-   
-   ZeroMemory(temp_matrix);
-  } 
 //---
 
    int train = (int)MathFloor(total*train_size);
@@ -755,9 +843,9 @@ int CMatrixutils:: MathRandom(int mini, int maxi)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Random(double min,double max,int size,uint random_state=NULL)
+vector CMatrixutils::Random(double min,double max,int size,int random_state=-1)
  {
-  if (random_state != NULL)
+  if (random_state != -1)
     MathSrand(random_state);
     
    vector v(size);
@@ -770,9 +858,9 @@ vector CMatrixutils::Random(double min,double max,int size,uint random_state=NUL
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Random(int min,int max,int size,uint random_state=NULL)
+vector CMatrixutils::Random(int min,int max,int size,int random_state=-1)
  {
-  if (random_state != NULL)
+  if (random_state != -1)
     MathSrand(random_state);
     
    vector v(size);
@@ -845,6 +933,25 @@ vector CMatrixutils::Search(const vector &v,int value)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
+vector CMatrixutils::Search(const vector &v,double value)
+ {
+   vector v_out ={};
+   
+   for (ulong i=0, count =0; i<v.Size(); i++)
+      if (value == v[i])
+        {
+          count++;
+          
+          v_out.Resize(count);    
+          
+          v_out[count-1] = (int)i;
+        }
+    return v_out;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
 void CMatrixutils::ReverseOrder(vector &v)
  {
   vector v_temp = v;
@@ -878,7 +985,7 @@ matrix CMatrixutils::HadamardProduct(matrix &a,matrix &b)
 //+------------------------------------------------------------------+
 matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
  {
-  matrix Matrix = {};
+  matrix matrix_ = {};
   
   
   #ifdef DEBUG_MODE
@@ -889,7 +996,7 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
      {
       printf("db handle failed, Err = %d",GetLastError());
       DatabaseClose(db_handle);
-      return Matrix;
+      return matrix_;
      }
 
 //---
@@ -903,16 +1010,16 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
 
 //---
 
-   Matrix.Resize(cols,0); 
+   matrix_.Resize(cols,0); 
    
     for (int j=0; DatabaseRead(request); j++)
       {  
         rows = (ulong)j+1;
-        Matrix.Resize(cols,rows);
+        matrix_.Resize(cols,rows);
          
          for (ulong k=0; k<cols; k++)
            {
-             DatabaseColumnDouble(request,(int)k,Matrix[k][j]);
+             DatabaseColumnDouble(request,(int)k,matrix_[k][j]);
              
              if (j==0)  DatabaseColumnName(request,(int)k,column_names[k]);
            }
@@ -930,17 +1037,17 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
    DatabaseFinalize(request);
    DatabaseClose(db_handle);
    
-   Matrix = Matrix.Transpose(); //very crucial step
+   matrix_ = matrix_.Transpose(); //very crucial step
    
    #ifdef DEBUG_MODE
      printf("---> finished reading DB size=(%dx%d)",rows,cols); 
      
       ArrayPrint(column_names);
-      for (ulong i=0; i<5; i++)     Print(Matrix.Row(i));
+      for (ulong i=0; i<5; i++)     Print(matrix_.Row(i));
    #endif 
    
    
-  return Matrix;
+  return matrix_;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
