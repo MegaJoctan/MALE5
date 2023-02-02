@@ -36,10 +36,13 @@ public:
    bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
+  
    vector            ArrayToVector(const double &Arr[]);  
    vector            ArrayToVector(const int &Arr[]);
+   
    bool              VectorToArray(const vector &v,double &arr[]);
    bool              VectorToArray(const vector &v,int &arr[]);
+   
    void              RemoveCol(matrix &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
    void              RemoveRow(matrix &mat,ulong row);
@@ -49,18 +52,23 @@ public:
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);                          //Identifies classes available in a vector
+  
    vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
    vector            Random(double min, double max, int size,int random_state=-1);    //Generates a random vector of a given size
-   void              Shuffle(vector &v, int random_state=-1);
-   void              Shuffle(matrix &matrix_,int random_state=-1);
+   
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
+   
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
    vector            Search(const vector &v,double value);
+   
    void              ReverseOrder(vector &v);
+   matrix            DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
+   
    matrix            HadamardProduct(matrix &a, matrix &b);
    
-   matrix            DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
+   void              Shuffle(vector &v, int random_state=-1);
+   void              Shuffle(matrix &matrix_,int random_state=-1);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -128,7 +136,7 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
     vector v = {};
     
     if (!v.Assign(mat))
-      Print(__FUNCTION__," Failed to turn the matrix to a vector");
+      Print(__FUNCTION__," Failed to turn the matrix to a vector rows ",mat.Rows()," cols ",mat.Cols());
     
     v.Swap(v);
     
@@ -304,7 +312,7 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
      {
       int column = 0, rows=0;
 
-      while(!FileIsEnding(handle))
+      while(!FileIsEnding(handle) && !IsStopped())
         {
          string data = FileReadString(handle);
 
@@ -359,7 +367,7 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
    
    if (handle != INVALID_HANDLE)
       {
-       while (!FileIsEnding(handle))
+       while (!FileIsEnding(handle) && !IsStopped())
          {
            string data = FileReadString(handle);
 
@@ -370,6 +378,12 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
       }
       
    FileClose(handle);
+   
+   if (csv_columns==0)
+     {
+       Print(__FUNCTION__," Couldn't read the csv file header ");
+       return (matrix_);
+     }
    
    ArrayResize(csv_header,csv_columns);
    
@@ -383,7 +397,7 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
         if ((handle = CSVOpen(file_name,delimiter)) != INVALID_HANDLE)
          {  
           int column = 0, rows=0;
-          while (!FileIsEnding(handle))
+          while (!FileIsEnding(handle) && !IsStopped())
             {
               string data = FileReadString(handle);
 
@@ -480,7 +494,6 @@ vector CMatrixutils::LabelEncoder(const string &Arr[])
 //+------------------------------------------------------------------+
 bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",")
  {
-
    int rows_total=0;
 
    int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
@@ -498,7 +511,7 @@ bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], stri
      {
       int column = 0, rows=0;
 
-      while(!FileIsEnding(handle))
+      while(!FileIsEnding(handle) && !IsStopped())
         {
          string data = FileReadString(handle);
 
@@ -1012,7 +1025,7 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
 
    matrix_.Resize(cols,0); 
    
-    for (int j=0; DatabaseRead(request); j++)
+    for (int j=0; DatabaseRead(request) && !IsStopped(); j++)
       {  
         rows = (ulong)j+1;
         matrix_.Resize(cols,rows);
