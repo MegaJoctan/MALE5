@@ -1,4 +1,0 @@
-Creating Model instance
-
-The logistic regression model is relatively easy to use, for more information about the theory I would recommend reading this artilce >> link 
-
