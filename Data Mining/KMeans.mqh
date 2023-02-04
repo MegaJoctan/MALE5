@@ -9,6 +9,7 @@
 
 #include <Graphics\Graphic.mqh>
 CGraphic graph;
+#include <MALE5\matrix_utils.mqh>
 
 //+------------------------------------------------------------------+
 enum errors
@@ -21,6 +22,8 @@ enum errors
  
 class CKMeans
   {
+  CMatrixutils matrix_utils;
+  
 private:
    ulong             n; //number of samples
    uint              m_clusters;
@@ -30,22 +33,18 @@ private:
 
 protected:
    matrix            Matrix;
-   bool              ErrMsg(errors err);
-   void              MatrixToVector(const matrix &mat, vector &vec);
-   void              VectorCopy(vector &src_vec, vector &dst_vec, uint from, uint size);
-   void              vectortoArray(const vector &vec, double &arr[]);
-   void              arraytoVector(const double &arr[], vector &vec);
+   bool              ErrMsg(errors err); 
    bool              ScatterCurvePlots(
-      string obj_name,
-      double &x[],
-      double &y[],
-      double &curveArr[],
-      string legend,
-      string x_axis_label = "x-axis",
-      string y_axis_label = "y-axis",
-      color  clr = clrDodgerBlue,
-      bool   points_fill = true
-   );
+                                       string obj_name,
+                                       double &x[],
+                                       double &y[],
+                                       double &curveArr[],
+                                       string legend,
+                                       string x_axis_label = "x-axis",
+                                       string y_axis_label = "y-axis",
+                                       color  clr = clrDodgerBlue,
+                                       bool   points_fill = true
+                                    );
 
 public:
                      CKMeans(const matrix &_Matrix, int clusters=3);
@@ -182,7 +181,7 @@ void CKMeans::KMeansClustering(matrix &clustered_matrix, matrix &centroids, int 
             // solving for new cluster and updtating the old ones
             
             
-            MatrixToVector(cluster_comb_m, cluster_comb_v);
+             cluster_comb_v = matrix_utils.MatrixToVector(cluster_comb_m);
             
 
             if(iter == iterations-1)
@@ -234,17 +233,6 @@ bool CKMeans::ErrMsg(errors err)
 
 //+------------------------------------------------------------------+
  
-void CKMeans::MatrixToVector(const matrix &mat, vector &vec)
-  {
-   vec.Resize(mat.Rows()*mat.Cols());
-
-   for(ulong i=0, index = 0; i<mat.Rows(); i++)
-      for(ulong j=0; j<mat.Cols(); j++, index++)
-         vec[index] = mat[i][j];
-  }
-
-//+------------------------------------------------------------------+
- 
 void CKMeans::ElbowMethod(const int initial_k=1, int total_k=10, bool showPlot = true)
   {
    matrix clustered_mat, _centroids = {};
@@ -282,7 +270,7 @@ void CKMeans::ElbowMethod(const int initial_k=1, int total_k=10, bool showPlot =
          for(ulong j=0; j<x_y_z.Size()/m_cols; j++)
            {
 
-            VectorCopy(x_y_z, short_v, uint(j*m_cols), (uint)m_cols);
+            matrix_utils.Copy(x_y_z, short_v, uint(j*m_cols), (uint)m_cols);
 
             //---                WCSS ( within cluster sum of squared residuals )
 
@@ -336,41 +324,6 @@ void CKMeans::FilterZero(vector &vec)
   }
 
 //+------------------------------------------------------------------+
- 
-void CKMeans::VectorCopy(vector &src_vec, vector &dst_vec, uint from, uint size)
-  {
-   dst_vec.Resize(size-from);
-   double src[];
-   double dst[];
-   vectortoArray(src_vec, src);
-   vectortoArray(dst_vec, dst);
-
-   ArrayCopy(dst, src, 0, (int)from, (int)size);
-
-   arraytoVector(src, src_vec);
-   arraytoVector(dst, dst_vec);
-  }
-
-//+------------------------------------------------------------------+
- 
-void CKMeans::vectortoArray(const vector &vec, double &arr[])
-  {
-   ArrayResize(arr, (int)vec.Size());
-
-   for(int i=0; i<ArraySize(arr); i++)
-      arr[(int)i] = vec[(ulong)i];
-  }
-
-//+------------------------------------------------------------------+
- 
-void CKMeans::arraytoVector(const double &arr[], vector &vec)
-  {
-   vec.Resize(ArraySize(arr));
-
-   for(ulong i=0; i<vec.Size(); i++)
-      vec[i] = arr[i];
-  }
-
 //+------------------------------------------------------------------+
  
 bool CKMeans::ScatterCurvePlots(
