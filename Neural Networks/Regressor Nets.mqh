@@ -71,7 +71,7 @@ public:
                      CRegressorNets(matrix &xmatrix, vector &yvector, activation ActivationFX, vector &HL_CONFIG);
                     ~CRegressorNets(void);
 
-   vector            FeedForwardMLP(vector& V_in);
+   double            RegressorNetsFF(vector& V_in);
 
   };
 
@@ -124,18 +124,17 @@ CRegressorNets::CRegressorNets(matrix &xmatrix, vector &yvector, activation Acti
      W.Resize((ulong)W_CONFIG.Sum());
      
      W = matrix_utils.Random(0.0, 1.0, (int)W.Size(),RANDOM_STATE); //Gen weights
-     B = matrix_utils.Random(0.0,1.0,(int)B.Size(),RANDOM_STATE); //Gen bias
+     B = matrix_utils.Random(0.0, 0.5,(int)B.Size(),RANDOM_STATE); //Gen bias
       
 //---
 
    #ifdef  DEBUG_MODE
       Comment("");
-      Print("<------------------- NN INFO  ------------------------->\n",
+      Comment("<-------------------  R E G R E S S O R   N E T S  ------------------------->\n",
             "HL_CONFIG ",HL_CONFIG," WEIGHTS ",W.Size(),"\n","TOTAL HL(S) ",m_hLayers,"\n",
             "W_CONFIG ",W_CONFIG," ACTIVATION ",EnumToString(A_FX),"\n",
             "NN INPUTS ",inputs," OUTPUT ",outputs,"\n", 
-            "BIAS ",B,"\n",
-            "--------------------        ------------------------->"
+            "BIAS ",B
            );
    
    #endif
@@ -166,7 +165,7 @@ CRegressorNets::~CRegressorNets(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CRegressorNets::FeedForwardMLP(vector &V_in)
+double CRegressorNets::RegressorNetsFF(vector &V_in)
   {
    matrix L_INPUT = {}, L_OUTPUT= {}, L_WEIGHTS = {};
    vector v_weights = {};
@@ -182,8 +181,6 @@ vector CRegressorNets::FeedForwardMLP(vector &V_in)
 
    for(ulong i=0; i<W_CONFIG.Size(); i++)
      {
-      Print("--? ",i);
-
       matrix_utils.Copy(W,v_weights,start,ulong(W_CONFIG[i]));
 
       L_WEIGHTS = matrix_utils.VectorToMatrix(v_weights,L_INPUT.Rows());
@@ -191,26 +188,31 @@ vector CRegressorNets::FeedForwardMLP(vector &V_in)
       matrix_utils.Copy(B,L_BIAS_VECTOR,b_start,(ulong)HL_CONFIG[i]);
       L_BIAS_MATRIX = matrix_utils.VectorToMatrix(L_BIAS_VECTOR);
 
-      Print("L_WEIGHTS\n",L_WEIGHTS,"\nL_INPUT\n",L_INPUT,"\nL_BIAS\n",L_BIAS_MATRIX);
+      #ifdef DEBUG_MODE
+         Print("--? ",i);
+         Print("L_WEIGHTS\n",L_WEIGHTS,"\nL_INPUT\n",L_INPUT,"\nL_BIAS\n",L_BIAS_MATRIX);
+      #endif 
+     
+      L_OUTPUT = L_WEIGHTS.MatMul(L_INPUT); //Inputs x Weights
 
-      L_OUTPUT = L_WEIGHTS.MatMul(L_INPUT);
+//--- 
 
       L_OUTPUT = L_OUTPUT+L_BIAS_MATRIX; //Add bias
-
-      //---
-
       L_OUTPUT.Activation(L_OUTPUT, ENUM_ACTIVATION_FUNCTION(A_FX));
-
-      //---
+      
+//---
 
       L_INPUT.Copy(L_OUTPUT); //Assign outputs to the inputs
       start += (ulong)W_CONFIG[i]; //New weights copy
       b_start += (ulong)HL_CONFIG[i];
 
      }
-   Print("outputs\n ",L_OUTPUT);
-
-   return(matrix_utils.MatrixToVector(L_OUTPUT));
+     
+   #ifdef DEBUG_MODE 
+      Print("outputs\n ",L_OUTPUT);
+   #endif 
+   
+   return(L_OUTPUT[0,0]);
   }
 
 //+------------------------------------------------------------------+
