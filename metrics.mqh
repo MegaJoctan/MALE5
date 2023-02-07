@@ -229,7 +229,7 @@ double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool repor
    for (ulong i=0; i<classes.Size(); i++)
      {
          row_v = conf_m.Row(i);
-         confusion_matrix_struct.support[i] = row_v.Sum();
+         confusion_matrix_struct.support[i] = NormalizeDouble(MathIsValidNumber(row_v.Sum())?row_v.Sum():0,8);
      }
      
    int total_size = (int)conf_m.Sum();
