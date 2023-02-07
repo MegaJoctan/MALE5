@@ -69,6 +69,7 @@ public:
    
    void              Shuffle(vector &v, int random_state=-1);
    void              Shuffle(matrix &matrix_,int random_state=-1);
+   void              NormalizeVector(vector<double> &v, int digits=3);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1061,6 +1062,14 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
    
    
   return matrix_;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::NormalizeVector(vector<double> &v,int digits=3)
+ {
+   for (ulong i=0; i<v.Size(); i++)
+      v[i] = NormalizeDouble(v[i],digits); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
