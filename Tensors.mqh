@@ -35,10 +35,11 @@ private:
 
 public:
                      CTensors(uint DIM); //For one dimension tensor
-                     //CTensors(ulong& DIM[][TENSOR_COLS])
                     ~CTensors(void);
-                    bool TensorAdd(matrix &mat_ , int POS);
-                    void TensorPrint();
+                    
+                    bool   TensorAdd(matrix &mat_ , ulong POS);
+                    void   TensorPrint();
+                    matrix Tensor(ulong POS);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -47,11 +48,7 @@ CTensors::CTensors(uint DIM)
  {
    M_TENSOR_DIM = DIM;
    
-   Print("Tensor dim ",M_TENSOR_DIM);
-   
    ArrayResize(matrices, M_TENSOR_DIM);
-   
-   Print("matrices size ",ArraySize(matrices));
    
    
    for (uint i=0; i<M_TENSOR_DIM; i++)
@@ -78,11 +75,12 @@ CTensors::~CTensors(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool  CTensors::TensorAdd(matrix &mat_ , int POS)
+bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
  {
-   if ((ulong)POS > M_TENSOR_DIM) 
+   if (POS > M_TENSOR_DIM) 
      {
-       Print(__FUNCTION__," Index Error POS greater than TENSOR_DIM ");
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",M_TENSOR_DIM);
+       
        return (false);
      }
      
@@ -96,7 +94,22 @@ bool  CTensors::TensorAdd(matrix &mat_ , int POS)
 void CTensors::TensorPrint(void)
  {
    for (ulong i=0; i<M_TENSOR_DIM; i++)
-     Print("TENSOR INDEX ",i,"\n",this.matrices[i].Matrix); 
+     Print("TENSOR INDEX <<",i,">>\n",this.matrices[i].Matrix); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CTensors::Tensor(ulong POS)
+ {
+   if (POS > M_TENSOR_DIM) 
+     {
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",M_TENSOR_DIM);
+       
+       matrix mat = {};
+       return (mat);
+     }
+     
+   return (this.matrices[POS].Matrix); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
