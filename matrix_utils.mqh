@@ -22,7 +22,7 @@ private:
    
    double            MathRandom(double mini, double maxi);
    int               MathRandom(int mini, int maxi);
-   
+   string            CalcTimeElapsed(double seconds);
   
 public:
                      CMatrixutils(void);
@@ -51,10 +51,11 @@ public:
    void              TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
-   vector            Classes(vector &v);                          //Identifies classes available in a vector
+   vector            Classes(vector &v);           //Identifies classes available in a vector
   
    vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
    vector            Random(double min, double max, int size,int random_state=-1);    //Generates a random vector of a given size
+   matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1);
    
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
@@ -76,7 +77,7 @@ public:
 //+------------------------------------------------------------------+
 CMatrixutils::CMatrixutils(void)
   {
-
+    
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -887,6 +888,22 @@ vector CMatrixutils::Random(int min,int max,int size,int random_state=-1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
+ {
+   if (random_state != -1)
+     MathSrand(random_state);
+     
+     matrix mat(rows,cols);
+     
+     for (ulong r=0; r<rows; r++)
+       for (ulong c=0; c<cols; c++)
+            mat[r][c] = MathRandom(min,max);
+     
+     return (mat);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 vector CMatrixutils::Append(vector &v1, vector &v2)
  {
    vector v_out = v1; 
@@ -997,6 +1014,27 @@ matrix CMatrixutils::HadamardProduct(matrix &a,matrix &b)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
+
+string CMatrixutils::CalcTimeElapsed(double seconds)
+  {
+   string time_str = "";
+
+   uint minutes=0, hours=0;
+
+   if(seconds >= 60)
+      time_str = StringFormat("%d Minutes and %.3f Seconds ",minutes=(int)round(seconds/60.0), ((int)seconds % 60));
+   if(minutes >= 60)
+      time_str = StringFormat("%d Hours %d Minutes and %.3f Seconds ",hours=(int)round(minutes/60.0), minutes, ((int)seconds % 60));
+   else
+      time_str = StringFormat("%.3f Seconds ",seconds);
+
+   return time_str;
+  }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
  {
   matrix matrix_ = {};
@@ -1025,9 +1063,15 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
 //---
 
    matrix_.Resize(cols,0); 
-   
+    
+    double time_start = GetMicrosecondCount()/(double)1e6, time_stop=0; //Elapsed time 
+    double row_start = 0, row_stop =0;
+     
     for (int j=0; DatabaseRead(request) && !IsStopped(); j++)
       {  
+        
+       row_start = GetMicrosecondCount()/(double)1e6; 
+           
         rows = (ulong)j+1;
         matrix_.Resize(cols,rows);
          
@@ -1042,7 +1086,9 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
             if (j >= total)     break;
             
          #ifdef  DEBUG_MODE
-            printf("Row ----> %d ",j);
+            row_stop =GetMicrosecondCount()/(double)1e6;
+            
+            printf("Row ----> %d | Elapsed %s",j,CalcTimeElapsed(row_stop-row_start));
          #endif 
       }
 
@@ -1054,7 +1100,9 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
    matrix_ = matrix_.Transpose(); //very crucial step
    
    #ifdef DEBUG_MODE
-     printf("---> finished reading DB size=(%dx%d)",rows,cols); 
+      time_stop = GetMicrosecondCount()/(double)1e6;
+     
+      printf("---> finished reading DB size=(%dx%d) | Time Elapsed %s",rows,cols,CalcTimeElapsed(time_stop-time_start)); 
      
       ArrayPrint(column_names);
       for (ulong i=0; i<5; i++)     Print(matrix_.Row(i));
