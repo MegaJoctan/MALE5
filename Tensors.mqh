@@ -84,7 +84,7 @@ bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
        return (false);
      }
      
-    matrices[POS].Matrix = mat_;
+    this.matrices[POS].Matrix = mat_;
    
    return (true);
  }
