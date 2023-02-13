@@ -1,237 +1,425 @@
 //+------------------------------------------------------------------+
 //|                                                preprocessing.mqh |
-//|                                    Copyright 2022, Omega Joctan. |
+//|                                    Copyright 2022, Fxalgebra.com |
 //|                        https://www.mql5.com/en/users/omegajoctan |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2022, Omega Joctan."
+#property copyright "Copyright 2022, Fxalgebra.com"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
-//+------------------------------------------------------------------+
-//| defines                                                          |
-//+------------------------------------------------------------------+
-struct min_max
-  {
-    double min[];
-    double max[];
-  } min_max_scaler;
-
-//+------------------------------------------------------------------+
-
-struct mean_norm
- {
-   double mean[];
-   double min[];
-   double max[];
- } mean_norm_scaler;
-
-//+------------------------------------------------------------------+
-
-struct standardization
- {
-   double mean[];
-   double std[];
- } standardization_scaler;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-class CPreprocessing
-  {      
-      public:
-                           CPreprocessing(void);
-                          ~CPreprocessing(void);
-                           
-                           void MinMaxScaler(vector &v,ulong index=0);
-                           void MinMaxScaler(matrix &mat);
-                           void MeanNormalization(vector &v,ulong index=0);
-                           void MeanNormalization(matrix &mat);
-                           void Standardization(vector &v, ulong index=0);
-                           void Standardization(matrix &mat);
-                      //---
-                           void ReverseMinMaxScaler(vector &v,ulong index=0);
-                           void ReverseMinMaxScaler(matrix &mat);
-                           void ReverseMeanNormalization(vector &v, ulong index=0);
-                           void ReverseMeanNormalization(matrix &mat);
-                           void ReverseStandardization(vector &v, ulong index=0);
-                           void ReverseStandardization(matrix &mat);
-  };
-
-//+------------------------------------------------------------------+
-
-CPreprocessing::CPreprocessing(void)
+enum norm_technique
  {
-   ArrayResize(min_max_scaler.max,1);
-   ArrayResize(min_max_scaler.min,1);
-   
-   ArrayResize(mean_norm_scaler.max,1);
-   ArrayResize(mean_norm_scaler.mean,1);
-   ArrayResize(mean_norm_scaler.min,1);
-   
-   ArrayResize(standardization_scaler.mean,1);
-   ArrayResize(standardization_scaler.std,1);
- }
+   MIN_MAX_SCALER,
+   MEAN_NORM,
+   STANDARDIZATION,
+   NONE
+ }; 
+ 
+class CPreprocessing
+  {
 
+struct standardization_struct
+ {
+   vector<double> mean;
+   vector<double> std;
+ } standardization_scaler;
+    
+struct min_max_struct
+  {
+    vector<double> min;
+    vector<double> max;
+  } min_max_scaler;
+
+struct mean_norm_struct
+ {
+   vector<double> mean;
+   vector<double> min;
+   vector<double> max;
+ } mean_norm_scaler;
+
+//---
+
+private:
+      ulong  m_rows, m_cols;
+      norm_technique norm_method;
+
+      void Standardization(vector &v);
+      void Standardization(matrix &matrix_);
+      
+      void ReverseStandardization(vector &v);
+      void ReverseStandardization(matrix &matrix_);
+//---
+      void MinMaxScaler(vector &v);
+      void MinMaxScaler(matrix &matrix_);
+      
+      void ReverseMinMaxScaler(vector &v);
+      void ReverseMinMaxScaler(matrix &matrix_);
+//---
+
+      void MeanNormalization(vector &v);
+      void MeanNormalization(matrix &matrix_);
+      
+      void ReverseMeanNormalization(vector &v);
+      void ReverseMeanNormalization(matrix &matrix_);      
+//---
+         
+      
+   public:
+                        
+                        CPreprocessing(matrix &matrix_, norm_technique NORM_MODE);
+                       ~CPreprocessing(void);
+                       
+                       void Normalization(vector &v);
+                       void Normalization(matrix &matrix_);
+                       
+                       void ReverseNormalization(vector &v);
+                       void ReverseNormalization(matrix &matrix_);
+  };
 //+------------------------------------------------------------------+
-
+//|                                                                  |
+//+------------------------------------------------------------------+
+CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
+ {    
+   m_cols = matrix_.Cols();
+   m_rows = matrix_.Rows();
+   
+   norm_method = NORM_MODE;
+   
+   vector v = {}; 
+   
+   switch(norm_method)
+     {
+      case STANDARDIZATION:
+         standardization_scaler.mean.Resize(m_cols);
+         standardization_scaler.std.Resize(m_cols);
+         
+          for (ulong i=0; i<m_cols; i++) { 
+                v = matrix_.Col(i); 
+                standardization_scaler.mean[i] = v.Mean();
+                standardization_scaler.std[i] = v.Std();
+             }
+        
+        break;
+        
+      case MEAN_NORM:
+      
+         mean_norm_scaler.mean.Resize(m_cols);
+         mean_norm_scaler.min.Resize(m_cols);
+         mean_norm_scaler.max.Resize(m_cols);
+         
+          for (ulong i=0; i<m_cols; i++) { 
+                v = matrix_.Col(i); 
+                
+                mean_norm_scaler.min[i] = v.Min();
+                mean_norm_scaler.max[i] = v.Max();
+                mean_norm_scaler.mean[i] = v.Mean();
+             }
+             
+        break;
+        
+      case MIN_MAX_SCALER:
+         min_max_scaler.max.Resize(m_cols);
+         min_max_scaler.min.Resize(m_cols);
+         
+          for (ulong i=0; i<m_cols; i++) { 
+                v = matrix_.Col(i); 
+                
+                min_max_scaler.min[i] = v.Min();
+                min_max_scaler.max[i] = v.Max();
+             }
+             
+         break;
+      
+      case NONE:
+            return;
+         break;   
+       
+    }
+   
+   Print("Norm method ",EnumToString(norm_method));
+     
+   Normalization(matrix_);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 CPreprocessing::~CPreprocessing(void)
  {
- 
+   ZeroMemory(standardization_scaler.mean);
+   ZeroMemory(standardization_scaler.std);
  }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::MinMaxScaler(vector &v,ulong index=0)
+void CPreprocessing::Standardization(vector &v)
  {
-   //Normalizing vector using Min-max scaler
+   for (ulong i=0; i<m_cols; i++)
+      v[i] = (v[i] - standardization_scaler.mean[i]) / standardization_scaler.std[i];  
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CPreprocessing::Standardization(matrix &matrix_)
+ {
+  vector v;
+  for (ulong i=0; i<m_rows; i++)
+    {
+       v = matrix_.Row(i);
+       
+       Standardization(v);
+       matrix_.Row(v, i);  
+    }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CPreprocessing::ReverseStandardization(vector &v)
+ {
+    for (ulong i=0; i<m_cols; i++) 
+        v[i] = (v[i] * standardization_scaler.std[i]) + standardization_scaler.mean[i];
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CPreprocessing::ReverseStandardization(matrix &matrix_)
+ {
+  for (ulong i=0; i<m_rows; i++)
+    { 
+      vector v = matrix_.Row(i);
+      
+      ReverseStandardization(v);
+      matrix_.Row(v,i);
+    }  
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::Normalization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Standardize the data | Vector v needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
    
-   min_max_scaler.min[index] = v.Min();
-   min_max_scaler.max[index] = v.Max();
-   
-   for (int i=0; i<(int)v.Size(); i++)
-     v[i] = (v[i] - min_max_scaler.min[index]) / (min_max_scaler.max[index] - min_max_scaler.min[index]);  
-   
+   switch(norm_method)
+     {
+      case  STANDARDIZATION:
+        Standardization(v);
+        break;
+        
+      case MIN_MAX_SCALER:
+         MinMaxScaler(v);
+         break;
+         
+      case MEAN_NORM: 
+         MeanNormalization(v);
+         break;
+     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CPreprocessing::Normalization(matrix &matrix_)
+ {
+   vector v;
+   switch(norm_method)
+     {
+      case  STANDARDIZATION:
+        Standardization(matrix_);
+        break;
+        
+      case MIN_MAX_SCALER:
+        MinMaxScaler(matrix_);
+        break;
+         
+      case  MEAN_NORM:
+        MeanNormalization(matrix_);
+        break;
+     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CPreprocessing::ReverseNormalization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Reverse Standardize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
+     
+   switch(norm_method)
+     {
+      case  STANDARDIZATION:
+        ReverseStandardization(v);
+        break;
+        
+      case MIN_MAX_SCALER:
+         ReverseMinMaxScaler(v);
+         break;
+      
+      case MEAN_NORM:  
+         ReverseMeanNormalization(v);
+         break;   
+     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::ReverseNormalization(matrix &matrix_)
+ {
+  
+  switch(norm_method)
+    {
+     case  STANDARDIZATION:
+       ReverseStandardization(matrix_);
+       break;
+       
+     case MIN_MAX_SCALER:
+        ReverseMinMaxScaler(matrix_);
+        break;
+        
+     case MEAN_NORM: 
+        ReverseMeanNormalization(matrix_);
+        break;
+    }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::MinMaxScaler(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
+     
+   for (ulong i=0; i<m_cols; i++)
+     v[i] = (v[i] - min_max_scaler.min[i]) / (min_max_scaler.max[i] - min_max_scaler.min[i]);  
  } 
 
 //+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+ 
 
-void CPreprocessing::MeanNormalization(vector &v,ulong index=0)
+void CPreprocessing::MinMaxScaler(matrix &matrix_)
  {
-   mean_norm_scaler.mean[index] = v.Mean();
-   mean_norm_scaler.max[index] = v.Max();
-   mean_norm_scaler.min[index] = v.Min();
+   vector v = {}; 
+   
+    for (ulong i=0; i<m_rows; i++)
+       { 
+          v = matrix_.Row(i); 
+          MinMaxScaler(v);
           
-   for (ulong i=0; i<v.Size(); i++)
-      v[i] = (v[i] - mean_norm_scaler.mean[index]) / (mean_norm_scaler.max[index] - mean_norm_scaler.min[index]);
-    
- }
- 
-//+------------------------------------------------------------------+
-
-void CPreprocessing::Standardization(vector &v, ulong index=0)
- {
-    standardization_scaler.mean[index] = v.Mean();
-    standardization_scaler.std[index] = v.Std();
-      
-      for (ulong i=0; i<v.Size(); i++)
-        v[i] = (v[i] - standardization_scaler.mean[index]) / standardization_scaler.std[index];
- }
-
-//+------------------------------------------------------------------+
-
-void CPreprocessing::MinMaxScaler(matrix &mat)
- {
-   vector v = {}; 
-   
-   ArrayResize(min_max_scaler.min,(int)mat.Cols());
-   ArrayResize(min_max_scaler.max,(int)mat.Cols());
-   
-    for (ulong i=0; i<mat.Cols(); i++)
-       { 
-          v = mat.Col(i); 
-          MinMaxScaler(v,i);
-          mat.Col(v,i);  
+          matrix_.Row(v,i);  
        }
  }
-
 //+------------------------------------------------------------------+
-
-void CPreprocessing::MeanNormalization(matrix &mat)
- {
-   vector v = {}; 
-   
-   ArrayResize(mean_norm_scaler.max,(int)mat.Cols());
-   ArrayResize(mean_norm_scaler.min,(int)mat.Cols());
-   ArrayResize(mean_norm_scaler.mean,(int)mat.Cols());
-   
-    for (ulong i=0; i<mat.Cols(); i++)
-       { 
-          v = mat.Col(i); 
-          MeanNormalization(v,i);
-          mat.Col(v,i);  
-       }
- }
-
-//+------------------------------------------------------------------+
-
-void CPreprocessing::Standardization(matrix &mat)
- {
-   vector v = {}; 
-   
-   ArrayResize(standardization_scaler.mean,(int)mat.Cols());
-   ArrayResize(standardization_scaler.std,(int)mat.Cols());
-   
-    for (ulong i=0; i<mat.Cols(); i++)
-       { 
-          v = mat.Col(i); 
-          Standardization(v,i);
-          mat.Col(v,i);  
-       }
- }
- 
-//+------------------------------------------------------------------+
-//|                                                                  |
-//| REVERSING NORMALIZATION | RETURNING THE VALUES TO THEIR ORIGINAL |
-//|   STATE BEFORE THEY WERE NORMALIZED                              |
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-
-void CPreprocessing::ReverseMinMaxScaler(vector &v,ulong index=0)
- {  
-    for (ulong i=0; i<v.Size(); i++) 
-       v[i] = (v[i]* (min_max_scaler.max[index] - min_max_scaler.min[index])) + min_max_scaler.min[index];  
- }
-
-//+------------------------------------------------------------------+
-
-void CPreprocessing::ReverseMeanNormalization(vector &v, ulong index=0)
+void CPreprocessing::ReverseMinMaxScaler(matrix &matrix_)
  {
-    for (ulong i=0; i<v.Size(); i++)
-      v[i] = (v[i] * (mean_norm_scaler.max[index] - mean_norm_scaler.min[index]) ) + mean_norm_scaler.mean[index];
- }
-
-//+------------------------------------------------------------------+
-
-void CPreprocessing::ReverseStandardization(vector &v, ulong index=0)
- {
-    for (ulong i=0; i<v.Size(); i++)
-      v[i] = (v[i] * standardization_scaler.std[index]) + standardization_scaler.mean[index];
- }
-
-//+------------------------------------------------------------------+
-
-void CPreprocessing::ReverseMinMaxScaler(matrix &mat)
- {
-    for (ulong i=0; i<mat.Cols(); i++)
+    for (ulong i=0; i<matrix_.Rows(); i++)
        {
-         vector v = mat.Col(i);
-         ReverseMinMaxScaler(v,i);
-         mat.Col(v,i);
+         vector v = matrix_.Row(i);
+         ReverseMinMaxScaler(v);
+         
+         matrix_.Row(v, i);
        } 
  }
 
 //+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
-void CPreprocessing::ReverseMeanNormalization(matrix &mat)
+void CPreprocessing::ReverseMinMaxScaler(vector &v)
+ {  
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Reverse Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
+     
+    for (ulong i=0; i<m_cols; i++) 
+       v[i] = (v[i]* (min_max_scaler.max[i] - min_max_scaler.min[i])) + min_max_scaler.min[i];  
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::MeanNormalization(vector &v)
  {
-    for (ulong i=0; i<mat.Cols(); i++)
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
+     
+   for (ulong i=0; i<m_cols; i++)
+      v[i] = (v[i] - mean_norm_scaler.mean[i]) / (mean_norm_scaler.max[i] - mean_norm_scaler.min[i]);
+    
+ }
+ 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+
+void CPreprocessing::MeanNormalization(matrix &matrix_)
+ {
+   vector v = {};  
+   
+    for (ulong i=0; i<matrix_.Rows(); i++)
+       { 
+          v = matrix_.Row(i); 
+          MeanNormalization(v);
+          
+          matrix_.Row(v,i);  
+       }
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::ReverseMeanNormalization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Reverse Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return;
+     }
+     
+    for (ulong i=0; i<m_cols; i++)
+      v[i] = (v[i] * (mean_norm_scaler.max[i] - mean_norm_scaler.min[i]) ) + mean_norm_scaler.mean[i];
+ }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CPreprocessing::ReverseMeanNormalization(matrix &matrix_)
+ {
+    for (ulong i=0; i<m_rows; i++)
        {
-         vector v = mat.Col(i);
-         ReverseMeanNormalization(v,i);
-         mat.Col(v,i);
+         vector v = matrix_.Row(i);
+         MeanNormalization(v);
+         
+         matrix_.Row(v,i);
        }  
  }
 
 //+------------------------------------------------------------------+
-
-void CPreprocessing::ReverseStandardization(matrix &mat)
- {
-    for (ulong i=0; i<mat.Cols(); i++)
-       {
-         vector v = mat.Col(i);
-         ReverseStandardization(v,i);
-         mat.Col(v,i);
-       }  
- }
-
+//|                                                                  |
 //+------------------------------------------------------------------+
