@@ -9,10 +9,14 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 
-#include <MALE5\matrix_utils.mqh>
-#include <MALE5\preprocessing.mqh>
+#include <MALE5\matrix_utils.mqh> 
 //+------------------------------------------------------------------+
-//|         Bayessian Normal Distribution Class                      |
+//|              N  A  I  V  E     B  A  Y  E                        |
+//|                                                                  |
+//|   suitable for classification of discrete values, that have      |
+//|   been load to a matrix using the method ReadCSVEncode from      |
+//|   matrix_utils.mqh                                               |
+//|                                                                  |
 //+------------------------------------------------------------------+
 
 class CNaiveBayes
@@ -24,14 +28,14 @@ protected:
                      matrix XMatrix;
                      vector YVector;
                        
-                     
-                     vector classes;       //classes available 
                      vector c_prior_proba; //class prior probability
                      vector c_evidence;    //class evidence
                      
                      vector calcProba(vector &v_features);
                      
 public:
+                     vector classes;       //classes available 
+                     
                      CNaiveBayes(matrix &x_matrix, vector &y_vector);
                     ~CNaiveBayes(void);
                     
@@ -45,7 +49,7 @@ CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
  {
  
    XMatrix.Copy(x_matrix);
-   YVector.Copy(YVector);
+   YVector.Copy(y_vector); 
    
    classes = matrix_utils.Classes(YVector);
    
@@ -75,9 +79,10 @@ CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
    
     
   
-   #ifdef DEBUG_MODE
+   //#ifdef DEBUG_MODE
+      Print("---> GROUPS ",classes);
       Print("Prior Class Proba ",c_prior_proba,"\nEvidence ",c_evidence);
-   #endif 
+   //#endif 
     
  }
 //+------------------------------------------------------------------+
@@ -101,9 +106,12 @@ int CNaiveBayes::NaiveBayes(vector &x_vector)
    for (ulong i=0; i<v.Size(); i++) //converting the values into probabilities
       v[i] = NormalizeDouble(v[i]/sum,2);       
    
-   
    vector p = v;
-  
+   
+   #ifdef   DEBUG_MODE
+      Print("Probabilities ",p);
+   #endif 
+   
    return((int)classes[p.ArgMax()]);
  }
 //+------------------------------------------------------------------+
@@ -130,9 +138,9 @@ vector CNaiveBayes::calcProba(vector &v_features)
  {
     vector proba_v(classes.Size()); //vector to return
     
-    if (XMatrix.Rows() != n || v_features.Size() != XMatrix.Cols())
+    if (v_features.Size() != XMatrix.Cols())
       {
-         printf("FATAL | Can't calculate probability, Features matrix Rows = %d while n = %d \nOr fetures columns size = %d is not equal to XMatrix columns =%d",XMatrix.Rows(),n,v_features.Size(),XMatrix.Cols());
+         printf("FATAL | Can't calculate probability,  fetures columns size = %d is not equal to XMatrix columns =%d",v_features.Size(),XMatrix.Cols());
          return proba_v;
       }
 
@@ -154,7 +162,7 @@ vector CNaiveBayes::calcProba(vector &v_features)
                         count++;
                   }
                   
-                proba *= count==0 ? 1 : count/(double)c_evidence[c]; //do not calculate if there isn't enought evidence'
+                proba *= count==0 ? 1 : count/(double)c_evidence[c]; //do not calculate if there isn't enough evidence'
             }
           
         proba_v[c] = proba*c_prior_proba[c];
@@ -168,9 +176,7 @@ vector CNaiveBayes::calcProba(vector &v_features)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //|            NORMAL DISTRIBUTION CLASS                             |
-//|   suitable for classification of discrete values, that have      |
-//|   been load to a matrix using the method ReadCSVEncode from      |
-//|   matrix_utils.mqh                                               |
+//|                                                                  |
 //|                                                                  |
 //+------------------------------------------------------------------+
 //+------------------------------------------------------------------+
@@ -248,13 +254,14 @@ class CGaussianNaiveBayes
       
       matrix             XMatrix;
       vector             YVector; 
-      ulong              cols;  //columns in XMatrix
+      ulong              m_cols;  //columns in XMatrix
       
-      vector             classes; //Target classes 
       
       vector             calcProba(vector &v_features);
    
-   public:                         
+   public:              
+   
+      vector            classes; //Target classes            
                         CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector);
                        ~CGaussianNaiveBayes(void);
                         
@@ -272,7 +279,7 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
    
    classes = matrix_utils.Classes(YVector);
    
-   cols = XMatrix.Cols();
+   m_cols = XMatrix.Cols();
     
 //---
    
@@ -301,10 +308,10 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
 //---       
    
    
-   #ifdef DEBUG_MODE
+   //#ifdef DEBUG_MODE
       Print("---> GROUPS ",classes);
       Print("\n---> Prior_proba ",c_prior_proba," Evidence ",c_evidence);
-   #endif 
+   //#endif 
    
  }
 //+------------------------------------------------------------------+
@@ -321,6 +328,12 @@ CGaussianNaiveBayes::~CGaussianNaiveBayes(void)
 
 int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
  { 
+   if (x_features.Size() != m_cols)
+     {
+       Print("CRITICAL | The given x_features have different size than the trained x_features");
+       return (-1);
+     }
+     
    vector p = calcProba(x_features);
   
    
@@ -350,10 +363,11 @@ vector CGaussianNaiveBayes::GaussianNaiveBayes(matrix &x_matrix)
 vector CGaussianNaiveBayes::calcProba(vector &v_features)
  {    
     vector proba_v(classes.Size()); //vector to return
+    proba_v.Fill(-1);
     
-    if (XMatrix.Rows() != n || v_features.Size() != XMatrix.Cols())
+    if (v_features.Size() != XMatrix.Cols())
       {
-         printf("FATAL | Can't calculate probability, Features matrix Rows = %d while n = %d \nOr fetures columns size = %d is not equal to XMatrix columns =%d",XMatrix.Rows(),n,v_features.Size(),XMatrix.Cols());
+         printf("FATAL | Can't calculate probability, fetures columns size = %d is not equal to XMatrix columns =%d",v_features.Size(),XMatrix.Cols());
          return proba_v;
       }
 
@@ -380,21 +394,23 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
                          
                          calc_v[count-1] = v[j];
                        }
-                  }
-                
-                //Print("--> calc_v ",calc_v);
+                  } 
                 
                 norm_distribution.m_mean = calc_v.Mean(); //Assign these to Gaussian Normal distribution
                 norm_distribution.m_std = calc_v.Std();   
                 
-                //printf("mean %.5f std %.5f ",norm_distribution.m_mean,norm_distribution.m_std);
+                #ifdef DEBUG_MODE
+                  printf("mean %.5f std %.5f ",norm_distribution.m_mean,norm_distribution.m_std);
+                #endif 
                 
                 proba *= count==0 ? 1 : norm_distribution.PDF(v_features[i]); //do not calculate if there isn't enought evidence'
             }
           
-        proba_v[c] = proba*c_prior_proba[c];
+        proba_v[c] = proba*c_prior_proba[c]; //Turning the probability density into probability
         
-        //Print(">> Proba ",proba," prior proba ",c_prior_proba);
+        #ifdef DEBUG_MODE
+         Print(">> Proba ",proba," prior proba ",c_prior_proba);
+        #endif 
      }
      
     return proba_v;
