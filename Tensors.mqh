@@ -40,6 +40,7 @@ public:
                     bool   TensorAdd(matrix &mat_ , ulong POS);
                     void   TensorPrint();
                     matrix Tensor(ulong POS);
+                    void   TensorFill(double value);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -110,6 +111,14 @@ matrix CTensors::Tensor(ulong POS)
      }
      
    return (this.matrices[POS].Matrix); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CTensors::TensorFill(double value)
+ {
+   for (ulong i=0; i<M_TENSOR_DIM; i++)
+     this.matrices[i].Matrix.Fill(value);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
