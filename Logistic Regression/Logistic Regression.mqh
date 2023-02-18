@@ -32,14 +32,14 @@ class CLogisticRegression: public CLinearRegression
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector):CLinearRegression(x_matrix,y_vector)
+CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector):CLinearRegression(x_matrix,y_vector,NORM_STANDARDIZATION)
  { 
  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLogisticRegression::CLogisticRegression(matrix<double> &x_matrix,vector &y_vector, double Lr, uint iters = 1000):CLinearRegression(x_matrix,y_vector,STANDARDIZATION,Lr,iters)
+CLogisticRegression::CLogisticRegression(matrix<double> &x_matrix,vector &y_vector, double Lr, uint iters = 1000):CLinearRegression(x_matrix,y_vector,NORM_STANDARDIZATION,Lr,iters)
  {
    
  }
