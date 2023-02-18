@@ -71,6 +71,7 @@ public:
    void              Shuffle(vector &v, int random_state=-1);
    void              Shuffle(matrix &matrix_,int random_state=-1);
    void              NormalizeVector(vector<double> &v, int digits=3);
+   void              PrintShort(matrix &matrix_,ulong rows=5);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1118,6 +1119,14 @@ void CMatrixutils::NormalizeVector(vector<double> &v,int digits=3)
  {
    for (ulong i=0; i<v.Size(); i++)
       v[i] = NormalizeDouble(v[i],digits); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5)
+ {
+    for (ulong i=0; i<rows; i++)
+      Print(matrix_.Row(i)); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
