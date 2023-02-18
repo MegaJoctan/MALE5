@@ -1,6 +1,6 @@
 # MALE5: Machine Learning for MQL5
 
-![MALE5](MALE5.png)
+![MALE5](https://user-images.githubusercontent.com/65341461/219878218-5f57720b-a67b-46e8-9568-f20920e35796.png)
 
 This repository hosts the development of the MALE 5 library
 
@@ -40,34 +40,16 @@ Create a directory with the name MALE5 under your include directory in Metaedito
     git clone https://github.com/MegaJoctan/MALE5.git
 ```
 
-## Using the Library
+## Running python Scripts
 
-Once the Library is installed and everything is set in the right directory, here is how to install and use the models; Look at the Linear regression example
+To run python scripts found in this repo, make sure you have activated virtualEnvironment in your cmd terminal then run 
+`pip install requirements.txt`
 
-``` MQL5
-#include <MALE5\matrix_utils.mqh>
-#include <MALE5\Linear Regression\Linear Regression.mqh>
+After that you will be good to go.
 
-CLinearRegression *Linear_reg;
-CMatrixutils matrix_utils;
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
-//+------------------------------------------------------------------+
-int OnInit()
-{
-//---
+## Read the Docs
 
-    matrix Matrix = matrix_utils.ReadCsv("NASDAQ_DATA.csv"); 
-
-    Linear_reg = new CLinearRegression(Matrix);
-    
-    double acc =0; //Model accuracy
-    
-    Linear_reg.LRModelPred(Matrix,acc);
-    
-    Print("Trained Model Accuracy ",acc);
-}
-```
+There is a short clear description on how to use this library on this repository wiki [https://github.com/MegaJoctan/MALE5/wiki](https://github.com/MegaJoctan/MALE5/wiki)
 
 ## Opening an issue
 
@@ -78,6 +60,6 @@ in [GitHub issues](https://github.com/MegaJoctan/MALE5/issues).
 
 I welcome and appreciate contributions: feel free to contact me anytime at omegajoctan@gmail.com
 
-## Donate
+## Let's work together
 
-[Buy Me Coffee](https://www.buymeacoffee.com/omegajoctan)
+Create a personal Job for me on MQL5 | [HIRE ME](https://www.mql5.com/en/job/new?prefered=omegajoctan)
