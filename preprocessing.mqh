@@ -12,10 +12,10 @@
 
 enum norm_technique
  {
-   MIN_MAX_SCALER,
-   MEAN_NORM,
-   STANDARDIZATION,
-   NONE
+   NORM_MIN_MAX_SCALER,
+   NORM_MEAN_NORM,
+   NORM_STANDARDIZATION,
+   NORM_NONE
  }; 
  
 class CPreprocessing
@@ -92,7 +92,7 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
    
    switch(norm_method)
      {
-      case STANDARDIZATION:
+      case NORM_STANDARDIZATION:
          standardization_scaler.mean.Resize(m_cols);
          standardization_scaler.std.Resize(m_cols);
          
@@ -104,7 +104,7 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
         
         break;
         
-      case MEAN_NORM:
+      case NORM_MEAN_NORM:
       
          mean_norm_scaler.mean.Resize(m_cols);
          mean_norm_scaler.min.Resize(m_cols);
@@ -120,7 +120,7 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
              
         break;
         
-      case MIN_MAX_SCALER:
+      case NORM_MIN_MAX_SCALER:
          min_max_scaler.max.Resize(m_cols);
          min_max_scaler.min.Resize(m_cols);
          
@@ -133,13 +133,11 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
              
          break;
       
-      case NONE:
+      case NORM_NONE:
             return;
          break;   
        
     }
-   
-   Print("Norm method ",EnumToString(norm_method));
      
    Normalization(matrix_);
  }
@@ -209,15 +207,15 @@ void CPreprocessing::Normalization(vector &v)
    
    switch(norm_method)
      {
-      case  STANDARDIZATION:
+      case  NORM_STANDARDIZATION:
         Standardization(v);
         break;
         
-      case MIN_MAX_SCALER:
+      case NORM_MIN_MAX_SCALER:
          MinMaxScaler(v);
          break;
          
-      case MEAN_NORM: 
+      case NORM_MEAN_NORM: 
          MeanNormalization(v);
          break;
      }
@@ -230,15 +228,15 @@ void CPreprocessing::Normalization(matrix &matrix_)
    vector v;
    switch(norm_method)
      {
-      case  STANDARDIZATION:
+      case  NORM_STANDARDIZATION:
         Standardization(matrix_);
         break;
         
-      case MIN_MAX_SCALER:
+      case NORM_MIN_MAX_SCALER:
         MinMaxScaler(matrix_);
         break;
          
-      case  MEAN_NORM:
+      case  NORM_MEAN_NORM:
         MeanNormalization(matrix_);
         break;
      }
@@ -256,15 +254,15 @@ void CPreprocessing::ReverseNormalization(vector &v)
      
    switch(norm_method)
      {
-      case  STANDARDIZATION:
+      case  NORM_STANDARDIZATION:
         ReverseStandardization(v);
         break;
         
-      case MIN_MAX_SCALER:
+      case NORM_MIN_MAX_SCALER:
          ReverseMinMaxScaler(v);
          break;
       
-      case MEAN_NORM:  
+      case NORM_MEAN_NORM:  
          ReverseMeanNormalization(v);
          break;   
      }
@@ -278,15 +276,15 @@ void CPreprocessing::ReverseNormalization(matrix &matrix_)
   
   switch(norm_method)
     {
-     case  STANDARDIZATION:
+     case  NORM_STANDARDIZATION:
        ReverseStandardization(matrix_);
        break;
        
-     case MIN_MAX_SCALER:
+     case NORM_MIN_MAX_SCALER:
         ReverseMinMaxScaler(matrix_);
         break;
         
-     case MEAN_NORM: 
+     case NORM_MEAN_NORM: 
         ReverseMeanNormalization(matrix_);
         break;
     }
