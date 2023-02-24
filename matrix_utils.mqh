@@ -23,7 +23,7 @@ private:
    double            MathRandom(double mini, double maxi);
    int               MathRandom(int mini, int maxi);
    string            CalcTimeElapsed(double seconds);
-  
+   void              Swap(double &var1, double &var2);
 public:
                      CMatrixutils(void);
                     ~CMatrixutils(void);
@@ -72,6 +72,7 @@ public:
    void              Shuffle(matrix &matrix_,int random_state=-1);
    void              NormalizeVector(vector<double> &v, int digits=3);
    void              PrintShort(matrix &matrix_,ulong rows=5);
+   void              SortAscending(vector &v);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1127,6 +1128,35 @@ void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5)
  {
     for (ulong i=0; i<rows; i++)
       Print(matrix_.Row(i)); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::Swap(double &var1,double &var2)
+ {
+   double temp_1 = var1, temp2=var2;
+   
+   var1 = temp2;
+   var2 = temp_1;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::SortAscending(vector &v)
+ { 
+    ulong n = v.Size();
+    for (ulong i = 0; i < n - 1; i++)
+      {
+        ulong minIndex = i;
+        for (ulong j = i + 1; j < n; j++)
+          {
+            if (v[j] < v[minIndex]) {
+                minIndex = j;
+           }
+      }
+      
+      Swap(v[i], v[minIndex]);
+    }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
