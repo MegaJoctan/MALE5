@@ -9,6 +9,7 @@
 //|         Principle Component Analysis Library                     |
 //+------------------------------------------------------------------+
 #include <MALE5\preprocessing.mqh>
+#include <MALE5\MqPlotLib\plots.mqh>
 
 enum criterion
   {
@@ -24,6 +25,7 @@ enum criterion
 class Cpca
   {
 CPreprocessing       *pre_processing;
+CPlots   plt;
 
 protected:
    ulong   rows, cols;
@@ -32,6 +34,7 @@ protected:
    
    void              Swap(double &var1, double &var2);
    void              SortAscending(vector &v);
+   bool              VectorToArray(const vector &v,double &arr[]);
    
 public:
                      Cpca(matrix &Matrix);
@@ -105,12 +108,20 @@ Cpca::~Cpca(void)
 //+------------------------------------------------------------------+
 matrix Cpca::ExtractComponents(criterion CRITERION_)
  {
-  vector vars = pca_scores_coefficients; 
-  
+
+  vector vars = pca_scores_coefficients;   
   vector vars_percents = (vars/(double)vars.Sum())*100.0;
   
-  Print("vars percentages ",vars_percents);
-  
+//--- for Kaiser
+
+  double vars_mean = pca_scores_coefficients.Mean();
+
+//--- for scree
+   
+   double x[], y[];
+   
+//---
+
   matrix PCAS = {};
   
   double sum=0;
@@ -119,8 +130,11 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
    
    switch(CRITERION_)
      {
+  
       case  CRITERION_VARIANCE: 
-         
+      
+        Print("vars percentages ",vars_percents);       
+        
          for (int i=0, count=0; i<(int)cols; i++)
            { 
              count++;
@@ -143,9 +157,49 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
          
         break;
       case  CRITERION_KAISER:
-        break;
       
+       Print("var ",vars," scores mean ",vars_mean);
+       
+       vars = pca_scores_coefficients;
+        for (ulong i=0, count=0; i<cols; i++)
+           if (vars[i] > vars_mean)
+             {
+               count++;
+       
+               PCAS.Resize(rows, count);
+               
+               PCAS.Col(pca_scores.Col(i), count-1);
+             }           
+           
+        break;
       case  CRITERION_SCREE_PLOT:
+         
+         v_cols.Resize(cols);
+         
+         for (ulong i=0; i<v_cols.Size(); i++)
+             v_cols[i] = (int)i+1;
+             
+         
+          vars = pca_scores_coefficients;
+          
+          VectorToArray(v_cols, x);
+          VectorToArray(vars, y);
+          
+          plt.ScatterCurvePlots("Scree plot",x,y,"variance","PCA","Variance");
+
+//---
+
+       vars = pca_scores_coefficients;
+        for (ulong i=0, count=0; i<cols; i++)
+           if (vars[i] > vars_mean)
+             {
+               count++;
+       
+               PCAS.Resize(rows, count);
+               
+               PCAS.Col(pca_scores.Col(i), count-1);
+             }    
+             
         break;
      } 
    return (PCAS);
@@ -180,6 +234,21 @@ void Cpca::SortAscending(vector &v)
       Swap(v[i], v[minIndex]);
     }
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool Cpca::VectorToArray(const vector &v,double &arr[])
+  {
+   ArrayResize(arr,(int)v.Size());
+
+   if(ArraySize(arr) == 0)
+      return(false);
+
+   for(ulong i=0; i<v.Size(); i++)
+      arr[i] = v[i];
+
+   return(true);
+  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
