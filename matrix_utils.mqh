@@ -73,6 +73,7 @@ public:
    void              NormalizeVector(vector<double> &v, int digits=3);
    void              PrintShort(matrix &matrix_,ulong rows=5);
    void              SortAscending(vector &v);
+   void              SortDesending(vector &v);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1157,6 +1158,14 @@ void CMatrixutils::SortAscending(vector &v)
       
       Swap(v[i], v[minIndex]);
     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CMatrixutils::SortDesending(vector &v)
+ {
+   SortAscending(v);
+   ReverseOrder(v); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
