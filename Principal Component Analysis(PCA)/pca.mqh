@@ -34,6 +34,7 @@ protected:
    
    void              Swap(double &var1, double &var2);
    void              SortAscending(vector &v);
+   void              ReverseOrder(vector &v);
    bool              VectorToArray(const vector &v,double &arr[]);
    
 public:
@@ -56,20 +57,24 @@ Cpca::Cpca(matrix &Matrix)
    
    pre_processing = new CPreprocessing(Matrix, NORM_STANDARDIZATION);
    
-   Print("Standardized data\n",Matrix);
-   
    matrix Cova = Matrix.Cov(false);
    
-   Print("Covariances\n", Cova);
+   #ifdef DEBUG_MODE
+      Print("Standardized data\n",Matrix);
+      Print("Covariances\n", Cova);
+   #endif 
+   
    
    if (!Cova.Eig(component_matrix, eigen_vectors))
       Print("Failed to get the Component matrix matrix & Eigen vectors");
    
-   Print("\nComponent matrix\n",component_matrix,"\nEigen Vectors\n",eigen_vectors);
    
    pca_scores = Matrix.MatMul(component_matrix);
-
-   Print("PCA SCORES\n",pca_scores);
+   
+   #ifdef DEBUG_MODE 
+      Print("PCA SCORES\n",pca_scores);
+      Print("\nComponent matrix\n",component_matrix,"\nEigen Vectors\n",eigen_vectors);
+   #endif 
    
 //---
 
@@ -83,7 +88,6 @@ Cpca::Cpca(matrix &Matrix)
        pca_scores_coefficients[i] = v_row.Var(); //variance of the pca scores
      }
    
-   Print("SCORES COEFF ",pca_scores_coefficients); 
    
 //---
 
@@ -93,8 +97,10 @@ Cpca::Cpca(matrix &Matrix)
    
    pre_processing = new CPreprocessing(pca_scores_standardized, NORM_STANDARDIZATION);
    
-   Print("PCA SCORES | STANDARDIZED\n",pca_scores_standardized);
-   
+   #ifdef DEBUG_MODE
+      Print("SCORES COEFF ",pca_scores_coefficients); 
+      Print("PCA SCORES | STANDARDIZED\n",pca_scores_standardized);
+   #endif 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -133,8 +139,10 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
   
       case  CRITERION_VARIANCE: 
       
+       #ifdef DEBUG_MODE
         Print("vars percentages ",vars_percents);       
-        
+       #endif 
+       
          for (int i=0, count=0; i<(int)cols; i++)
            { 
              count++;
@@ -158,8 +166,10 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
         break;
       case  CRITERION_KAISER:
       
-       Print("var ",vars," scores mean ",vars_mean);
-       
+      #ifdef DEBUG_MODE
+         Print("var ",vars," scores mean ",vars_mean);
+      #endif 
+      
        vars = pca_scores_coefficients;
         for (ulong i=0, count=0; i<cols; i++)
            if (vars[i] > vars_mean)
@@ -181,6 +191,9 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
              
          
           vars = pca_scores_coefficients;
+          
+          SortAscending(vars); //Make sure they are in ascending first order
+          ReverseOrder(vars);  //Set them to descending order
           
           VectorToArray(v_cols, x);
           VectorToArray(vars, y);
@@ -234,6 +247,20 @@ void Cpca::SortAscending(vector &v)
       Swap(v[i], v[minIndex]);
     }
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void Cpca::ReverseOrder(vector &v)
+ {
+  vector v_temp = v;
+  
+   for (ulong i=0, j=v.Size()-1; i<v.Size(); i++, j--)
+        v[i] = v_temp[j];
+        
+   ZeroMemory(v_temp);
+ }
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
