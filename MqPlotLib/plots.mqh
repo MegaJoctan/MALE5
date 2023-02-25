@@ -45,12 +45,8 @@ CPlots::CPlots(void)
 //+------------------------------------------------------------------+
 CPlots::~CPlots(void)
  {
-   Print("destructor ");
    for (int i=0; i<ArraySize(m_plot_names); i++)
-     {
-       Print("Delete ",m_plot_names[i]);
        ObjectDelete(m_chart_id,m_plot_names[i]);
-     }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
