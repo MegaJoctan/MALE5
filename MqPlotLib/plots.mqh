@@ -22,14 +22,17 @@ protected:
    bool m_chart_show;
    
    string m_plot_names[];
-
+   bool GraphCreate(string plot_name);
+   bool VectorToArray(const vector &v,double &arr[]);
+   
 public:
          CPlots(void);
         ~CPlots(void);
          
          
-         void PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=70, int x2=550, int y2=350, bool chart_show=true);
+         void PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, bool chart_show=true);
          bool ScatterCurvePlots(string plot_name,double &x[], double &y[], string legend, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue, bool   points_fill = true);
+         bool ScatterCurvePlotsMatrix(string plot_name, matrix &normalized_matrix, string x_axis_label="x_axis",string y_axis_label = "y_axis", bool points_fill = true);
   };
   
 //+------------------------------------------------------------------+
@@ -51,6 +54,37 @@ CPlots::~CPlots(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+void CPlots::PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, bool chart_show=true)
+ {
+   m_chart_id = chart_id;
+   m_subwin = sub_win;
+   m_x1 = x1;
+   m_y1 = y1;
+   m_x2 = x2;
+   m_y2 = y2;   
+   m_chart_show = chart_show;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPlots::GraphCreate(string plot_name)
+ {   
+   ArrayResize(m_plot_names,ArraySize(m_plot_names)+1);
+   m_plot_names[ArraySize(m_plot_names)-1] = plot_name;
+   ChartSetInteger(m_chart_id, CHART_SHOW, m_chart_show);
+   
+   if(!graph.Create(m_chart_id, plot_name, m_subwin, m_x1, m_y1, m_x2, m_y2))
+     {
+      printf("Failed to Create graphical object on the Main chart Err = %d", GetLastError());
+      return(false);
+     }
+     
+   return (true);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
 bool CPlots::ScatterCurvePlots(
                                  string plot_name,
                                  double &x[],
@@ -63,16 +97,8 @@ bool CPlots::ScatterCurvePlots(
                               )
   {
    
-   ArrayResize(m_plot_names,ArraySize(m_plot_names)+1);
-   m_plot_names[ArraySize(m_plot_names)-1] = plot_name;
-   ChartSetInteger(m_chart_id, CHART_SHOW, m_chart_show);
+   this.GraphCreate(plot_name);
    
-   if(!graph.Create(m_chart_id, plot_name, m_subwin, m_x1, m_y1, m_x2, m_y2))
-     {
-      printf("Failed to Create graphical object on the Main chart Err = %d", GetLastError());
-      return(false);
-     }
-
 //---
  
    graph.CurveAdd(x, y, clr, CURVE_POINTS_AND_LINES, legend);
@@ -90,16 +116,52 @@ bool CPlots::ScatterCurvePlots(
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CPlots::PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=70, int x2=550, int y2=350, bool chart_show=true)
+bool CPlots::ScatterCurvePlotsMatrix(string plot_name,matrix &normalized_matrix, string x_axis_label="x_axis",string y_axis_label="y_axis",bool points_fill=true)
  {
-   m_chart_id = chart_id;
-   m_subwin = sub_win;
-   m_x1 = x1;
-   m_y1 = y1;
-   m_x2 = x2;
-   m_y2 = y2;   
-   m_chart_show = chart_show;
+   if (!this.GraphCreate(plot_name))
+     return (false);
+   
+   int cols = (int)normalized_matrix.Cols(), rows = (int)normalized_matrix.Rows(); 
+   
+   double x[], y[];
+   ArrayResize(x, rows);
+   
+   for (int i=0; i<rows; i++) x[i] = i+1;
+   
+   CColorGenerator generator;
+   
+   for (int i=0; i<cols; i++)
+    {
+      VectorToArray(normalized_matrix.Col(i), y);
+      graph.CurveAdd(x, y, generator.Next(), CURVE_POINTS_AND_LINES,"col "+string(i+1));
+    }
+
+
+   graph.XAxis().Name(x_axis_label);
+   graph.XAxis().NameSize(13);
+   graph.YAxis().Name(y_axis_label);
+   graph.YAxis().NameSize(13);
+   graph.FontSet("Lucida Console", 13);
+   graph.CurvePlotAll();
+   graph.Update();
+
+   return (true);
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPlots::VectorToArray(const vector &v,double &arr[])
+  {
+   ArrayResize(arr,(int)v.Size());
+
+   if(ArraySize(arr) == 0)
+      return(false);
+
+   for(ulong i=0; i<v.Size(); i++)
+      arr[i] = v[i];
+
+   return(true);
+  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
