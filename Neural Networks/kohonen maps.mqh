@@ -186,7 +186,7 @@ uint CKohonenMaps::KOMPredCluster(vector &v)
    vector D(m); //Euclidean distance btn clusters
    
    for (ulong j=0; j<m; j++)
-       D[j] = Euclidean_distance(v, w_matrix.Row(j));
+       D[j] = Euclidean_distance(v, w_matrix.Col(j));
           
     return((uint)D.ArgMin());
  }
@@ -199,8 +199,14 @@ vector CKohonenMaps::KOMPredCluster(matrix &matrix_)
  {   
    vector v(n);
    
-   for (ulong i=0; i<n; i++)
-      v[i] = KOMPredCluster(Matrix.Col(i));
+   if (n != matrix_.Cols())
+      {
+         Print("Can't predict the cluster | the input matrix Cols is not the same size as the trained matrix cols");
+         return (v);
+      }
+   
+   for (ulong i=0; i<matrix_.Rows(); i++)
+      v[i] = KOMPredCluster(Matrix.Row(i));
       
     return(v);
  }
