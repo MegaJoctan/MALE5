@@ -15,7 +15,6 @@ class CMatrix
   {
    public:
          matrix Matrix;
-         vector Vector;
   };
   
 //+------------------------------------------------------------------+
@@ -29,15 +28,17 @@ CMatrix* matrices[];
 private:
 
    matrix Matrix;
-   vector Vector;
    ulong  m_rows, m_cols;
-   uint   M_TENSOR_DIM;
 
 public:
                      CTensors(uint DIM); //For one dimension tensor
                     ~CTensors(void);
                     
+                    uint   TENSOR_DIMENSION;
+                    
                     bool   TensorAdd(matrix &mat_ , ulong POS);
+                    bool   TensorAppend(vector &v, ulong POS);
+                    
                     void   TensorPrint();
                     matrix Tensor(ulong POS);
                     void   TensorFill(double value);
@@ -47,16 +48,16 @@ public:
 //+------------------------------------------------------------------+
 CTensors::CTensors(uint DIM)
  {
-   M_TENSOR_DIM = DIM;
+   TENSOR_DIMENSION = DIM;
    
-   ArrayResize(matrices, M_TENSOR_DIM);
+   ArrayResize(matrices, TENSOR_DIMENSION);
    
    
-   for (uint i=0; i<M_TENSOR_DIM; i++)
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
        matrices[i] = new CMatrix;
      
    
-   for (uint i=0; i<M_TENSOR_DIM; i++)
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
      if (CheckPointer(matrices[i]) == POINTER_INVALID)
        {
          printf("Can't create a tensor, Invalid pointer Err %d ",GetLastError());
@@ -69,7 +70,7 @@ CTensors::CTensors(uint DIM)
 //+------------------------------------------------------------------+
 CTensors::~CTensors(void)
  {
-   for (uint i=0; i<M_TENSOR_DIM; i++)
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
      if (CheckPointer(matrices[i]) != POINTER_INVALID)
        delete matrices[i];
  }
@@ -78,9 +79,9 @@ CTensors::~CTensors(void)
 //+------------------------------------------------------------------+
 bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
  {
-   if (POS > M_TENSOR_DIM) 
+   if (POS > TENSOR_DIMENSION) 
      {
-       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",M_TENSOR_DIM);
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",TENSOR_DIMENSION);
        
        return (false);
      }
@@ -90,11 +91,34 @@ bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
    return (true);
  }
 //+------------------------------------------------------------------+
+//|      Appending rows to the Tensor Matrix at POS index            |
+//+------------------------------------------------------------------+
+bool CTensors::TensorAppend(vector &v, ulong POS)
+ {
+   if (POS > TENSOR_DIMENSION) 
+     {
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",TENSOR_DIMENSION);
+       
+       return (false);
+     }
+     
+//---
+
+   matrix mat = this.matrices[POS].Matrix;
+   
+   mat.Resize(mat.Rows()+1, mat.Cols());
+   mat.Row(v, mat.Rows()-1);
+   
+   TensorAdd(mat, POS);
+   
+  return (true);
+ }
+//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void CTensors::TensorPrint(void)
  {
-   for (ulong i=0; i<M_TENSOR_DIM; i++)
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
      Print("TENSOR INDEX <<",i,">>\n",this.matrices[i].Matrix); 
  }
 //+------------------------------------------------------------------+
@@ -102,9 +126,9 @@ void CTensors::TensorPrint(void)
 //+------------------------------------------------------------------+
 matrix CTensors::Tensor(ulong POS)
  {
-   if (POS > M_TENSOR_DIM) 
+   if (POS > TENSOR_DIMENSION) 
      {
-       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",M_TENSOR_DIM);
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",TENSOR_DIMENSION);
        
        matrix mat = {};
        return (mat);
@@ -117,9 +141,121 @@ matrix CTensors::Tensor(ulong POS)
 //+------------------------------------------------------------------+
 void CTensors::TensorFill(double value)
  {
-   for (ulong i=0; i<M_TENSOR_DIM; i++)
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
      this.matrices[i].Matrix.Fill(value);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|   Tensorflows for Vector type of data                            |
+//|                                                                  |
+//+------------------------------------------------------------------+
+/*
+class CVectors
+  {
+   public:
+          vector Vector;
+  };
+
+//---
+
+class CTensorsVectors
+  {
+CVectors             *vectors[];
+
+private:
+   uint TENSOR_DIMENSION;
+
+public:
+                     CTensorsVectors(uint DIM);
+                    ~CTensorsVectors(void);
+                    
+                     bool TensorAdd(vector &v, ulong POS);
+                     void TensorPrint(void);
+                     vector Tensor(ulong POS);
+                     void TensorFill(double value);
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CTensorsVectors::CTensorsVectors(uint DIM)
+ {
+   TENSOR_DIMENSION = DIM;
+   
+   ArrayResize(vectors, TENSOR_DIMENSION);
+   
+   
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
+       vectors[i] = new CVectors;
+     
+   
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
+     if (CheckPointer(vectors[i]) == POINTER_INVALID)
+       {
+         printf("Can't create a tensor, Invalid pointer Err %d ",GetLastError());
+         return;
+       }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CTensorsVectors::~CTensorsVectors(void)
+ {
+   for (uint i=0; i<TENSOR_DIMENSION; i++)
+     if (CheckPointer(vectors[i]) != POINTER_INVALID)
+       delete vectors[i];
+ } 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool  CTensorsVectors::TensorAdd(vector &v, ulong POS)
+ {
+   if (POS > TENSOR_DIMENSION) 
+     {
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",TENSOR_DIMENSION);
+       
+       return (false);
+     }
+     
+    this.vectors[POS].Vector = v;
+   
+   return (true);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CTensorsVectors::TensorPrint(void)
+ {
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
+     Print("TENSOR INDEX <<",i,">>\n",this.vectors[i].Vector); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CTensorsVectors::Tensor(ulong POS)
+ {
+   if (POS > TENSOR_DIMENSION) 
+     {
+       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",TENSOR_DIMENSION);
+       
+       vector v = {};
+       return (v);
+     }
+     
+   return (this.vectors[POS].Vector); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CTensorsVectors::TensorFill(double value)
+ {
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
+     this.vectors[i].Vector.Fill(value);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+*/
