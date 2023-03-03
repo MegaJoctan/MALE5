@@ -9,6 +9,7 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 #include <MALE5\matrix_utils.mqh>
+#include <MALE5\Tensors.mqh>
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -33,7 +34,7 @@ class CKohonenMaps
       matrix     o_matrix; //Output layer matrix
    
    public:
-                  CKohonenMaps(matrix &matrix_,uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100);
+                  CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100);
                  ~CKohonenMaps(void);
                  
                   uint KOMPredCluster(vector &v);
@@ -42,7 +43,7 @@ class CKohonenMaps
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CKohonenMaps::CKohonenMaps(matrix &matrix_,uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100)
+CKohonenMaps::CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100)
  {
    Matrix = matrix_;
    
@@ -50,24 +51,24 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_,uint random_state=42, uint clusters=2
    rows = matrix_.Rows();
    m = clusters;
    
-   w_vector = matrix_utils.Random(0.0, 1.0, int(n*m), random_state);
+   cluster_tensor = new CTensors(m);
    
-   w_matrix = matrix_utils.VectorToMatrix(w_vector,n);
+   w_matrix =matrix_utils.Random(0.0, 1.0, n, m, random_state); 
    
-   //Print("w Matrix\n",w_matrix);
+   //Print("w Matrix\n",w_matrix,"\nMatrix\n",Matrix);
    
    vector D(m); //Euclidean distance btn clusters
    
    
-   double epoch_start = GetMicrosecondCount()/(double)1e6, epoch_stop=0; 
-   
-   for (uint iteration=0; iteration<epochs; iteration++)
+   for (uint epoch=0; epoch<epochs; epoch++)
     {
-      for (ulong i=0; i<n; i++)
+      double epoch_start = GetMicrosecondCount()/(double)1e6, epoch_stop=0; 
+      
+      for (ulong i=0; i<rows; i++)
        {
          for (ulong j=0; j<m; j++)
            {
-             D[j] = Euclidean_distance(Matrix.Col(i),w_matrix.Row(j));
+             D[j] = Euclidean_distance(Matrix.Row(i),w_matrix.Col(j));
            }
          
          #ifdef DEBUG_MODE  
@@ -78,21 +79,31 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_,uint random_state=42, uint clusters=2
          
          ulong min = D.ArgMin();
          
-         vector w_new =  w_matrix.Row(min) + (alpha * (Matrix.Col(min) - w_matrix.Row(min)));
+         if (epoch == epochs-1) //last iteration
+            cluster_tensor.TensorAppend(Matrix.Row(i), min);
+          
+         vector w_new =  w_matrix.Col(min) + (alpha * (Matrix.Row(i) - w_matrix.Col(min)));
          
-         w_matrix.Row(w_new, min);
+         w_matrix.Col(w_new, min);
          
          //Print("New w_Matrix\n ",w_matrix);
        }
-       
+  
+      epoch_stop =GetMicrosecondCount()/(double)1e6;    
+      
+      printf("Epoch [%d/%d] | %sElapsed ",epoch+1,epochs, CalcTimeElapsed(epoch_stop-epoch_start));
+      
     }  //end of training
-  
-  epoch_stop =GetMicrosecondCount()/(double)1e6;
-  
+
+//---
+
   #ifdef DEBUG_MODE
-      printf("Finished Training | %sElapsed ", CalcTimeElapsed(epoch_stop-epoch_start));
-      Print("weights\n",w_matrix);
+      Print("\nNew weights\n",w_matrix);
+      Print("\nclusters");
+      cluster_tensor.TensorPrint();
   #endif 
+  
+   delete (cluster_tensor);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
