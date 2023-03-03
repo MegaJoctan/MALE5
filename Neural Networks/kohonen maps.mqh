@@ -10,6 +10,10 @@
 //+------------------------------------------------------------------+
 #include <MALE5\matrix_utils.mqh>
 #include <MALE5\Tensors.mqh>
+#include <MALE5\MqPlotLib\plots.mqh>
+
+#define RANDOM_STATE 42
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -18,6 +22,8 @@ class CKohonenMaps
   {
    protected:
      CMatrixutils matrix_utils; 
+     CTensors *cluster_tensor;
+     CPlots   plt;
      
       uint    n; //number of features
       uint    m; //number of clusters
@@ -34,7 +40,7 @@ class CKohonenMaps
       matrix     o_matrix; //Output layer matrix
    
    public:
-                  CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100);
+                  CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100);
                  ~CKohonenMaps(void);
                  
                   uint KOMPredCluster(vector &v);
@@ -43,7 +49,7 @@ class CKohonenMaps
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CKohonenMaps::CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint random_state=42, uint clusters=2, double alpha=0.01, uint epochs=100)
+CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100)
  {
    Matrix = matrix_;
    
@@ -53,7 +59,7 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint rando
    
    cluster_tensor = new CTensors(m);
    
-   w_matrix =matrix_utils.Random(0.0, 1.0, n, m, random_state); 
+   w_matrix =matrix_utils.Random(0.0, 1.0, n, m, RANDOM_STATE); 
    
    //Print("w Matrix\n",w_matrix,"\nMatrix\n",Matrix);
    
@@ -62,6 +68,7 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint rando
    
    for (uint epoch=0; epoch<epochs; epoch++)
     {
+    
       double epoch_start = GetMicrosecondCount()/(double)1e6, epoch_stop=0; 
       
       for (ulong i=0; i<rows; i++)
@@ -99,11 +106,44 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, CTensors *cluster_tensor, uint rando
 
   #ifdef DEBUG_MODE
       Print("\nNew weights\n",w_matrix);
-      Print("\nclusters");
-      cluster_tensor.TensorPrint();
   #endif 
   
-   delete (cluster_tensor);
+  matrix mat= {};
+  
+  if (save_clusters)
+     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
+       {
+          mat = this.cluster_tensor.Tensor(i);
+         
+         string header[]; ArrayResize(header, (int)mat.Cols());
+         
+         for (int k=0; k<ArraySize(header); k++) header[k] = "col"+string(k);
+         
+         this.matrix_utils.WriteCsv("SOM\\Cluster"+string(i+1)+".csv",mat,header);
+         
+         Print("Clusters CSV files saved under the directory Files\\SOM");
+       }
+
+//---
+
+   Print("\nclusters");
+   cluster_tensor.TensorPrint();
+
+//---
+
+   vector v;  
+   matrix plotmatrix(rows, m); 
+   
+     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
+       {
+          mat = this.cluster_tensor.Tensor(i);
+          
+          v  = this.matrix_utils.MatrixToVector(mat);
+          
+          plotmatrix.Col(v, i);
+       }   
+    
+    this.plt.ScatterCurvePlotsMatrix("kom",plotmatrix,"Map","clusters","clusters");       
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -115,6 +155,7 @@ CKohonenMaps::~CKohonenMaps(void)
    ZeroMemory(w_matrix); 
    ZeroMemory(w_vector); 
    ZeroMemory(o_matrix); 
+   delete (cluster_tensor);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
