@@ -152,6 +152,7 @@ bool CPlots::ScatterCurvePlotsMatrix(string plot_name,matrix &normalized_matrix,
    graph.CurvePlotAll();
    graph.Update();
 
+
    return (true);
  }
 //+------------------------------------------------------------------+
