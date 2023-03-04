@@ -30,7 +30,7 @@ public:
 
    string            csv_header[];
    
-   void              WriteCsv(string csv_name, matrix &matrix_, string &header[] , int digits=5);
+   bool              WriteCsv(string csv_name, matrix &matrix_, string &header[] , int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
    matrix            ReadCsvEncode(string file_name, string delimiter=",");
    bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
@@ -74,6 +74,7 @@ public:
    void              PrintShort(matrix &matrix_,ulong rows=5);
    void              SortAscending(vector &v);
    void              SortDesending(vector &v);
+   int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -244,7 +245,7 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], int digits=5)
+bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], int digits=5)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
@@ -252,7 +253,10 @@ void CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
    ResetLastError();
 
    if(handle == INVALID_HANDLE)
-      printf("Invalid %s handle Error %d ",csv_name,GetLastError());
+     {
+       printf("Invalid %s handle Error %d ",csv_name,GetLastError());
+       return (false);
+     }
    else
      {       
       string concstring;
@@ -265,7 +269,7 @@ void CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
       if (ArraySize(header) != (int)colsinrows.Size())
          {
             Print("header and columns from the matrix vary is size ");
-            return;
+            return false;
          }
 
 //---
@@ -293,6 +297,8 @@ void CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
         }
      }
    FileClose(handle);
+   
+   return (true);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1166,6 +1172,18 @@ void CMatrixutils::SortDesending(vector &v)
  {
    SortAscending(v);
    ReverseOrder(v); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+int CMatrixutils::CopyBufferVector(int handle,int buff_num,int start_pos,int count,vector &v)
+ {
+   double buff_arr[];
+   
+   int ret = CopyBuffer(handle, buff_num, start_pos, count, buff_arr);
+   v = ArrayToVector(buff_arr);
+   
+   return (ret);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
