@@ -195,10 +195,8 @@ double CKohonenMaps:: Euclidean_distance(const vector &v1, const vector &v2)
 //+------------------------------------------------------------------+
 uint CKohonenMaps::KOMPredCluster(vector &v)
  {
-  Print("Before normalize ",v);
-  
+  vector temp_v = v;
   pre_processing.Normalization(v);
-  Print("After normalize ",v);
   
   if (n != v.Size())
    {
@@ -210,9 +208,8 @@ uint CKohonenMaps::KOMPredCluster(vector &v)
    
    for (ulong j=0; j<m; j++)
        D[j] = Euclidean_distance(v, w_matrix.Col(j));
-  
-   //Print("D ",D); 
    
+   v.Copy(temp_v);
    return((uint)D.ArgMin());
  }
 
@@ -231,7 +228,7 @@ vector CKohonenMaps::KOMPredCluster(matrix &matrix_)
       }
    
    for (ulong i=0; i<matrix_.Rows(); i++)
-      v[i] = KOMPredCluster(Matrix.Row(i));
+      v[i] = KOMPredCluster(matrix_.Row(i));
       
     return(v);
  }
