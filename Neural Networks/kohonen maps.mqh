@@ -10,6 +10,7 @@
 //+------------------------------------------------------------------+
 #include <MALE5\matrix_utils.mqh>
 #include <MALE5\Tensors.mqh>
+#include <MALE5\preprocessing.mqh>
 #include <MALE5\MqPlotLib\plots.mqh>
 
 #define RANDOM_STATE 42
@@ -23,12 +24,14 @@ class CKohonenMaps
    protected:
      CMatrixutils matrix_utils; 
      CTensors *cluster_tensor;
+     CPreprocessing *pre_processing;
+     
      CPlots   plt;
      
       uint    n; //number of features
       uint    m; //number of clusters
-      ulong   rows;
-
+      ulong   rows; 
+      
       double  Euclidean_distance(const vector &v1, const vector &v2);
       string  CalcTimeElapsed(double seconds);
       
@@ -40,7 +43,7 @@ class CKohonenMaps
       matrix     o_matrix; //Output layer matrix
    
    public:
-                  CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100);
+                  CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100,norm_technique NORM_TECHNIQUE=NORM_MIN_MAX_SCALER);
                  ~CKohonenMaps(void);
                  
                   uint KOMPredCluster(vector &v);
@@ -49,19 +52,22 @@ class CKohonenMaps
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100)
+CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100, norm_technique NORM_TECHNIQUE=NORM_MIN_MAX_SCALER)
  {
    Matrix = matrix_;
    
    n = (uint)matrix_.Cols();
    rows = matrix_.Rows();
-   m = clusters;
+   m = clusters; 
    
+   pre_processing = new CPreprocessing(Matrix, NORM_TECHNIQUE);
    cluster_tensor = new CTensors(m);
    
    w_matrix =matrix_utils.Random(0.0, 1.0, n, m, RANDOM_STATE); 
    
-   //Print("w Matrix\n",w_matrix,"\nMatrix\n",Matrix);
+   #ifdef DEBUG_MODE
+      Print("w Matrix\n",w_matrix,"\nMatrix\n",Matrix);
+   #endif 
    
    vector D(m); //Euclidean distance btn clusters
    
@@ -79,7 +85,7 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
            }
          
          #ifdef DEBUG_MODE  
-            Print("Euc distance ",D," Winning cluster ",D.ArgMin());
+            //Print("Euc distance ",D," Winning cluster ",D.ArgMin());
          #endif 
          
    //--- weights update
@@ -87,49 +93,29 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
          ulong min = D.ArgMin();
          
          if (epoch == epochs-1) //last iteration
-            cluster_tensor.TensorAppend(Matrix.Row(i), min);
+            cluster_tensor.TensorAppend(Matrix.Row(i), min); 
+
           
          vector w_new =  w_matrix.Col(min) + (alpha * (Matrix.Row(i) - w_matrix.Col(min)));
          
          w_matrix.Col(w_new, min);
-         
-         //Print("New w_Matrix\n ",w_matrix);
        }
   
       epoch_stop =GetMicrosecondCount()/(double)1e6;    
       
       printf("Epoch [%d/%d] | %sElapsed ",epoch+1,epochs, CalcTimeElapsed(epoch_stop-epoch_start));
       
-    }  //end of training
+    }  //end of the training
 
 //---
 
   #ifdef DEBUG_MODE
       Print("\nNew weights\n",w_matrix);
   #endif 
-  
-  matrix mat= {};
-  
-  if (save_clusters)
-     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
-       {
-          mat = this.cluster_tensor.Tensor(i);
-         
-         string header[]; ArrayResize(header, (int)mat.Cols());
-         
-         for (int k=0; k<ArraySize(header); k++) header[k] = "col"+string(k);
-         
-         this.matrix_utils.WriteCsv("SOM\\Cluster"+string(i+1)+".csv",mat,header);
-         
-         Print("Clusters CSV files saved under the directory Files\\SOM");
-       }
 
 //---
-
-   Print("\nclusters");
-   cluster_tensor.TensorPrint();
-
-//---
+   
+   matrix mat= {};
 
    vector v;  
    matrix plotmatrix(rows, m); 
@@ -144,6 +130,31 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
        }   
     
     this.plt.ScatterCurvePlotsMatrix("kom",plotmatrix,"Map","clusters","clusters");       
+
+//---
+
+  
+  if (save_clusters)
+     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
+       {
+         mat = this.cluster_tensor.Tensor(i);
+         pre_processing.ReverseNormalization(mat);
+         cluster_tensor.TensorAdd(mat, i);
+         
+         string header[]; ArrayResize(header, (int)mat.Cols());
+         
+         for (int k=0; k<ArraySize(header); k++) 
+           header[k] = "col"+string(k);
+         
+         if (this.matrix_utils.WriteCsv("SOM\\Cluster"+string(i+1)+".csv",mat,header))
+            Print("Clusters CSV files saved under the directory Files\\SOM");
+       }
+
+//---
+
+   Print("\nclusters");
+   cluster_tensor.TensorPrint();
+
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -156,6 +167,7 @@ CKohonenMaps::~CKohonenMaps(void)
    ZeroMemory(w_vector); 
    ZeroMemory(o_matrix); 
    delete (cluster_tensor);
+   delete (pre_processing);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -183,12 +195,25 @@ double CKohonenMaps:: Euclidean_distance(const vector &v1, const vector &v2)
 //+------------------------------------------------------------------+
 uint CKohonenMaps::KOMPredCluster(vector &v)
  {
+  Print("Before normalize ",v);
+  
+  pre_processing.Normalization(v);
+  Print("After normalize ",v);
+  
+  if (n != v.Size())
+   {
+     Print("Can't predict the cluster | the input vector size is not the same as the trained matrix cols");
+     return(-1);
+   }
+   
    vector D(m); //Euclidean distance btn clusters
    
    for (ulong j=0; j<m; j++)
        D[j] = Euclidean_distance(v, w_matrix.Col(j));
-          
-    return((uint)D.ArgMin());
+  
+   //Print("D ",D); 
+   
+   return((uint)D.ArgMin());
  }
 
 //+------------------------------------------------------------------+
