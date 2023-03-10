@@ -56,7 +56,7 @@ After that you will be good to go.
 There is a short clear description on how to use this library on this repository wiki [https://github.com/MegaJoctan/MALE5/wiki](https://github.com/MegaJoctan/MALE5/wiki)
 
 ## Testing the Library
-There are couple of trading robots/EAs under the directory **\TESTING EAs & SCRIPTS** that could give you a bit of understanding on how to implement some of the algorithms provided in this repository
+There are couple of trading robots/EAs under the directory **\TESTING EAs & SCRIPTS** that could give you a bit of understanding on how to implement some of the algorithms provided in this repository, all you need to do is to move this folder into your Experts folder/directory
 
 ## Opening an issue
 
