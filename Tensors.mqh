@@ -153,7 +153,7 @@ void CTensors::TensorFill(double value)
 //|   Tensorflows for Vector type of data                            |
 //|                                                                  |
 //+------------------------------------------------------------------+
-/*
+
 class CVectors
   {
    public:
@@ -258,4 +258,3 @@ void CTensorsVectors::TensorFill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-*/
