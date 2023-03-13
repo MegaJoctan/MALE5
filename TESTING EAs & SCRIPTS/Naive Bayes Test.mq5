@@ -15,8 +15,7 @@
 #include <MALE5\matrix_utils.mqh>
 #include <MALE5\metrics.mqh>
 #include <Trade\Trade.mqh>
-#include <Trade\PositionInfo.mqh>
-#include <checkhistory.mqh>
+#include <Trade\PositionInfo.mqh> 
 
 CTrade m_trade;
 CPositionInfo m_position;
@@ -82,10 +81,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void TrainTest()
  {
-//---
-   
-  if (!CheckLoadHistory(Symbol(),PERIOD_CURRENT, TrainBars, true))
-    printf("Failed to Synchronize %s data Err = %d",Symbol(),GetLastError());
+//--- 
     
     
    vector col_v;
