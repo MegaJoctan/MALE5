@@ -75,6 +75,8 @@ public:
    void              SortAscending(vector &v);
    void              SortDesending(vector &v);
    int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
+   string            Stringfy(vector &v, int digits = 2);
+
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1184,6 +1186,17 @@ int CMatrixutils::CopyBufferVector(int handle,int buff_num,int start_pos,int cou
    v = ArrayToVector(buff_arr);
    
    return (ret);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+string CMatrixutils::Stringfy(vector &v, int digits = 2)
+ {
+   string str = "";
+   for (ulong i=0; i<v.Size(); i++)
+       str += " "+DoubleToString(v[i], digits) + " ";
+   
+   return (str);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
