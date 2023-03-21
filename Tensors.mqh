@@ -9,6 +9,7 @@
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
 #define TENSOR_COLS 2
 
 class CMatrix
@@ -42,6 +43,7 @@ public:
                     void   TensorPrint();
                     matrix Tensor(ulong POS);
                     void   TensorFill(double value);
+                    void   TensorMemoryClear();
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -73,6 +75,8 @@ CTensors::~CTensors(void)
    for (uint i=0; i<TENSOR_DIMENSION; i++)
      if (CheckPointer(matrices[i]) != POINTER_INVALID)
        delete matrices[i];
+
+   ArrayFree(matrices);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -147,6 +151,17 @@ void CTensors::TensorFill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+void CTensors::TensorMemoryClear(void)
+ {
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
+    {
+      this.matrices[i].Matrix.Resize(1,0);
+      ZeroMemory(this.matrices[i].Matrix);
+    }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -177,6 +192,7 @@ public:
                      void TensorPrint(void);
                      vector Tensor(ulong POS);
                      void TensorFill(double value);
+                     void TensorMemoryClear();
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -207,6 +223,8 @@ CTensorsVectors::~CTensorsVectors(void)
    for (uint i=0; i<TENSOR_DIMENSION; i++)
      if (CheckPointer(vectors[i]) != POINTER_INVALID)
        delete vectors[i];
+
+   ArrayFree(vectors);
  } 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -254,6 +272,17 @@ void CTensorsVectors::TensorFill(double value)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
      this.vectors[i].Vector.Fill(value);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CTensorsVectors::TensorMemoryClear(void)
+ {
+   for (ulong i=0; i<TENSOR_DIMENSION; i++)
+    {
+      this.vectors[i].Vector.Resize(1,0);
+      ZeroMemory(this.vectors[i].Vector);
+    }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
