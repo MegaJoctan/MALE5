@@ -76,7 +76,7 @@ CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector, nor
 
    isTrain = true; //we are on isTrain 
     
-   ParameterEstimationGrad(epochs, alpha,tol);
+   ParameterEstimationGrad(epochs, alpha, tol);
    
 //---
    
@@ -86,13 +86,15 @@ CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector, nor
    #endif 
    
    isTrain  = false;
+   
+   CLEAR_MEM(XMatrix);
+   CLEAR_MEM(YVector);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CLogisticRegression::~CLogisticRegression(void)
  {
-   CLEAR_MEM(XMatrix);
    CLEAR_MEM(Betas);
    
    if (CheckPointer(normalize_x) != POINTER_INVALID)  
@@ -123,7 +125,6 @@ double CLogisticRegression::Logit(vector &x)
 //---
 
    double sum = 0;
-   
    
    for (ulong i=0; i<Betas.Rows(); i++)
       if (i == 0)
@@ -167,7 +168,9 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
    vector P = {}; matrix PA = {};
    vector classes = matrix_utils.Classes(YVector);
    
-   //Print("classes ",classes);
+   #ifdef DEBUG_MODE
+      Print("classes ",classes);
+   #endif 
    
    double prev_cost=0, curr_cost=0;
    
@@ -191,6 +194,14 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
 
        printf("Epoch [%d/%d] Loss %.8f Accuracy %.3f tol %.8f", i+1, epochs, curr_cost, metrics.confusion_matrix(YVector, round(P), classes,false),MathAbs(curr_cost-prev_cost));
      }
+     
+//--- Clear the training memory
+
+   CLEAR_MEM(XDesignMatrix);
+   CLEAR_MEM(XT);
+   CLEAR_MEM(P);
+   CLEAR_MEM(PA);
+   CLEAR_MEM(classes);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
