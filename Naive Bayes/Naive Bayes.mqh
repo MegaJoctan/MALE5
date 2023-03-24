@@ -77,12 +77,9 @@ CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
    for (ulong i=0; i<classes.Size(); i++)
       c_prior_proba[i] = c_evidence[i]/(double)n;
    
-    
   
-   //#ifdef DEBUG_MODE
-      Print("---> GROUPS ",classes);
-      Print("Prior Class Proba ",c_prior_proba,"\nEvidence ",c_evidence);
-   //#endif 
+   Print("---> GROUPS ",classes);
+   Print("Prior Class Proba ",c_prior_proba,"\nEvidence ",c_evidence);
     
  }
 //+------------------------------------------------------------------+
@@ -238,12 +235,16 @@ double CNormDistribution::PDF(double x)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
+#include <MALE5\preprocessing.mqh>
+
+
 class CGaussianNaiveBayes
   {
    protected:
    
       CNormDistribution norm_distribution;
-      
+      CPreprocessing *normalize_x;
+
       vector            c_prior_proba; //prior probability
       vector            c_evidence;
       ulong             n;
@@ -256,13 +257,13 @@ class CGaussianNaiveBayes
       vector             YVector; 
       ulong              m_cols;  //columns in XMatrix
       
-      
+      bool               during_training;
       vector             calcProba(vector &v_features);
    
    public:              
    
       vector            classes; //Target classes            
-                        CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector);
+                        CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector ,norm_technique NORM_METHOD=NORM_STANDARDIZATION);
                        ~CGaussianNaiveBayes(void);
                         
                         int GaussianNaiveBayes(vector &x_features);
@@ -271,17 +272,21 @@ class CGaussianNaiveBayes
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
+CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector, norm_technique NORM_METHOD=NORM_STANDARDIZATION)
  { 
       
    XMatrix.Copy(x_matrix);
    YVector.Copy(y_vector);
+   
+   normalize_x = new CPreprocessing(XMatrix, NORM_METHOD);
    
    classes = matrix_utils.Classes(YVector);
    
    m_cols = XMatrix.Cols();
     
 //---
+   
+   during_training = true;
    
    c_evidence.Resize((ulong)classes.Size());
    
@@ -290,15 +295,14 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
    if (n==0) { Print("---> n == 0 | Gaussian Naive Bayes class failed"); return; }
    
 //---
-
+   
    vector v = {};
    for (ulong i=0; i<c_evidence.Size(); i++)
-       {
+       {          
          v = matrix_utils.Search(YVector,(int)classes[i]);
          
          c_evidence[i] = (int)v.Size();
        }
-
    
    c_prior_proba.Resize(classes.Size());
    
@@ -307,12 +311,12 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector)
 
 //---       
    
-   
-   //#ifdef DEBUG_MODE
-      Print("---> GROUPS ",classes);
-      Print("\n---> Prior_proba ",c_prior_proba," Evidence ",c_evidence);
-   //#endif 
-   
+   Print("---> GROUPS ",classes);
+   Print("\n---> Prior_proba ",c_prior_proba," Evidence ",c_evidence);
+
+//---
+
+   during_training = false; 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -321,6 +325,7 @@ CGaussianNaiveBayes::~CGaussianNaiveBayes(void)
  {
    ZeroMemory(XMatrix);
    ZeroMemory(YVector);
+   delete (normalize_x);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -328,14 +333,18 @@ CGaussianNaiveBayes::~CGaussianNaiveBayes(void)
 
 int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
  { 
-   if (x_features.Size() != m_cols)
+  vector temp_x = x_features;
+  
+  if (!during_training)  
+     normalize_x.Normalization(temp_x);
+       
+   if (temp_x.Size() != m_cols)
      {
        Print("CRITICAL | The given x_features have different size than the trained x_features");
        return (-1);
      }
-     
-   vector p = calcProba(x_features);
-  
+   
+   vector p = calcProba(temp_x);
    
    return((int)classes[p.ArgMax()]);
  }
@@ -345,15 +354,15 @@ int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
 vector CGaussianNaiveBayes::GaussianNaiveBayes(matrix &x_matrix)
  {
   ulong rows = x_matrix.Rows();
- 
   vector v(rows), pred(rows); 
   
    for (ulong i=0; i<rows; i++)
     { 
        v = x_matrix.Row(i);
+       
        pred[i] = GaussianNaiveBayes(v);
     }
-    
+   
    return pred;
  }
 //+------------------------------------------------------------------+
@@ -365,7 +374,7 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
     vector proba_v(classes.Size()); //vector to return
     proba_v.Fill(-1);
     
-    if (v_features.Size() != XMatrix.Cols())
+    if (v_features.Size() != m_cols)
       {
          printf("FATAL | Can't calculate probability, fetures columns size = %d is not equal to XMatrix columns =%d",v_features.Size(),XMatrix.Cols());
          return proba_v;
@@ -378,7 +387,7 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
     for (ulong c=0; c<classes.Size(); c++)
       {
         double proba = 1;
-          for (ulong i=0; i<XMatrix.Cols(); i++)
+          for (ulong i=0; i<m_cols; i++)
             {
                 v = XMatrix.Col(i);
                 
@@ -398,6 +407,8 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
                 
                 norm_distribution.m_mean = calc_v.Mean(); //Assign these to Gaussian Normal distribution
                 norm_distribution.m_std = calc_v.Std();   
+                
+                Print("Calculate proba inside ");
                 
                 #ifdef DEBUG_MODE
                   printf("mean %.5f std %.5f ",norm_distribution.m_mean,norm_distribution.m_std);
