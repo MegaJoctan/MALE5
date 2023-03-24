@@ -33,7 +33,7 @@ private:
                     ulong m_rows, m_cols;
                     
                     double Logit(vector &x);
-                    vector Logit(matrix &x);
+                    vector Logit(matrix &x); //Logitstic loss function for training 
 
                     void ParameterEstimationGrad(uint epochs=1000, double alpha=0.01, double tol=1e-8);
                     
@@ -42,6 +42,7 @@ public:
                     ~CLogisticRegression(void);
                     
                     matrix Betas;
+                    vector classes;
                     
                     vector Odds(vector &proba);
                     vector lnOdss(vector &odds);
@@ -53,7 +54,7 @@ public:
                     
   };
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| This is where the logistic model gets |
 //+------------------------------------------------------------------+
 CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8)
  {
@@ -67,6 +68,8 @@ CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector, nor
    
    XMatrix = x_matrix;
    YVector = y_vector; 
+   
+   classes = matrix_utils.Classes(y_vector);
    
    M_NORM = NORM_METHOD;
     
@@ -119,8 +122,10 @@ vector CLogisticRegression::lnOdss(vector &odds)
 //+------------------------------------------------------------------+
 double CLogisticRegression::Logit(vector &x)
  {
+  vector temp_x = x;
+  
    if (!isTrain && M_NORM != NORM_NONE) 
-         normalize_x.Normalization(x);
+         normalize_x.Normalization(temp_x);
  
 //---
 
@@ -130,7 +135,7 @@ double CLogisticRegression::Logit(vector &x)
       if (i == 0)
          sum += Betas[i][0];
       else
-         sum += Betas[i][0] * x[i-1]; 
+         sum += Betas[i][0] * temp_x[i-1]; 
    
    return (1.0/(1.0 + exp(-sum))); 
  }
@@ -165,8 +170,7 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
    matrix XDesignMatrix = matrix_utils.DesignMatrix(XMatrix);
    matrix XT = XDesignMatrix.Transpose();
    
-   vector P = {}; matrix PA = {};
-   vector classes = matrix_utils.Classes(YVector);
+   vector P = {}; matrix PA = {}; 
    
    #ifdef DEBUG_MODE
       Print("classes ",classes);
@@ -201,7 +205,6 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
    CLEAR_MEM(XT);
    CLEAR_MEM(P);
    CLEAR_MEM(PA);
-   CLEAR_MEM(classes);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -211,7 +214,7 @@ int CLogisticRegression::LogitPred(vector &v)
    double p1 = Logit(v);
    vector v_out = {p1, 1-p1};
      
-  return ((int)v_out.ArgMax());
+  return ((int)classes[v_out.ArgMax()]);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
