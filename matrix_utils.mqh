@@ -31,6 +31,7 @@ public:
    string            csv_header[];
    
    bool              WriteCsv(string csv_name, matrix &matrix_, string &header[] , int digits=5);
+   bool              WriteCsv(string csv_name, matrix &matrix_, string header_string, int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",");
    matrix            ReadCsvEncode(string file_name, string delimiter=",");
    bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
@@ -298,6 +299,70 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
          FileWrite(handle,concstring);
         }
      }
+   FileClose(handle);
+   
+   return (true);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_string, int digits=5)
+  {
+   FileDelete(csv_name);
+   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
+
+   ResetLastError();
+
+   if(handle == INVALID_HANDLE)
+     {
+       printf("Invalid %s handle Error %d ",csv_name,GetLastError());
+       return (false);
+     }
+            
+   string concstring;
+   vector row = {};
+   
+   //FileSeek(handle,0,SEEK_SET);
+   
+   string header[];
+   
+   ushort u_sep;
+   u_sep = StringGetCharacter(",",0);
+   StringSplit(header_string,u_sep, header);
+   
+   vector colsinrows = matrix_.Row(0);
+   
+   if (ArraySize(header) != (int)colsinrows.Size())
+      {
+         Print("header and columns from the matrix vary is size ");
+         return false;
+      }
+
+//---
+
+   string header_str = "";
+   for (int i=0; i<ArraySize(header); i++)
+      header_str += header[i] + (i+1 == colsinrows.Size() ? "" : ",");
+   
+   FileWrite(handle,header_str);
+   
+   FileSeek(handle,0,SEEK_SET);
+   
+   for(ulong i=0; i<matrix_.Rows(); i++)
+     {
+      ZeroMemory(concstring);
+
+      row = matrix_.Row(i);
+      for(ulong j=0, cols =1; j<row.Size(); j++, cols++)
+        {
+         concstring += (string)NormalizeDouble(row[j],digits) + (cols == matrix_.Cols() ? "" : ",");
+        }
+
+      FileSeek(handle,0,SEEK_END);
+      FileWrite(handle,concstring);
+     }
+        
    FileClose(handle);
    
    return (true);
@@ -961,14 +1026,23 @@ vector CMatrixutils::Search(const vector &v,int value)
    vector v_out ={};
    
    for (ulong i=0, count =0; i<v.Size(); i++)
+     { 
       if (value == v[i])
         {
           count++;
+          
+          if (i > 2631867)
+            {
+               Print("Infinite loop v size ",v.Size());
+               break;
+            }
+          //Print("Count ",count);
           
           v_out.Resize(count);    
           
           v_out[count-1] = (int)i;
         }
+     }   
     return v_out;
  }
 //+------------------------------------------------------------------+
