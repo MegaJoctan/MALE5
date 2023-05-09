@@ -1,6 +1,6 @@
 # MALE5: Machine Learning for MQL5
 
-![MALE5](https://user-images.githubusercontent.com/65341461/219878218-5f57720b-a67b-46e8-9568-f20920e35796.png)
+![MALE5](https://user-images.githubusercontent.com/65341461/237021529-a6117bde-d0b5-4f80-9ab0-d3c06d70e527.png)
 
 This repository hosts the development of the MALE 5 library
 
