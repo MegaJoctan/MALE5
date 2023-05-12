@@ -268,6 +268,7 @@ class CGaussianNaiveBayes
                         
                         int GaussianNaiveBayes(vector &x_features);
                         vector GaussianNaiveBayes(matrix &x_matrix);
+                        vector CGaussianNaiveBayesProba(vector &x_vec);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -347,6 +348,27 @@ int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
    vector p = calcProba(temp_x);
    
    return((int)classes[p.ArgMax()]);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CGaussianNaiveBayes::CGaussianNaiveBayesProba(vector &x_vec)
+ {
+  vector temp_x = x_vec;
+  vector ret_v = {};
+  
+  if (!during_training)  
+     normalize_x.Normalization(temp_x);
+       
+   if (temp_x.Size() != m_cols)
+     {
+       Print("CRITICAL | The given x_features have different size than the trained x_features");
+       return (ret_v);
+     }
+   
+   ret_v = calcProba(temp_x);
+   
+   return (ret_v);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
