@@ -365,7 +365,7 @@ vector CGaussianNaiveBayes::CGaussianNaiveBayesProba(vector &x_vec)
        Print("CRITICAL | The given x_features have different size than the trained x_features");
        return (ret_v);
      }
-   
+        
    ret_v = calcProba(temp_x);
    
    return (ret_v);
@@ -429,8 +429,7 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
                 
                 norm_distribution.m_mean = calc_v.Mean(); //Assign these to Gaussian Normal distribution
                 norm_distribution.m_std = calc_v.Std();   
-                
-                Print("Calculate proba inside ");
+                 
                 
                 #ifdef DEBUG_MODE
                   printf("mean %.5f std %.5f ",norm_distribution.m_mean,norm_distribution.m_std);
@@ -445,7 +444,11 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
          Print(">> Proba ",proba," prior proba ",c_prior_proba);
         #endif 
      }
-     
+
+//--- Normalize probabilities
+    
+    proba_v = proba_v / proba_v.Sum();
+    
     return proba_v;
  }
 //+------------------------------------------------------------------+
