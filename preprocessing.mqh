@@ -25,20 +25,20 @@ struct standardization_struct
  {
    vector<double> mean;
    vector<double> std;
- } standardization_scaler;
+ };
     
 struct min_max_struct
   {
     vector<double> min;
     vector<double> max;
-  } min_max_scaler;
+  };
 
 struct mean_norm_struct
  {
    vector<double> mean;
    vector<double> min;
    vector<double> max;
- } mean_norm_scaler;
+ };
 
 //---
 
@@ -71,6 +71,10 @@ private:
                         
                         CPreprocessing(matrix &matrix_, norm_technique NORM_MODE);
                        ~CPreprocessing(void);
+                       
+                       standardization_struct standardization_scaler;
+                       min_max_struct min_max_scaler;
+                       mean_norm_struct mean_norm_scaler;
                        
                        void Normalization(vector &v);
                        void Normalization(matrix &matrix_);
