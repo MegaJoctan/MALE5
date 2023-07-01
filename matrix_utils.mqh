@@ -72,11 +72,13 @@ public:
    void              Shuffle(vector &v, int random_state=-1);
    void              Shuffle(matrix &matrix_,int random_state=-1);
    void              NormalizeVector(vector<double> &v, int digits=3);
-   void              PrintShort(matrix &matrix_,ulong rows=5);
+   void              PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
    void              SortAscending(vector &v);
    void              SortDesending(vector &v);
    int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
    string            Stringfy(vector &v, int digits = 2);
+   matrix            zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
+   vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
 
   }; 
 //+------------------------------------------------------------------+
@@ -1207,10 +1209,16 @@ void CMatrixutils::NormalizeVector(vector<double> &v,int digits=3)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5)
+void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
  {
+   vector v = {};
     for (ulong i=0; i<rows; i++)
-      Print(matrix_.Row(i)); 
+     {
+        v = matrix_.Row(i);
+        NormalizeVector(v, digits);
+        
+        Print(v); 
+     }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
