@@ -8,149 +8,135 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
+#include <MALE5\Tensors.mqh>
 
-#include <MALE5\matrix_utils.mqh>
-#include <MALE5\KNN nearest neighbors\KNN_nearest_neighbors.mqh>
-#include <MALE5\Ridge & Lasso Regression\Ridge Regression.mqh>
-#include <MALE5\metrics.mqh>
-
-enum models //Models that need cross validation
+class CCrossValidation_kfold
   {
-     KNN_NEAREST_NEIGHBORS,
-     RIDGE_REGRESSION
-  } selected_model;
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-class CCrossValidation
-  {
-   private:
-      CMatrixutils      matrix_utils;
-      CRidgeregression  *ridge_regression;
-      CLinearRegression *Linear_reg;
-      CKNNNearestNeighbors *nearest_neighbors; 
-      
-      matrix            Matrix;
-      ulong             n;
-      
-   public:
-                        CCrossValidation(matrix& matrix_, models MODEL);
-                       ~CCrossValidation(void);
-                       
-                       double LeaveOneOut(double init, double step, double finale);
+CTensors  *folds_tensor;
+   void XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1);
+   void RemoveCol(matrix &mat, ulong col);
+   uint k_folds;
+   
+public:
+                     CCrossValidation_kfold(matrix &data_matrix, uint k_folds=5);
+                    ~CCrossValidation_kfold(void);
+                    
+                    matrix fold(uint index);
+                    uint fold_size;
+                    
+                    matrix fold_x(uint index);
+                    vector fold_y(uint index);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CCrossValidation::CCrossValidation(matrix& matrix_, models MODEL)
- { 
-   selected_model = MODEL;
-   Matrix = matrix_;
-   n = Matrix.Rows();
+CCrossValidation_kfold::CCrossValidation_kfold(matrix &data_matrix, uint k_folds_=5)
+ {
+   this.k_folds = k_folds_;
+   
+   folds_tensor = new CTensors(k_folds);
+   
+   ulong rows = data_matrix.Rows();
+   fold_size = (int)MathCeil(rows/k_folds);
+   
+   matrix temp_tensor(fold_size, data_matrix.Cols());
+   
+   int start=0;
+   for (ulong i=0; i<k_folds; i++)  
+     {
+       for (ulong j=start, count=0; j<fold_size+start; j++, count++)
+          {
+            temp_tensor.Row(data_matrix.Row(j), count);
+          }
+          
+       folds_tensor.TensorAdd(temp_tensor, i); //Obtained size=k data matrix
+       
+       
+       start += (int)fold_size;
+     }
+   
+   
+   //#ifdef DEBUG_MODE
+   //   Print("total ",rows," fold_size ",fold_size," k_folds ",k_folds);
+   //   folds_tensor.TensorPrint();
+   //#endif 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CCrossValidation::~CCrossValidation(void)
+CCrossValidation_kfold::~CCrossValidation_kfold(void)
  {
- 
- 
+   delete(folds_tensor);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-double CCrossValidation::LeaveOneOut(double init, double step, double finale)
+matrix CCrossValidation_kfold::fold(uint index)
  {
-    matrix XMatrix;
-    vector yVector;
-    
-    matrix_utils.XandYSplitMatrices(Matrix,XMatrix,yVector);
- 
-    matrix train = Matrix; vector test = {};
-    
-    int size = int(finale/step);
-    vector validation_output(ulong(size));
-    vector lambda_vector(ulong(size));
-    
-    vector forecast(n); 
-    vector actual = yVector;
-    
-    double lambda = init;
-    
-     for (int i=0; i<size; i++)
-       {
-         lambda += step;
-         
-          for (ulong j=0; j<n; j++)
-            {               
-               train.Copy(Matrix);
-               ZeroMemory(test);
-               
-               test = XMatrix.Row(j);
-               
-               matrix_utils.RemoveRow(train,j);
-               
-               vector coeff = {};
-               double acc =0;
-               
-                switch(selected_model)
-                  {
-                   case  RIDGE_REGRESSION:
-
-                        ridge_regression = new CRidgeregression(train);
-                        coeff = ridge_regression.L2Norm(lambda); //ridge regression
-                        
-                        Linear_reg = new CLinearRegression(train,coeff);   
-
-                        forecast[j] =  Linear_reg.LRModelPred(test);  
-                        
-                        //---
-                        
-                        delete (Linear_reg); 
-                        delete (ridge_regression);
-                        
-                     break;
-                     
-                    case KNN_NEAREST_NEIGHBORS:
-                    
-                         nearest_neighbors = new CKNNNearestNeighbors(train);
-                         
-                         forecast[j] = nearest_neighbors.KNNAlgorithm(test);
-                         
-                     break;
-                  }
-            }
-          
-          //Print("---->\nforecast\n",forecast);
-          //Print("actual\n",yVector);
-          
-          validation_output[i] = forecast.Loss(actual,LOSS_MSE)/double(n); 
-          
-          lambda_vector[i] = lambda;
-          
-          #ifdef DEBUG_MODE
-             printf("%.5f LOOCV mse %.5f",lambda_vector[i],validation_output[i]);
-          #endif           
-       }
-
-//---
-
-      #ifdef  DEBUG_MODE
-         matrix store_matrix(size,2);
-         
-         store_matrix.Col(validation_output,0);
-         store_matrix.Col(lambda_vector,1); 
-         
-         string name = EnumToString(selected_model)+"\\LOOCV.csv";
-         
-         string header[2] = {"Validation output","lambda"};
-         matrix_utils.WriteCsv(name,store_matrix,header,10);
-      #endif 
-      
-    return(lambda_vector[validation_output.ArgMin()]);
+   if (index+1 > this.k_folds) 
+     {
+       matrix ret={};
+       Print("k-fold index out of range");
+       return (ret);
+     }
+     
+   return folds_tensor.Tensor(index);
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CCrossValidation_kfold::fold_x(uint index)
+ {     
+   matrix x; vector y;
+   matrix fold_matrix = this.fold(index);
+   
+   this.XandYSplitMatrices(fold_matrix, x, y);
+   
+   return (x);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CCrossValidation_kfold::fold_y(uint index)
+ {   
+   matrix x; vector y;
+   matrix fold_matrix = this.fold(index);
+   
+   this.XandYSplitMatrices(fold_matrix, x, y);
+   
+   return (y);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CCrossValidation_kfold::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1)
+ {
+   y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
 
+   y_vector = matrix_.Col(y_column);
+   xmatrix.Copy(matrix_);
+
+   RemoveCol(xmatrix, y_column); //Remove the y column
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CCrossValidation_kfold::RemoveCol(matrix &mat, ulong col)
+  {
+   matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
+
+   for (ulong i=0, new_col=0; i<mat.Cols(); i++) 
+     {
+        if (i == col)
+          continue;
+        else
+          {
+           new_matrix.Col(mat.Col(i),new_col);
+           new_col++;
+          }    
+     }
+   mat.Copy(new_matrix);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
