@@ -74,8 +74,8 @@ private:
                        //---
                         
                         CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min);
-                        CPreprocessing(vector &min_max_min, vector &min_max_max); 
-                        CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE=NORM_STANDARDIZATION);
+                        CPreprocessing(vector &min_max_max, vector &min_max_min); 
+                        CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE);
                         
                        ~CPreprocessing(void);
                        
@@ -161,16 +161,18 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
 //| information are known from pre-trained model or class instance   |
 //  the following classes may be appropriate to use instead          |            
 //+------------------------------------------------------------------+
-CPreprocessing::CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE=NORM_STANDARDIZATION)
+CPreprocessing::CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE)
  {
    this.norm_method = NORM_STANDARDIZATION;
+   this.m_cols = stdn_mean.Size();
    
    standardization_scaler.mean = stdn_mean;
    standardization_scaler.std = stdn_std;
  }
-CPreprocessing::CPreprocessing(vector &min_max_min, vector &min_max_max)
+CPreprocessing::CPreprocessing(vector &min_max_max, vector &min_max_min)
  {
    this.norm_method =  NORM_MIN_MAX_SCALER;
+   this.m_cols = min_max_max.Size();
   
    min_max_scaler.max = min_max_max;
    min_max_scaler.min = min_max_min;
@@ -179,10 +181,11 @@ CPreprocessing::CPreprocessing(vector &min_max_min, vector &min_max_max)
 CPreprocessing::CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min)
  {
    this.norm_method = NORM_MEAN_NORM;
+   this.m_cols = mean_norm_max.Size();
    
+   mean_norm_scaler.max = mean_norm_max;
    mean_norm_scaler.mean = mean_norm_mean;
    mean_norm_scaler.min = mean_norm_min;
-   mean_norm_scaler.max = mean_norm_max;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
