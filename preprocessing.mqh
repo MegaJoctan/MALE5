@@ -10,6 +10,7 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
+
 enum norm_technique
  {
    NORM_MIN_MAX_SCALER, //MIN MAX SCALER
@@ -17,9 +18,10 @@ enum norm_technique
    NORM_STANDARDIZATION, //STANDARDIZATION
    NORM_NONE            //DO NOT NORMALIZE
  }; 
- 
+
 class CPreprocessing
   {
+//---
 
 struct standardization_struct
  {
@@ -39,9 +41,7 @@ struct mean_norm_struct
    vector<double> min;
    vector<double> max;
  };
-
-//---
-
+ 
 private:
       ulong  m_rows, m_cols;
       norm_technique norm_method;
@@ -73,9 +73,9 @@ private:
                         
                        //---
                         
-                        CPreprocessing(standardization_struct &load_standardization); 
-                        CPreprocessing(min_max_struct &load_min_max);
-                        CPreprocessing(mean_norm_struct &load_mean_norm);
+                        CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min);
+                        CPreprocessing(vector &min_max_min, vector &min_max_max); 
+                        CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE=NORM_STANDARDIZATION);
                         
                        ~CPreprocessing(void);
                        
@@ -161,28 +161,28 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
 //| information are known from pre-trained model or class instance   |
 //  the following classes may be appropriate to use instead          |            
 //+------------------------------------------------------------------+
-CPreprocessing::CPreprocessing(standardization_struct &load_standardization)
+CPreprocessing::CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE=NORM_STANDARDIZATION)
  {
    this.norm_method = NORM_STANDARDIZATION;
    
-   standardization_scaler.mean = load_standardization.mean;
-   standardization_scaler.std = load_standardization.std;
+   standardization_scaler.mean = stdn_mean;
+   standardization_scaler.std = stdn_std;
  }
-CPreprocessing::CPreprocessing(min_max_struct &load_min_max)
+CPreprocessing::CPreprocessing(vector &min_max_min, vector &min_max_max)
  {
    this.norm_method =  NORM_MIN_MAX_SCALER;
   
-   min_max_scaler.max = load_min_max.max;
-   min_max_scaler.min = load_min_max.min;
+   min_max_scaler.max = min_max_max;
+   min_max_scaler.min = min_max_min;
  }
  
-CPreprocessing::CPreprocessing(mean_norm_struct &load_mean_norm) 
+CPreprocessing::CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min)
  {
    this.norm_method = NORM_MEAN_NORM;
    
-   mean_norm_scaler.mean = load_mean_norm.mean;
-   mean_norm_scaler.min = load_mean_norm.min;
-   mean_norm_scaler.max = load_mean_norm.max;
+   mean_norm_scaler.mean = mean_norm_mean;
+   mean_norm_scaler.min = mean_norm_min;
+   mean_norm_scaler.max = mean_norm_max;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
