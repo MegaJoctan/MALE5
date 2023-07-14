@@ -69,7 +69,14 @@ private:
       
    public:
                         
-                        CPreprocessing(matrix &matrix_, norm_technique NORM_MODE);
+                        CPreprocessing(matrix &matrix_, norm_technique NORM_MODE); 
+                        
+                       //---
+                        
+                        CPreprocessing(standardization_struct &load_standardization); 
+                        CPreprocessing(min_max_struct &load_min_max);
+                        CPreprocessing(mean_norm_struct &load_mean_norm);
+                        
                        ~CPreprocessing(void);
                        
                        standardization_struct standardization_scaler;
@@ -83,7 +90,11 @@ private:
                        void ReverseNormalization(matrix &matrix_);
   };
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| For normalizing and reverse normalizing the given x-matrix       |
+//| This constructor obtains crucial information such as mean, min   |
+//| max and Std deviation from the dataset, this information is used |
+//| during reverse normalization for turning the data back to its    |
+//| original state
 //+------------------------------------------------------------------+
 CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
  {    
@@ -144,6 +155,34 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
     }
      
    Normalization(matrix_);
+ }
+//+------------------------------------------------------------------+
+//|   In case the Normalization techniques and normalization         |
+//| information are known from pre-trained model or class instance   |
+//  the following classes may be appropriate to use instead          |            
+//+------------------------------------------------------------------+
+CPreprocessing::CPreprocessing(standardization_struct &load_standardization)
+ {
+   this.norm_method = NORM_STANDARDIZATION;
+   
+   standardization_scaler.mean = load_standardization.mean;
+   standardization_scaler.std = load_standardization.std;
+ }
+CPreprocessing::CPreprocessing(min_max_struct &load_min_max)
+ {
+   this.norm_method =  NORM_MIN_MAX_SCALER;
+  
+   min_max_scaler.max = load_min_max.max;
+   min_max_scaler.min = load_min_max.min;
+ }
+ 
+CPreprocessing::CPreprocessing(mean_norm_struct &load_mean_norm) 
+ {
+   this.norm_method = NORM_MEAN_NORM;
+   
+   mean_norm_scaler.mean = load_mean_norm.mean;
+   mean_norm_scaler.min = load_mean_norm.min;
+   mean_norm_scaler.max = load_mean_norm.max;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
