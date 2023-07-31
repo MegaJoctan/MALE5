@@ -24,6 +24,8 @@ private:
    int               MathRandom(int mini, int maxi);
    string            CalcTimeElapsed(double seconds);
    void              Swap(double &var1, double &var2);
+   string            ConvertTime(double seconds);
+   
 public:
                      CMatrixutils(void);
                     ~CMatrixutils(void);
@@ -79,7 +81,7 @@ public:
    string            Stringfy(vector &v, int digits = 2);
    matrix            zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
    vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
-
+   
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -160,6 +162,11 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
 void CMatrixutils::RemoveCol(matrix &mat, ulong col)
   {
    matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
+   if (col > mat.Cols())
+     {
+       Print(__FUNCTION__," column out of range");
+       return;
+     }
 
    for (ulong i=0, new_col=0; i<mat.Cols(); i++) 
      {
@@ -178,7 +185,7 @@ void CMatrixutils::RemoveCol(matrix &mat, ulong col)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::RemoveMultCols(matrix &mat,int &cols[])
+void CMatrixutils::RemoveMultCols(matrix &mat, int &cols[])
   {
    ulong size = (int)ArraySize(cols);
 
@@ -202,7 +209,8 @@ void CMatrixutils::RemoveMultCols(matrix &mat,int &cols[])
 //---
 
    vector column_vector;
-   for(ulong A=0; A<mat.Cols(); A++)
+   
+   while (mat.Cols()-size >= size)
       for(ulong i=0; i<mat.Cols(); i++)
         {
          column_vector = mat.Col(i);
@@ -279,6 +287,8 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
 
 //---
 
+      datetime time_start = GetTickCount(), current_time;
+   
       string header_str = "";
       for (int i=0; i<ArraySize(header); i++)
          header_str += header[i] + (i+1 == colsinrows.Size() ? "" : ",");
@@ -287,14 +297,18 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
       
       FileSeek(handle,0,SEEK_SET);
       
-      for(ulong i=0; i<matrix_.Rows(); i++)
+      for(ulong i=0; i<matrix_.Rows() && !IsStopped(); i++)
         {
          ZeroMemory(concstring);
 
          row = matrix_.Row(i);
-         for(ulong j=0, cols =1; j<row.Size(); j++, cols++)
+         for(ulong j=0, cols =1; j<row.Size() && !IsStopped(); j++, cols++)
            {
+            current_time = GetTickCount();
+            
             concstring += (string)NormalizeDouble(row[j],digits) + (cols == matrix_.Cols() ? "" : ",");
+            
+            Comment("Writting ",csv_name," record [",i+1,"/",matrix_.Rows(),"] Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
            }
 
          FileSeek(handle,0,SEEK_END);
@@ -325,7 +339,7 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_stri
    string concstring;
    vector row = {};
    
-   //FileSeek(handle,0,SEEK_SET);
+   datetime time_start = GetTickCount(), current_time;
    
    string header[];
    
@@ -337,7 +351,7 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_stri
    
    if (ArraySize(header) != (int)colsinrows.Size())
       {
-         Print("header and columns from the matrix vary is size ");
+         printf("headers=%d and columns=%d from the matrix vary is size ",ArraySize(header),colsinrows.Size());
          return false;
       }
 
@@ -351,13 +365,17 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_stri
    
    FileSeek(handle,0,SEEK_SET);
    
-   for(ulong i=0; i<matrix_.Rows(); i++)
+   for(ulong i=0; i<matrix_.Rows() && !IsStopped(); i++)
      {
       ZeroMemory(concstring);
 
       row = matrix_.Row(i);
-      for(ulong j=0, cols =1; j<row.Size(); j++, cols++)
+      for(ulong j=0, cols =1; j<row.Size() && !IsStopped(); j++, cols++)
         {
+         current_time = GetTickCount();
+         
+         Comment("Writting ",csv_name," record [",i+1,"/",matrix_.Rows(),"] Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
+         
          concstring += (string)NormalizeDouble(row[j],digits) + (cols == matrix_.Cols() ? "" : ",");
         }
 
@@ -381,7 +399,9 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
    int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
 
    ResetLastError();
-
+   
+   datetime time_start = GetTickCount(), current_time;
+   
    if(handle == INVALID_HANDLE)
      {
       printf("Invalid %s handle Error %d ",file_name,GetLastError());
@@ -417,6 +437,9 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
             mat_.Resize(rows,column);
 
             column = 0;
+            
+            current_time = GetTickCount();
+            Comment("Reading ",file_name," record = ",rows," Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
            }
         }
 
@@ -424,7 +447,9 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
 
       FileClose(handle);
      }
-
+   
+   Comment("");
+   
    mat_.Resize(rows_total-1,mat_.Cols());
 
    return(mat_);
@@ -1281,5 +1306,33 @@ string CMatrixutils::Stringfy(vector &v, int digits = 2)
    return (str);
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| a function to convert the seocnds to Hours and minutes, Useful   |
+//| in measuring the time taken for operations that takes a long     |
+//| time to complete, Such as reading and writing to a large csv file|
 //+------------------------------------------------------------------+
+string CMatrixutils::ConvertTime(double seconds)
+{
+    string time_str = "";
+    uint minutes = 0, hours = 0;
+
+    if (seconds >= 60)
+    {
+        minutes = (uint)(seconds / 60.0) ;
+        seconds = fmod(seconds, 1.0) * 60;
+        time_str = StringFormat("%d Minutes and %.3f Seconds", minutes, seconds);
+    }
+    
+    if (minutes >= 60)
+    {
+        hours = (uint)(minutes / 60.0);
+        minutes = minutes % 60;
+        time_str = StringFormat("%d Hours and %d Minutes", hours, minutes);
+    }
+
+    if (time_str == "")
+    {
+        time_str = StringFormat("%.3f Seconds", seconds);
+    }
+
+    return time_str;
+}
