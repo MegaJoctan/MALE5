@@ -10,16 +10,55 @@
 
 enum kernels
  {
+   KERNEL_LINEAR,
    KERNEL_POLYNOMIAL,
-   KERNEL_GAUSSIAN, 
    KERNEL_RADIAL_BASIS_FUNCTION_RBF, 
-   KERNEL_LAPLACE_RBF, 
    KERNEL_SIGMOID, 
-   KERNEL_ANOVE_RBF
+ };
+
+struct __kernels__
+ {
+   int dummy;
+    
+    //+------------------------------------------------------------------+
+    //| The linear kernel is the simplest one. It represents the dot     |
+    //|  product of the input vectors                                    |
+    //+------------------------------------------------------------------+
+    matrix LinearKernel(matrix &x1, matrix &x2) 
+     {
+       return x1.MatMul(x2.Transpose());
+     }
+    //+------------------------------------------------------------------+
+    //|  The polynomial kernel allows for the modeling of polynomial     |
+    //|  relationships between data points                               |  
+    //+------------------------------------------------------------------+
+    matrix PolynomialKernel(matrix &x1, matrix &x2, const double c=1, const double degree_polynomial=2) 
+     {
+       return MathPow(x1.Transpose().MatMul(x2) + c, degree_polynomial);
+     }
+    //+------------------------------------------------------------------+
+    //| Radial Basis Function (RBF) Kernel: The RBF kernel, also known   |
+    //| as the Gaussian kernel, is one of the most commonly used kernels.|
+    //|  It captures complex, non-linear relationships                   |  
+    //+------------------------------------------------------------------+
+    matrix RBFKernel(matrix &x1, matrix &x2, const double sigma=0.1) 
+     {
+       return exp(-1* ((MathPow(MathAbs(x1-x2), 2)) / (2*MathPow(sigma, 2))) );
+     }
+    //+------------------------------------------------------------------+
+    //|   The sigmoid kernel is inspired by the sigmoid function         |
+    //+------------------------------------------------------------------+
+    matrix SigmoidKernel(matrix &x1, matrix &x2, const double alpha=0.1, const double beta=0.1) 
+     {
+       return tanh(((alpha*x1).MatMul(x2)) + beta);
+     }
  };
 
 //+------------------------------------------------------------------+
-//|  THE SUPPORT VECTOR MACHINE CLASS                                |
+//|  At its core, SVM aims to find a hyperplane that best separates  |
+//|  two classes of data points in a high-dimensional space.         |
+//|  This hyperplane is chosen to maximize the margin between the    |
+//|  two classes, making it the optimal decision boundary.           |
 //+------------------------------------------------------------------+
 class Csvm
   {
