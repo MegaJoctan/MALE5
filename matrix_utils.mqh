@@ -32,9 +32,9 @@ public:
 
    string            csv_header[];
    
-   bool              WriteCsv(string csv_name, matrix &matrix_, string &header[] , int digits=5);
-   bool              WriteCsv(string csv_name, matrix &matrix_, string header_string, int digits=5);
-   matrix            ReadCsv(string file_name,string delimiter=",");
+   bool              WriteCsv(string csv_name, matrix &matrix_, string &header[] ,bool common=false, int digits=5);
+   bool              WriteCsv(string csv_name, matrix &matrix_, string header_string,bool common=false, int digits=5);
+   matrix            ReadCsv(string file_name,string delimiter=",",bool common=false);
    matrix            ReadCsvEncode(string file_name, string delimiter=",");
    bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
@@ -48,6 +48,7 @@ public:
    
    void              RemoveCol(matrix &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
+   void              RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY);
    void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1);
@@ -218,6 +219,44 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int &cols[])
             RemoveCol(mat,i);
         }
   }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+void CMatrixutils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
+ {
+   
+   total = total==WHOLE_ARRAY ? (int)mat.Cols()-from : total;
+   
+   if(total > (int)mat.Cols())
+     {
+      Print(__FUNCTION__," Columns to remove can't be more than the available columns");
+      return;
+     }
+   
+   
+   Print("From ",from," total ",total);
+
+   vector zeros(mat.Rows());
+   zeros.Fill(0);
+
+   for (int i=from; i<total+from; i++)
+      mat.Col(zeros, i);
+   
+//---      
+   
+   ulong remain_size = mat.Cols()-total;
+   
+   
+   while (mat.Cols() >= remain_size && !IsStopped())
+    {
+      //printf("cols %d total %d",cols,total);
+      
+      for(ulong i=0; i<mat.Cols(); i++) //loop the entire matrix searching for columns to remove
+         if(mat.Col(i).Sum()==0)
+            RemoveCol(mat,i);
+    }
+ }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -258,10 +297,10 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], int digits=5)
+bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], bool common=false, int digits=5)
   {
    FileDelete(csv_name);
-   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
+   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
 
    ResetLastError();
 
@@ -323,10 +362,10 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_string, int digits=5)
+bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_string, bool common=false, int digits=5)
   {
    FileDelete(csv_name);
-   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI,",",CP_UTF8);
+   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
 
    ResetLastError();
 
@@ -390,13 +429,13 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_stri
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",")
+matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=false)
   {
    matrix mat_ = {};
 
    int rows_total=0;
 
-   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
+   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
 
    ResetLastError();
    
