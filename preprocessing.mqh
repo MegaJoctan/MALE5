@@ -46,24 +46,24 @@ private:
       ulong  m_rows, m_cols;
       norm_technique norm_method;
 
-      void Standardization(vector &v);
-      void Standardization(matrix &matrix_);
+      bool Standardization(vector &v);
+      bool Standardization(matrix &matrix_);
       
-      void ReverseStandardization(vector &v);
-      void ReverseStandardization(matrix &matrix_);
+      bool ReverseStandardization(vector &v);
+      bool ReverseStandardization(matrix &matrix_);
 //---
-      void MinMaxScaler(vector &v);
-      void MinMaxScaler(matrix &matrix_);
+      bool MinMaxScaler(vector &v);
+      bool MinMaxScaler(matrix &matrix_);
       
-      void ReverseMinMaxScaler(vector &v);
-      void ReverseMinMaxScaler(matrix &matrix_);
+      bool ReverseMinMaxScaler(vector &v);
+      bool ReverseMinMaxScaler(matrix &matrix_);
 //---
 
-      void MeanNormalization(vector &v);
-      void MeanNormalization(matrix &matrix_);
+      bool MeanNormalization(vector &v);
+      bool MeanNormalization(matrix &matrix_);
       
-      void ReverseMeanNormalization(vector &v);
-      void ReverseMeanNormalization(matrix &matrix_);      
+      bool ReverseMeanNormalization(vector &v);
+      bool ReverseMeanNormalization(matrix &matrix_);      
 //---
          
       
@@ -83,11 +83,11 @@ private:
                        min_max_struct min_max_scaler;
                        mean_norm_struct mean_norm_scaler;
                        
-                       void Normalization(vector &v);
-                       void Normalization(matrix &matrix_);
+                       bool Normalization(vector &v);
+                       bool Normalization(matrix &matrix_);
                        
-                       void ReverseNormalization(vector &v);
-                       void ReverseNormalization(matrix &matrix_);
+                       bool ReverseNormalization(vector &v);
+                       bool ReverseNormalization(matrix &matrix_);
   };
 //+------------------------------------------------------------------+
 //| For normalizing and reverse normalizing the given x-matrix       |
@@ -199,271 +199,356 @@ CPreprocessing::~CPreprocessing(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::Standardization(vector &v)
- {
-   for (ulong i=0; i<m_cols; i++)
-      v[i] = (v[i] - standardization_scaler.mean[i]) / standardization_scaler.std[i];  
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPreprocessing::Standardization(matrix &matrix_)
- {
-  vector v;
-  for (ulong i=0; i<m_rows; i++)
-    {
-       v = matrix_.Row(i);
-       
-       Standardization(v);
-       matrix_.Row(v, i);  
-    }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPreprocessing::ReverseStandardization(vector &v)
- {
-    for (ulong i=0; i<m_cols; i++) 
-        v[i] = (v[i] * standardization_scaler.std[i]) + standardization_scaler.mean[i];
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPreprocessing::ReverseStandardization(matrix &matrix_)
- {
-  for (ulong i=0; i<m_rows; i++)
-    { 
-      vector v = matrix_.Row(i);
-      
-      ReverseStandardization(v);
-      matrix_.Row(v,i);
-    }  
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-void CPreprocessing::Normalization(vector &v)
- {
-   if (v.Size() != m_cols)
-     {
-       Print(__FUNCTION__," Can't Standardize the data | Vector v needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
-     }
-   
-   switch(norm_method)
-     {
-      case  NORM_STANDARDIZATION:
-        Standardization(v);
-        break;
-        
-      case NORM_MIN_MAX_SCALER:
-         MinMaxScaler(v);
-         break;
-         
-      case NORM_MEAN_NORM: 
-         MeanNormalization(v);
-         break;
-     }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPreprocessing::Normalization(matrix &matrix_)
- {
-   vector v;
-   switch(norm_method)
-     {
-      case  NORM_STANDARDIZATION:
-        Standardization(matrix_);
-        break;
-        
-      case NORM_MIN_MAX_SCALER:
-        MinMaxScaler(matrix_);
-        break;
-         
-      case  NORM_MEAN_NORM:
-        MeanNormalization(matrix_);
-        break;
-     }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPreprocessing::ReverseNormalization(vector &v)
- {
-   if (v.Size() != m_cols)
-     {
-       Print(__FUNCTION__," Can't Reverse Standardize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
-     }
-     
-   switch(norm_method)
-     {
-      case  NORM_STANDARDIZATION:
-        ReverseStandardization(v);
-        break;
-        
-      case NORM_MIN_MAX_SCALER:
-         ReverseMinMaxScaler(v);
-         break;
-      
-      case NORM_MEAN_NORM:  
-         ReverseMeanNormalization(v);
-         break;   
-     }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-void CPreprocessing::ReverseNormalization(matrix &matrix_)
- {
-  
-  switch(norm_method)
-    {
-     case  NORM_STANDARDIZATION:
-       ReverseStandardization(matrix_);
-       break;
-       
-     case NORM_MIN_MAX_SCALER:
-        ReverseMinMaxScaler(matrix_);
-        break;
-        
-     case NORM_MEAN_NORM: 
-        ReverseMeanNormalization(matrix_);
-        break;
-    }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-void CPreprocessing::MinMaxScaler(vector &v)
+bool CPreprocessing::Standardization(vector &v)
  {
    if (v.Size() != m_cols)
      {
        Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
+       return false;
+     }
+     
+   for (ulong i=0; i<m_cols; i++)
+      v[i] = (v[i] - standardization_scaler.mean[i]) / standardization_scaler.std[i];  
+    
+   return true;  
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPreprocessing::Standardization(matrix &matrix_)
+ {
+  vector v;
+  bool norm = true;
+  
+  for (ulong i=0; i<m_rows; i++)
+    {
+       v = matrix_.Row(i);
+       
+       if (!Standardization(v))
+         {
+            norm = false;
+            break;
+         }
+       matrix_.Row(v, i);  
+    }
+    
+   return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPreprocessing::ReverseStandardization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return false;
+     }
+     
+    for (ulong i=0; i<m_cols; i++) 
+        v[i] = (v[i] * standardization_scaler.std[i]) + standardization_scaler.mean[i];
+    
+    return true;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPreprocessing::ReverseStandardization(matrix &matrix_)
+ {
+ bool norm =true;
+ 
+  for (ulong i=0; i<m_rows; i++)
+    { 
+      vector v = matrix_.Row(i);
+      
+      if (!ReverseStandardization(v))
+        {
+          norm =  false;
+          break;
+        }
+      matrix_.Row(v,i);
+    }  
+    
+  return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CPreprocessing::Normalization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Standardize the data | Vector v needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return false;
+     }
+   
+   bool norm = true;
+   
+   switch(norm_method)
+     {
+      case  NORM_STANDARDIZATION:
+        if (!Standardization(v))
+         norm = false;
+        break;
+        
+      case NORM_MIN_MAX_SCALER:
+         if (!MinMaxScaler(v))
+         norm = false;
+         break;
+         
+      case NORM_MEAN_NORM: 
+         if (MeanNormalization(v))
+          norm = false;
+         break;
+     }
+   return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPreprocessing::Normalization(matrix &matrix_)
+ {
+   vector v;
+   
+   bool norm = true;
+   switch(norm_method)
+     {
+      case  NORM_STANDARDIZATION:
+        if (!Standardization(matrix_))
+        norm = false;
+        break;
+        
+      case NORM_MIN_MAX_SCALER:
+        if (!MinMaxScaler(matrix_))
+        norm =false;
+        break;
+         
+      case  NORM_MEAN_NORM:
+        if (!MeanNormalization(matrix_))
+        norm =false;
+        break;
+     }
+     
+  return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPreprocessing::ReverseNormalization(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Reverse Standardize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return false;
+     }
+   
+   bool norm = true;  
+   switch(norm_method)
+     {
+      case  NORM_STANDARDIZATION:
+        if (!ReverseStandardization(v))
+        norm =  false;
+        break;
+        
+      case NORM_MIN_MAX_SCALER:
+         if (!ReverseMinMaxScaler(v))
+         norm = false;
+         break;
+      
+      case NORM_MEAN_NORM:  
+         if (!ReverseMeanNormalization(v))
+         norm =  false;
+         break;   
+     }
+   return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CPreprocessing::ReverseNormalization(matrix &matrix_)
+ {
+  bool norm = true;
+  
+  switch(norm_method)
+    {
+     case  NORM_STANDARDIZATION:
+       if (!ReverseStandardization(matrix_))
+       norm = false;
+       break;
+       
+     case NORM_MIN_MAX_SCALER:
+        ReverseMinMaxScaler(matrix_);
+        norm = false;
+        break;
+        
+     case NORM_MEAN_NORM: 
+        ReverseMeanNormalization(matrix_);
+        norm = false;
+        break;
+    }
+  return norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+bool CPreprocessing::MinMaxScaler(vector &v)
+ {
+   if (v.Size() != m_cols)
+     {
+       Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
+       return false;
      }
      
    for (ulong i=0; i<m_cols; i++)
      v[i] = (v[i] - min_max_scaler.min[i]) / (min_max_scaler.max[i] - min_max_scaler.min[i]);  
+     
+    return true;
  } 
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+ 
 
-void CPreprocessing::MinMaxScaler(matrix &matrix_)
+bool CPreprocessing::MinMaxScaler(matrix &matrix_)
  {
    vector v = {}; 
+   bool norm = true;
    
     for (ulong i=0; i<m_rows; i++)
        { 
           v = matrix_.Row(i); 
-          MinMaxScaler(v);
+          if (!MinMaxScaler(v))
+           {
+             norm = false;
+             break;
+           }
           
           matrix_.Row(v,i);  
        }
+   return norm;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::ReverseMinMaxScaler(matrix &matrix_)
+bool CPreprocessing::ReverseMinMaxScaler(matrix &matrix_)
  {
+ bool norm =true;
+ 
     for (ulong i=0; i<matrix_.Rows(); i++)
        {
          vector v = matrix_.Row(i);
-         ReverseMinMaxScaler(v);
+         if (!ReverseMinMaxScaler(v))
+           {
+             norm = false;
+             break;    
+           }
          
          matrix_.Row(v, i);
        } 
+   return norm;
  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::ReverseMinMaxScaler(vector &v)
+bool CPreprocessing::ReverseMinMaxScaler(vector &v)
  {  
    if (v.Size() != m_cols)
      {
        Print(__FUNCTION__," Can't Reverse Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
+       return false;
      }
      
     for (ulong i=0; i<m_cols; i++) 
        v[i] = (v[i]* (min_max_scaler.max[i] - min_max_scaler.min[i])) + min_max_scaler.min[i];  
+      
+   
+   return true;
  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::MeanNormalization(vector &v)
+bool CPreprocessing::MeanNormalization(vector &v)
  {
    if (v.Size() != m_cols)
      {
        Print(__FUNCTION__," Can't Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
+       return false;
      }
      
    for (ulong i=0; i<m_cols; i++)
       v[i] = (v[i] - mean_norm_scaler.mean[i]) / (mean_norm_scaler.max[i] - mean_norm_scaler.min[i]);
     
+   return true;
  }
  
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-
-void CPreprocessing::MeanNormalization(matrix &matrix_)
+bool CPreprocessing::MeanNormalization(matrix &matrix_)
  {
    vector v = {};  
-   
+   bool norm = true;
     for (ulong i=0; i<matrix_.Rows(); i++)
        { 
           v = matrix_.Row(i); 
-          MeanNormalization(v);
+          if (!MeanNormalization(v))
+            {
+               norm = false;
+               break;
+            }
           
           matrix_.Row(v,i);  
        }
+   return norm;
  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::ReverseMeanNormalization(vector &v)
+bool CPreprocessing::ReverseMeanNormalization(vector &v)
  {
    if (v.Size() != m_cols)
      {
        Print(__FUNCTION__," Can't Reverse Normalize the data | Vector v sized ",v.Size()," needs to have the same size as the Columns ",m_cols," of the Matrix given");
-       return;
+       return false;
      }
      
     for (ulong i=0; i<m_cols; i++)
       v[i] = (v[i] * (mean_norm_scaler.max[i] - mean_norm_scaler.min[i]) ) + mean_norm_scaler.mean[i];
+      
+   return true;
  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CPreprocessing::ReverseMeanNormalization(matrix &matrix_)
+bool CPreprocessing::ReverseMeanNormalization(matrix &matrix_)
  {
+  bool norm =true;
+  
     for (ulong i=0; i<m_rows; i++)
        {
          vector v = matrix_.Row(i);
-         MeanNormalization(v);
-         
+         if (!MeanNormalization(v))
+           {
+             norm = false;
+             break;
+           }
          matrix_.Row(v,i);
        }  
+   return norm;
  }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
