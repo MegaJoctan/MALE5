@@ -62,6 +62,7 @@ public:
    matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1);
    
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
+   matrix            Append(matrix &mat1, matrix &mat2);
    bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
    
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
@@ -83,6 +84,7 @@ public:
    matrix            zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
    vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
    matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
+   vector            Get(const vector &v, ulong start_index, ulong end_index);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1044,7 +1046,7 @@ matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int rand
      return (mat);
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//|   Appends vector v1 to the end of vector v2                      |
 //+------------------------------------------------------------------+
 vector CMatrixutils::Append(vector &v1, vector &v2)
  {
@@ -1059,6 +1061,30 @@ vector CMatrixutils::Append(vector &v1, vector &v2)
        v_out[i] = v2[index]; 
    
    return (v_out); 
+ }
+//+------------------------------------------------------------------+
+//|   Appends matrix mat1 to the end of mat2                         |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
+ { 
+   matrix m_out = mat1;
+   
+   if (mat1.Cols() != mat2.Cols())
+     {
+       Print(__FUNCTION__,"Err | mat1 and mat2 must have the same number of cols");
+       return m_out;
+     }
+   
+   m_out.Resize(mat1.Rows()+mat2.Rows(), mat1.Cols());
+   
+   
+   for (ulong rows=mat1.Rows(), nrows_index=0; rows<m_out.Rows(); rows++, nrows_index++)
+     for (ulong col=0; col<mat1.Cols(); col++)
+       {
+         m_out[rows][col] = mat2[nrows_index][col];  
+       }
+   
+   return m_out;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1403,12 +1429,42 @@ matrix CMatrixutils::Get(const matrix &mat, ulong start_index, ulong end_index)
   
    for (ulong i=start_index, count =0; i<=end_index; i++, count++)
      for (ulong col=0; col<mat.Cols(); col++)
-       {
-         printf("Ret mat(%dx%d) mat(%dx%d) i=%d col=%d",ret_mat.Rows(),ret_mat.Cols(),mat.Rows(),mat.Cols(),i,col);
          ret_mat[count][col] = mat[i][col];
-       } 
        
    return ret_mat;
+ }
+
+//+------------------------------------------------------------------+
+//|  Obtains a part of the vector starting from a start_index row to |
+//|   end_index row Inclusive                                        |
+//+------------------------------------------------------------------+
+
+vector CMatrixutils::Get(const vector &v, ulong start_index, ulong end_index)
+ {
+  vector ret_vec(MathAbs(end_index-start_index+1));
+  
+  if (start_index >= v.Size())
+    {
+       Print(__FUNCTION__,"Error | start_index (",start_index,") is greater than or Equal to matrix Rows (",v.Size(),")");
+       return ret_vec;
+    }
+    
+  if (end_index > v.Size())
+   {
+       Print(__FUNCTION__,"Error | end_index (",start_index,") is greater than (",v.Size(),")");
+       return ret_vec;
+   }
+  
+  if (start_index > end_index)
+    {
+      Print(__FUNCTION__,"Error | start_index shouldn't be greater than end_index ???");
+      return ret_vec;
+    }
+  
+  for (ulong i=start_index, count=0; i<end_index; i++, count++)
+     ret_vec[count] = v[i];
+       
+   return ret_vec;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
