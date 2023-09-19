@@ -82,7 +82,7 @@ public:
    string            Stringfy(vector &v, int digits = 2);
    matrix            zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
    vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
-   
+   matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1375,3 +1375,41 @@ string CMatrixutils::ConvertTime(double seconds)
 
     return time_str;
 }
+//+------------------------------------------------------------------+
+//|  Obtains a part of the matrix starting from a start_index row to |
+//|   end_index row Inclusive                                        |
+//+------------------------------------------------------------------+
+matrix CMatrixutils::Get(const matrix &mat, ulong start_index, ulong end_index)
+ {
+  matrix ret_mat(MathAbs(end_index-start_index+1), mat.Cols());
+  
+  if (start_index >= mat.Rows())
+    {
+       Print(__FUNCTION__,"Error | start_index (",start_index,") is greater than or Equal to matrix Rows (",mat.Rows(),")");
+       return ret_mat;
+    }
+    
+  if (end_index > mat.Rows())
+   {
+       Print(__FUNCTION__,"Error | end_index (",start_index,") is greater than (",mat.Rows(),")");
+       return ret_mat;
+   }
+  
+  if (start_index > end_index)
+    {
+      Print(__FUNCTION__,"Error | start_index shouldn't be greater than end_index ???");
+      return ret_mat;
+    }
+  
+   for (ulong i=start_index, count =0; i<=end_index; i++, count++)
+     for (ulong col=0; col<mat.Cols(); col++)
+       {
+         printf("Ret mat(%dx%d) mat(%dx%d) i=%d col=%d",ret_mat.Rows(),ret_mat.Cols(),mat.Rows(),mat.Cols(),i,col);
+         ret_mat[count][col] = mat[i][col];
+       } 
+       
+   return ret_mat;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
