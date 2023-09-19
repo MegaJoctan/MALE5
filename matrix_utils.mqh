@@ -1069,20 +1069,18 @@ matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
  { 
    matrix m_out = mat1;
    
-   if (mat1.Cols() != mat2.Cols())
+   if ((mat1.Cols()==0 || mat2.Cols()==0)? false : (mat1.Cols() != mat2.Cols()))
      {
        Print(__FUNCTION__,"Err | mat1 and mat2 must have the same number of cols");
        return m_out;
      }
    
-   m_out.Resize(mat1.Rows()+mat2.Rows(), mat1.Cols());
+   m_out.Resize(mat1.Rows()+mat2.Rows(), MathMax(mat1.Cols(), mat2.Cols()));
    
    
    for (ulong rows=mat1.Rows(), nrows_index=0; rows<m_out.Rows(); rows++, nrows_index++)
-     for (ulong col=0; col<mat1.Cols(); col++)
-       {
+     for (ulong col=0; col<m_out.Cols(); col++)
          m_out[rows][col] = mat2[nrows_index][col];  
-       }
    
    return m_out;
  }
