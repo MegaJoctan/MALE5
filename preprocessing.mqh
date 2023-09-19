@@ -220,7 +220,7 @@ bool CPreprocessing::Standardization(matrix &matrix_)
   vector v;
   bool norm = true;
   
-  for (ulong i=0; i<m_rows; i++)
+  for (ulong i=0; i<matrix_.Rows(); i++)
     {
        v = matrix_.Row(i);
        
@@ -257,7 +257,7 @@ bool CPreprocessing::ReverseStandardization(matrix &matrix_)
  {
  bool norm =true;
  
-  for (ulong i=0; i<m_rows; i++)
+  for (ulong i=0; i<matrix_.Rows(); i++)
     { 
       vector v = matrix_.Row(i);
       
@@ -417,9 +417,10 @@ bool CPreprocessing::MinMaxScaler(matrix &matrix_)
    vector v = {}; 
    bool norm = true;
    
-    for (ulong i=0; i<m_rows; i++)
+    for (ulong i=0; i<matrix_.Rows(); i++)
        { 
           v = matrix_.Row(i); 
+          
           if (!MinMaxScaler(v))
            {
              norm = false;
@@ -537,7 +538,7 @@ bool CPreprocessing::ReverseMeanNormalization(matrix &matrix_)
  {
   bool norm =true;
   
-    for (ulong i=0; i<m_rows; i++)
+    for (ulong i=0; i<matrix_.Rows(); i++)
        {
          vector v = matrix_.Row(i);
          if (!MeanNormalization(v))
