@@ -16,66 +16,67 @@ enum norm_technique
    NORM_MIN_MAX_SCALER, //MIN MAX SCALER
    NORM_MEAN_NORM,      //MEAN NORMALIZATION
    NORM_STANDARDIZATION, //STANDARDIZATION
-   NORM_NONE            //DO NOT NORMALIZE
  }; 
 
+
+template <typename T_vector, typename T_matrix>
 class CPreprocessing
   {
 //---
 
 struct standardization_struct
  {
-   vector<double> mean;
-   vector<double> std;
+   T_vector mean;
+   T_vector std;
  };
     
 struct min_max_struct
   {
-    vector<double> min;
-    vector<double> max;
+    T_vector min;
+    T_vector max;
   };
 
 struct mean_norm_struct
  {
-   vector<double> mean;
-   vector<double> min;
-   vector<double> max;
+   T_vector mean;
+   T_vector min;
+   T_vector max;
  };
  
 private:
       ulong  m_rows, m_cols;
       norm_technique norm_method;
 
-      bool Standardization(vector &v);
-      bool Standardization(matrix &matrix_);
+      bool Standardization(T_vector &v);
+      bool Standardization(T_matrix &matrix_);
       
-      bool ReverseStandardization(vector &v);
-      bool ReverseStandardization(matrix &matrix_);
+      bool ReverseStandardization(T_vector &v);
+      bool ReverseStandardization(T_matrix &matrix_);
 //---
-      bool MinMaxScaler(vector &v);
-      bool MinMaxScaler(matrix &matrix_);
+      bool MinMaxScaler(T_vector &v);
+      bool MinMaxScaler(T_matrix &matrix_);
       
-      bool ReverseMinMaxScaler(vector &v);
-      bool ReverseMinMaxScaler(matrix &matrix_);
+      bool ReverseMinMaxScaler(T_vector &v);
+      bool ReverseMinMaxScaler(T_matrix &matrix_);
 //---
 
-      bool MeanNormalization(vector &v);
-      bool MeanNormalization(matrix &matrix_);
+      bool MeanNormalization(T_vector &v);
+      bool MeanNormalization(T_matrix &matrix_);
       
-      bool ReverseMeanNormalization(vector &v);
-      bool ReverseMeanNormalization(matrix &matrix_);      
+      bool ReverseMeanNormalization(T_vector &v);
+      bool ReverseMeanNormalization(T_matrix &matrix_);      
 //---
          
       
    public:
                         
-                        CPreprocessing(matrix &matrix_, norm_technique NORM_MODE); 
+                        CPreprocessing(T_matrix &matrix_, norm_technique NORM_MODE); 
                         
                        //---
                         
-                        CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min);
-                        CPreprocessing(vector &min_max_max, vector &min_max_min); 
-                        CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE);
+                        CPreprocessing(T_vector &mean_norm_max, T_vector &mean_norm_mean, T_vector &mean_norm_min);
+                        CPreprocessing(T_vector &min_max_max, T_vector &min_max_min); 
+                        CPreprocessing(T_vector &stdn_mean, T_vector &stdn_std, norm_technique NORM_MODE);
                         
                        ~CPreprocessing(void);
                        
@@ -83,27 +84,28 @@ private:
                        min_max_struct min_max_scaler;
                        mean_norm_struct mean_norm_scaler;
                        
-                       bool Normalization(vector &v);
-                       bool Normalization(matrix &matrix_);
+                       bool Normalization(T_vector &v);
+                       bool Normalization(T_matrix &matrix_);
                        
-                       bool ReverseNormalization(vector &v);
-                       bool ReverseNormalization(matrix &matrix_);
+                       bool ReverseNormalization(T_vector &v);
+                       bool ReverseNormalization(T_matrix &matrix_);
   };
 //+------------------------------------------------------------------+
 //| For normalizing and reverse normalizing the given x-matrix       |
 //| This constructor obtains crucial information such as mean, min   |
 //| max and Std deviation from the dataset, this information is used |
 //| during reverse normalization for turning the data back to its    |
-//| original state
+//| original state                                                   |
 //+------------------------------------------------------------------+
-CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
+template <typename T_vector, typename T_matrix>
+CPreprocessing::CPreprocessing(T_matrix &matrix_, norm_technique NORM_MODE)
  {    
    m_cols = matrix_.Cols();
    m_rows = matrix_.Rows();
    
    norm_method = NORM_MODE;
    
-   vector v = {}; 
+   T_vector v = {}; 
    
    switch(norm_method)
      {
@@ -146,12 +148,7 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
                 min_max_scaler.max[i] = v.Max();
              }
              
-         break;
-      
-      case NORM_NONE:
-            return;
-         break;   
-       
+         break;       
     }
      
    Normalization(matrix_);
@@ -161,7 +158,8 @@ CPreprocessing::CPreprocessing(matrix &matrix_, norm_technique NORM_MODE)
 //| information are known from pre-trained model or class instance   |
 //  the following classes may be appropriate to use instead          |            
 //+------------------------------------------------------------------+
-CPreprocessing::CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_technique NORM_MODE)
+template <typename T_vector, typename T_matrix>
+CPreprocessing::CPreprocessing(T_vector &stdn_mean, T_vector &stdn_std, norm_technique NORM_MODE)
  {
    this.norm_method = NORM_STANDARDIZATION;
    this.m_cols = stdn_mean.Size();
@@ -169,7 +167,8 @@ CPreprocessing::CPreprocessing(vector &stdn_mean, vector &stdn_std, norm_techniq
    standardization_scaler.mean = stdn_mean;
    standardization_scaler.std = stdn_std;
  }
-CPreprocessing::CPreprocessing(vector &min_max_max, vector &min_max_min)
+template <typename T_vector, typename T_matrix>
+CPreprocessing::CPreprocessing(T_vector &min_max_max, T_vector &min_max_min)
  {
    this.norm_method =  NORM_MIN_MAX_SCALER;
    this.m_cols = min_max_max.Size();
@@ -177,8 +176,8 @@ CPreprocessing::CPreprocessing(vector &min_max_max, vector &min_max_min)
    min_max_scaler.max = min_max_max;
    min_max_scaler.min = min_max_min;
  }
- 
-CPreprocessing::CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, vector &mean_norm_min)
+template <typename T_vector, typename T_matrix>
+CPreprocessing::CPreprocessing(T_vector &mean_norm_max, T_vector &mean_norm_mean, T_vector &mean_norm_min)
  {
    this.norm_method = NORM_MEAN_NORM;
    this.m_cols = mean_norm_max.Size();
@@ -190,6 +189,7 @@ CPreprocessing::CPreprocessing(vector &mean_norm_max, vector &mean_norm_mean, ve
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+template <typename T_vector, typename T_matrix>
 CPreprocessing::~CPreprocessing(void)
  {
    ZeroMemory(standardization_scaler.mean);
@@ -198,8 +198,8 @@ CPreprocessing::~CPreprocessing(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::Standardization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::Standardization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -215,9 +215,10 @@ bool CPreprocessing::Standardization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPreprocessing::Standardization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::Standardization(T_matrix &matrix_)
  {
-  vector v;
+  T_vector v;
   bool norm = true;
   
   for (ulong i=0; i<matrix_.Rows(); i++)
@@ -237,7 +238,8 @@ bool CPreprocessing::Standardization(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPreprocessing::ReverseStandardization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseStandardization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -253,13 +255,14 @@ bool CPreprocessing::ReverseStandardization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPreprocessing::ReverseStandardization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseStandardization(T_matrix &matrix_)
  {
  bool norm =true;
  
   for (ulong i=0; i<matrix_.Rows(); i++)
     { 
-      vector v = matrix_.Row(i);
+      T_vector v = matrix_.Row(i);
       
       if (!ReverseStandardization(v))
         {
@@ -274,8 +277,8 @@ bool CPreprocessing::ReverseStandardization(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::Normalization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::Normalization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -307,9 +310,10 @@ bool CPreprocessing::Normalization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPreprocessing::Normalization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::Normalization(T_matrix &matrix_)
  {
-   vector v;
+   T_vector v;
    
    bool norm = true;
    switch(norm_method)
@@ -335,7 +339,8 @@ bool CPreprocessing::Normalization(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPreprocessing::ReverseNormalization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseNormalization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -366,8 +371,8 @@ bool CPreprocessing::ReverseNormalization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::ReverseNormalization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseNormalization(T_matrix &matrix_)
  {
   bool norm = true;
   
@@ -393,8 +398,8 @@ bool CPreprocessing::ReverseNormalization(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::MinMaxScaler(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::MinMaxScaler(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -411,10 +416,10 @@ bool CPreprocessing::MinMaxScaler(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+ 
-
-bool CPreprocessing::MinMaxScaler(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::MinMaxScaler(T_matrix &matrix_)
  {
-   vector v = {}; 
+   T_vector v = {}; 
    bool norm = true;
    
     for (ulong i=0; i<matrix_.Rows(); i++)
@@ -434,14 +439,14 @@ bool CPreprocessing::MinMaxScaler(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::ReverseMinMaxScaler(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseMinMaxScaler(T_matrix &matrix_)
  {
  bool norm =true;
  
     for (ulong i=0; i<matrix_.Rows(); i++)
        {
-         vector v = matrix_.Row(i);
+         T_vector v = matrix_.Row(i);
          if (!ReverseMinMaxScaler(v))
            {
              norm = false;
@@ -456,8 +461,8 @@ bool CPreprocessing::ReverseMinMaxScaler(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::ReverseMinMaxScaler(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseMinMaxScaler(T_vector &v)
  {  
    if (v.Size() != m_cols)
      {
@@ -475,8 +480,8 @@ bool CPreprocessing::ReverseMinMaxScaler(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::MeanNormalization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::MeanNormalization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -493,10 +498,10 @@ bool CPreprocessing::MeanNormalization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::MeanNormalization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::MeanNormalization(T_matrix &matrix_)
  {
-   vector v = {};  
+   T_vector v = {};  
    bool norm = true;
     for (ulong i=0; i<matrix_.Rows(); i++)
        { 
@@ -515,8 +520,8 @@ bool CPreprocessing::MeanNormalization(matrix &matrix_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::ReverseMeanNormalization(vector &v)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseMeanNormalization(T_vector &v)
  {
    if (v.Size() != m_cols)
      {
@@ -533,14 +538,14 @@ bool CPreprocessing::ReverseMeanNormalization(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CPreprocessing::ReverseMeanNormalization(matrix &matrix_)
+template <typename T_vector, typename T_matrix>
+bool CPreprocessing::ReverseMeanNormalization(T_matrix &matrix_)
  {
   bool norm =true;
   
     for (ulong i=0; i<matrix_.Rows(); i++)
        {
-         vector v = matrix_.Row(i);
+         T_vector v = matrix_.Row(i);
          if (!MeanNormalization(v))
            {
              norm = false;
