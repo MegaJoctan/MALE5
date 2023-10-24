@@ -105,7 +105,7 @@ CMatrixutils::~CMatrixutils(void)
 //+------------------------------------------------------------------+
 int CMatrixutils::CSVOpen(string filename,string delimiter)
  { 
-    ResetLastError();
+    
     
     int csv_handle  = FileOpen(filename,FILE_READ|FILE_CSV|FILE_ANSI,delimiter,CP_UTF8); 
 
@@ -304,7 +304,7 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string &header[], 
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
 
-   ResetLastError();
+   
 
    if(handle == INVALID_HANDLE)
      {
@@ -369,7 +369,6 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix &matrix_, string header_stri
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
 
-   ResetLastError();
 
    if(handle == INVALID_HANDLE)
      {
@@ -437,9 +436,9 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
 
    int rows_total=0;
 
-   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
+   int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
 
-   ResetLastError();
+   
    
    datetime time_start = GetTickCount(), current_time;
    
@@ -644,7 +643,7 @@ bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], stri
 
    int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
 
-   ResetLastError();
+   
 
    if(handle == INVALID_HANDLE)
      {
@@ -1459,7 +1458,7 @@ vector CMatrixutils::Get(const vector &v, ulong start_index, ulong end_index)
       return ret_vec;
     }
   
-  for (ulong i=start_index, count=0; i<end_index; i++, count++)
+  for (ulong i=start_index, count=0; i<=end_index; i++, count++)
      ret_vec[count] = v[i];
        
    return ret_vec;
