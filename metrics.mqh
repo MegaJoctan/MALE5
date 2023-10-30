@@ -15,7 +15,7 @@ class CMetrics
 
 protected:
    int SearchPatterns(vector &A, int value_A, vector &B, int value_B);
-   
+   vector Classes(vector &v);
 //-- From matrix utility class
 
    void VectorRemoveIndex(vector &v, ulong index);
@@ -44,7 +44,7 @@ public:
                         
                      } confusion_matrix_struct;
                     
-                    double confusion_matrix(vector &A, vector &F,vector &classes, bool report_show=true);
+                    double confusion_matrix(vector &A, vector &F, bool report_show=true);
                     
                     double RSS(vector &A, vector &F);
                     double MSE(vector &A, vector &F);
@@ -110,10 +110,12 @@ double CMetrics::adjusted_r(vector &A,vector &F,uint indep_vars=1)
 //|                                                                  |
 //+------------------------------------------------------------------+
  
-double CMetrics::confusion_matrix(vector &A,vector &F,vector &classes,bool report_show=true)
+double CMetrics::confusion_matrix(vector &A,vector &F,bool report_show=true)
  {     
     ulong TP=0, TN=0, FP=0, FN=0;
-     
+    
+    vector classes = Classes(A);
+    
     matrix conf_m(classes.Size(),classes.Size());
     conf_m.Fill(0); 
     
@@ -385,5 +387,45 @@ void CMetrics::MatrixRemoveRow(matrix &mat,ulong row)
    mat.Copy(new_matrix);
   }
 
+//+------------------------------------------------------------------+
+
+vector CMetrics::Classes(vector &v)
+ {
+   vector temp_t = v, v_classes = {v[0]};
+
+   for(ulong i=0, count =1; i<v.Size(); i++)  //counting the different neighbors
+     {
+      for(ulong j=0; j<v.Size(); j++)
+        {
+         if(v[i] == temp_t[j] && temp_t[j] != -1000)
+           {
+            bool count_ready = false;
+
+            for(ulong n=0; n<v_classes.Size(); n++)
+               if(v[i] == v_classes[n])
+                    count_ready = true;
+
+            if(!count_ready)
+              {
+               count++;
+               v_classes.Resize(count);
+
+               v_classes[count-1] = v[i];
+               //Print("v_classes ",v_classes);
+
+               temp_t[j] = -1000; //modify so that it can no more be counted
+              }
+            else
+               break;
+            //Print("t vectors vector ",v);
+           }
+         else
+            continue;
+        }
+     } 
+   return v_classes;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
