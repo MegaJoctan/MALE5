@@ -76,8 +76,10 @@ public:
    
    matrix            HadamardProduct(matrix &a, matrix &b);
    
-   void              Shuffle(vector &v, int random_state=-1);
-   void              Shuffle(matrix &matrix_,int random_state=-1);
+   template<typename T>
+   void              Shuffle(vector<T> &v, int random_state=-1);
+   template<typename T>
+   void              Shuffle(matrix<T> &matrix_,int random_state=-1);
    void              NormalizeVector(vector<double> &v, int digits=3);
    void              PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
    void              SortAscending(vector &v);
@@ -764,7 +766,8 @@ void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vect
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Shuffle(vector &v, int random_state=-1)
+template<typename T>
+void CMatrixutils::Shuffle(vector<T> &v, int random_state=-1)
  {
    if (random_state != -1)
      MathSrand(random_state);
@@ -787,7 +790,8 @@ void CMatrixutils::Shuffle(vector &v, int random_state=-1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Shuffle(matrix &matrix_,int random_state=-1)
+template<typename T>
+void CMatrixutils::Shuffle(matrix<T> &matrix_,int random_state=-1)
  {
    if (random_state != -1)
      MathSrand(random_state);
@@ -795,7 +799,7 @@ void CMatrixutils::Shuffle(matrix &matrix_,int random_state=-1)
    int ROWS=(int)matrix_.Rows(), COL=(int)matrix_.Cols();   
    
    int swap_index;
-   vector temp(COL);
+   vectorf temp(COL);
    
    for (int i=0; i<ROWS; i++)
       {
