@@ -54,7 +54,8 @@ public:
    void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
    void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1);
-   void              TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,int random_state=-1);
+   template <typename T>
+   void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
    vector            Classes(vector &v);           //Identifies classes available in a vector
@@ -811,7 +812,8 @@ void CMatrixutils::Shuffle(matrix &matrix_,int random_state=-1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::TrainTestSplitMatrices(matrix &matrix_,matrix &x_train,vector &y_train,matrix &x_test, vector &y_test,double train_size=0.7,int random_state=-1)
+template <typename T>
+void CMatrixutils::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
    
