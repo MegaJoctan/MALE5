@@ -47,13 +47,14 @@ public:
    
    bool              VectorToArray(const vector &v,double &arr[]);
    bool              VectorToArray(const vector &v,int &arr[]);
-   
-   void              RemoveCol(matrix &mat, ulong col);
+   template<typename T>
+   void              RemoveCol(matrix<T> &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
    void              RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY);
    void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
-   void              XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1);
+   template<typename T>
+   void              XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
    void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
@@ -66,7 +67,8 @@ public:
    
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    matrix            Append(matrix &mat1, matrix &mat2);
-   bool              Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY);
+   template<typename T>
+   bool              Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
    
    vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
    vector            Search(const vector &v,double value);
@@ -167,9 +169,10 @@ vector CMatrixutils::MatrixToVector(const matrix &mat)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::RemoveCol(matrix &mat, ulong col)
+template<typename T>
+void CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
   {
-   matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
+   matrix<T> new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
    if (col > mat.Cols())
      {
        Print(__FUNCTION__," column out of range");
@@ -754,7 +757,8 @@ bool CMatrixutils::VectorToArray(const vector &v,int &arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::XandYSplitMatrices(const matrix &matrix_,matrix &xmatrix,vector &y_vector,int y_column=-1)
+template<typename T>
+void CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
   {
    y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
 
@@ -1093,7 +1097,8 @@ matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CMatrixutils::Copy(const vector &src,vector &dst,ulong src_start,ulong total=WHOLE_ARRAY)
+template<typename T>
+bool CMatrixutils::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulong total=WHOLE_ARRAY)
  {
    if (total == WHOLE_ARRAY)
       total = src.Size()-src_start;
