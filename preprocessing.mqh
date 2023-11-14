@@ -18,6 +18,7 @@ enum norm_technique
    NORM_STANDARDIZATION, //STANDARDIZATION
  }; 
 
+#define  NaN DBL_MAX*2
 
 template <typename T_vector, typename T_matrix>
 class CPreprocessing
@@ -28,12 +29,24 @@ struct standardization_struct
  {
    T_vector mean;
    T_vector std;
+   
+   void standardization_struct::standardization_struct(void)
+     {
+       mean.Fill(NaN);
+       std.Fill(NaN);
+     }
  };
     
 struct min_max_struct
   {
     T_vector min;
     T_vector max;
+    
+    void min_max_struct::min_max_struct(void)
+      {
+         min.Fill(NaN);
+         max.Fill(NaN);
+      }
   };
 
 struct mean_norm_struct
@@ -41,10 +54,17 @@ struct mean_norm_struct
    T_vector mean;
    T_vector min;
    T_vector max;
+   
+   void mean_norm_struct::mean_norm_struct(void)
+     {
+         mean.Fill(NaN);
+         min.Fill(NaN);
+         max.Fill(NaN);
+     }
  };
  
 private:
-      ulong  m_rows, m_cols;
+      ulong  m_cols;
       norm_technique norm_method;
 
       bool Standardization(T_vector &v);
@@ -65,8 +85,7 @@ private:
       
       bool ReverseMeanNormalization(T_vector &v);
       bool ReverseMeanNormalization(T_matrix &matrix_);      
-//---
-         
+//---     
       
    public:
                         
@@ -74,9 +93,9 @@ private:
                         
                        //---
                         
-                        CPreprocessing(T_vector &mean_norm_max, T_vector &mean_norm_mean, T_vector &mean_norm_min);
-                        CPreprocessing(T_vector &min_max_max, T_vector &min_max_min); 
-                        CPreprocessing(T_vector &stdn_mean, T_vector &stdn_std, norm_technique NORM_MODE);
+                        CPreprocessing(T_vector &mean_norm_max, T_vector &mean_norm_mean, T_vector &mean_norm_min); //for mean normalization
+                        CPreprocessing(T_vector &min_max_max, T_vector &min_max_min);  //for min max scaler
+                        CPreprocessing(T_vector &stdn_mean, T_vector &stdn_std, norm_technique NORM_MODE); //for standardization
                         
                        ~CPreprocessing(void);
                        
@@ -101,7 +120,6 @@ template <typename T_vector, typename T_matrix>
 CPreprocessing::CPreprocessing(T_matrix &matrix_, norm_technique NORM_MODE)
  {    
    m_cols = matrix_.Cols();
-   m_rows = matrix_.Rows();
    
    norm_method = NORM_MODE;
    
@@ -118,7 +136,7 @@ CPreprocessing::CPreprocessing(T_matrix &matrix_, norm_technique NORM_MODE)
                 standardization_scaler.mean[i] = v.Mean();
                 standardization_scaler.std[i] = v.Std();
              }
-        
+            
         break;
         
       case NORM_MEAN_NORM:
@@ -150,7 +168,8 @@ CPreprocessing::CPreprocessing(T_matrix &matrix_, norm_technique NORM_MODE)
              
          break;       
     }
-     
+   
+      
    Normalization(matrix_);
  }
 //+------------------------------------------------------------------+
@@ -172,7 +191,7 @@ CPreprocessing::CPreprocessing(T_vector &min_max_max, T_vector &min_max_min)
  {
    this.norm_method =  NORM_MIN_MAX_SCALER;
    this.m_cols = min_max_max.Size();
-  
+      
    min_max_scaler.max = min_max_max;
    min_max_scaler.min = min_max_min;
  }
@@ -422,6 +441,7 @@ bool CPreprocessing::MinMaxScaler(T_matrix &matrix_)
    T_vector v = {}; 
    bool norm = true;
    
+       
     for (ulong i=0; i<matrix_.Rows(); i++)
        { 
           v = matrix_.Row(i); 
@@ -555,6 +575,56 @@ bool CPreprocessing::ReverseMeanNormalization(T_matrix &matrix_)
        }  
    return norm;
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                                                                  |
+//|            LabelEncoder class                                    |
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+struct CLabelEncoder
+  {
+      private:
+       string labels_mem[];
+         
+       template<typename T>
+         int find(T &arr[], T value)
+          {
+            for (int i=0; i<ArraySize(arr); i++)
+               if (arr[i] == value)
+                   return i+1;
+                  
+            return -1;
+          } 
+       
+      public:
+         int encode(string value)
+           {
+              int size = ArraySize(labels_mem);
+              int found_value = find(labels_mem, value);
+              
+              if (size ==0 ? true : found_value == -1) //value wasn't found
+               {  
+                  size++;
+                  ArrayResize(labels_mem, size);
+                  labels_mem[size-1] = value;
+               }
+              else
+                {
+                  size = found_value;
+                }
+               
+             return size;
+           }
+         
+         vector<int> encode(string &Arr[])
+           {
+             for ()
+           }  
+            
+  };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
