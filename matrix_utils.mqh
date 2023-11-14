@@ -5,6 +5,9 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2022, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
+
+#include <MALE5\preprocessing.mqh>
+
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
@@ -14,10 +17,10 @@
 
 class CMatrixutils
   {
+  CLabelEncoder encoder;
   
 private:
    void              Classes(const string &Array[], string &classes_arr[]);
-   vector            LabelEncoder(const string &Arr[]);
    int               CSVOpen(string filename,string delimiter);
    
    double            MathRandom(double mini, double maxi);
@@ -440,12 +443,11 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string header_s
 matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=false)
   {
    matrix mat_ = {};
-
    int rows_total=0;
-
-   int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
-
    
+   int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
+   
+   CLabelEncoder encoder_column[];
    
    datetime time_start = GetTickCount(), current_time;
    
@@ -461,18 +463,28 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
 
       while(!FileIsEnding(handle) && !IsStopped())
         {
-         string data = FileReadString(handle);
-
+         string data = FileReadString(handle); 
+         
          //---
+         
          if(rows ==0)
            {
             ArrayResize(csv_header,column+1);
             csv_header[column] = data;
+            
+            ArrayResize(encoder_column, column+1);
            }
-
+         
+         
          if(rows>0)  //Avoid the first column which contains the column's header
-            mat_[rows-1,column] = (double(data));
-
+          {
+            if (double(data) == 0) //if a value is a string
+              mat_[rows-1,column] = encoder_column[column].encode(data);
+            else  
+              mat_[rows-1,column] = (double(data));
+          }
+         
+         
          column++;
 
          //---
@@ -482,8 +494,11 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
             rows++;
 
             mat_.Resize(rows,column);
-
+            
             column = 0;
+            
+            if (rows >= 30)
+              break;
             
             current_time = GetTickCount();
             Comment("Reading ",file_name," record = ",rows," Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
@@ -610,7 +625,7 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
          {
             ArrayCopy(Arr,toArr,0,start,(int)mat_rows);
           
-            v = LabelEncoder(Arr);
+            v = encoder.encode(Arr);
                
             matrix_.Col(v, j);
             
@@ -618,28 +633,6 @@ matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
          }
       
    return (matrix_);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-vector CMatrixutils::LabelEncoder(const string &Arr[])
- {
-   string classes[];
-   
-   vector Encoded((ulong)ArraySize(Arr));
-   
-   Classes(Arr,classes);
-   
-   //ArrayPrint(classes);
-    
-    for (ulong A=0; A<classes.Size(); A++)
-      for (ulong i=0; i<Encoded.Size(); i++)
-        {
-           if (classes[A] == Arr[i])
-              Encoded[i] = (int)A;
-        }
-    
-   return Encoded;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -803,7 +796,7 @@ void CMatrixutils::Shuffle(matrix<T> &matrix_,int random_state=-1)
    int ROWS=(int)matrix_.Rows(), COL=(int)matrix_.Cols();   
    
    int swap_index;
-   vectorf temp(COL);
+   vector<T> temp(COL);
    
    for (int i=0; i<ROWS; i++)
       {
