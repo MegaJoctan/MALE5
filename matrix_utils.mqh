@@ -497,9 +497,6 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
             
             column = 0;
             
-            if (rows >= 30)
-              break;
-            
             current_time = GetTickCount();
             Comment("Reading ",file_name," record = ",rows," Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
            }
