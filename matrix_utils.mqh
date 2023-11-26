@@ -1146,7 +1146,7 @@ void CMatrixutils::Reverse(matrix<T> &mat)
  {
    matrix<T> temp_mat = mat;
    
-   for (ulong i=0; j=mat.Rows()-1; i<mat.Rows(); i++, j--)
+   for (ulong i=0, j=mat.Rows()-1; i<mat.Rows(); i++, j--)
       mat.Row(mat.Row(j), i); 
  }
 //+------------------------------------------------------------------+
