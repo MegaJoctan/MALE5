@@ -44,12 +44,11 @@ public:
    bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
-  
-   vector            ArrayToVector(const double &Arr[]);  
-   vector            ArrayToVector(const int &Arr[]);
    
-   bool              VectorToArray(const vector &v,double &arr[]);
-   bool              VectorToArray(const vector &v,int &arr[]);
+   template<typename T>
+   vector            ArrayToVector(const T &Arr[]);     
+   template<typename T>
+   bool              VectorToArray(const vector &v,T &arr[]);
    template<typename T>
    void              RemoveCol(matrix<T> &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
@@ -73,10 +72,13 @@ public:
    template<typename T>
    bool              Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
    
-   vector            Search(const vector &v, int value);          //Searches a specific integer value in a vector and returns all the index it has been found
-   vector            Search(const vector &v,double value);
+   template<typename T>
+   vector            Search(const vector<T> &v, T value);
    
-   void              ReverseOrder(vector &v);
+   template<typename T>
+   void              Reverse(vector<T> &v);
+   template<typename T>
+   void              Reverse(matrix<T> &mat);
    matrix            DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
    
    matrix            HadamardProduct(matrix &a, matrix &b);
@@ -95,6 +97,7 @@ public:
    vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
    matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
    vector            Get(const vector &v, ulong start_index, ulong end_index);
+   vector            Unique(vector &v);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -693,7 +696,8 @@ bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], stri
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::ArrayToVector(const double &Arr[])
+template<typename T>
+vector CMatrixutils::ArrayToVector(const T &Arr[])
   {
    vector v = {};
 
@@ -704,19 +708,8 @@ vector CMatrixutils::ArrayToVector(const double &Arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-vector CMatrixutils::ArrayToVector(const int &Arr[])
-  {
-   vector v = {};
-
-   v.Assign(Arr);
-
-   return (v);
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool CMatrixutils::VectorToArray(const vector &v,double &arr[])
+template<typename T>
+bool CMatrixutils::VectorToArray(const vector &v, T &arr[])
   {
    ArrayResize(arr,(int)v.Size());
 
@@ -731,19 +724,6 @@ bool CMatrixutils::VectorToArray(const vector &v,double &arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-bool CMatrixutils::VectorToArray(const vector &v,int &arr[])
-  {
-   ArrayResize(arr,(int)v.Size());
-
-   if(ArraySize(arr) == 0)
-      return(false);
-
-   for(ulong i=0; i<v.Size(); i++)
-      arr[i] = (int)v[i];
-
-   return(true);
-  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -1110,11 +1090,13 @@ bool CMatrixutils::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulo
    return (true);
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| Searches for a value in a vector | Returns all the index where   |
+//| Such values was located                                          |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Search(const vector &v,int value)
+template<typename T>
+vector CMatrixutils::Search(const vector<T> &v, T value)
  {
-   vector v_out ={};
+   vector<T> v_out ={};
    
    for (ulong i=0, count =0; i<v.Size(); i++)
      { 
@@ -1122,53 +1104,51 @@ vector CMatrixutils::Search(const vector &v,int value)
         {
           count++;
           
-          if (i > 2631867)
-            {
-               Print("Infinite loop v size ",v.Size());
-               break;
-            }
-          //Print("Count ",count);
-          
           v_out.Resize(count);    
           
-          v_out[count-1] = (int)i;
+          v_out[count-1] = (T)i;
         }
      }   
     return v_out;
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| Finds the unique values in a vector and returns a vector of      |
+//| the number of values found for each unique value                 |
 //+------------------------------------------------------------------+
-
-vector CMatrixutils::Search(const vector &v,double value)
+vector CMatrixutils::Unique(vector &v)
  {
-   vector v_out ={};
-   
-   for (ulong i=0, count =0; i<v.Size(); i++)
-      if (value == v[i])
-        {
-          count++;
-          
-          v_out.Resize(count);    
-          
-          v_out[count-1] = (int)i;
-        }
-    return v_out;
+  vector classes = this.Classes(v);
+  vector keys(classes.Size());
+  
+   for (ulong i=0; i<classes.Size(); i++)
+     keys[i] = (int)Search(v, classes[i]).Size();
+    
+  return keys;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-void CMatrixutils::ReverseOrder(vector &v)
+template<typename T>
+void CMatrixutils::Reverse(vector<T> &v)
  {
-  vector v_temp = v;
+  vector<T> v_temp = v;
   
    for (ulong i=0, j=v.Size()-1; i<v.Size(); i++, j--)
         v[i] = v_temp[j];
         
    ZeroMemory(v_temp);
  }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+template<typename T>
+void CMatrixutils::Reverse(matrix<T> &mat)
+ {
+   matrix<T> temp_mat = mat;
+   
+   for (ulong i=0; j=mat.Rows()-1; i<mat.Rows(); i++, j--)
+      mat.Row(mat.Row(j), i); 
+ }
 //+------------------------------------------------------------------+
 //|   Hadamard product --> is a binary operation that takes two      |
 //|    matrices of the same dimensions and produces another matrix   |
@@ -1344,7 +1324,7 @@ void CMatrixutils::SortAscending(vector &v)
 void CMatrixutils::SortDesending(vector &v)
  {
    SortAscending(v);
-   ReverseOrder(v); 
+   Reverse(v); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
