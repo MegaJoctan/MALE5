@@ -55,7 +55,8 @@ protected:
    
    Node get_best_split(matrix &data, uint num_features);
    Node build_tree(matrix &data, uint curr_depth=0);
-
+   
+   Node root;
 //---
 
    CMatrixutils   matrix_utils;
@@ -73,15 +74,14 @@ protected:
    
    void  split_data(matrix &left, matrix& right, const matrix &data, uint feature_index, double threshold=0.5);
    
+   double make_predictions(vector &x, Node &tree);
      
 public:
                      CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
                     ~CDecisionTree(void);
                     
                     void fit(matrix &x, vector &y);
-                    
-                    void build_decision_tree(matrix &data, vector &labels);
-                    int predict_sample(vector &node, vector &sample);
+                    double predict(vector &x);
                     vector predict(matrix &x);
   };
 //+------------------------------------------------------------------+
@@ -171,57 +171,10 @@ void CDecisionTree::print_tree(vector tree=NULL, string indent=" "):
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-/*
-void CDecisionTree::build_decision_tree(matrix &data, vector &labels)
- {
-  if (m_max_depth == 0 || labels.Size() == 1)
-      return CDecisionTree(m_max_depth, m_treshold);
-
-  current_gini = this.gini_index(labels);
-  
-  double best_gain = 0.0;
-  bool best_criteria = false;
-  bool best_sets = false;
-
-  num_features = data.shape[1]
-
-  for (feature_index in range(num_features))
-    {
-      feature_values = np.unique(data[:, feature_index])
-
-      for (threshold in feature_values)
-        {
-          left_data, left_labels, right_data, right_labels = this.split_data(data, labels, feature_index, threshold)
-          if (len(left_data) > 0 and len(right_data) > 0)
-            {
-              gain = this.information_gain(left_labels, right_labels, current_gini);
-              
-              if (gain > best_gain)
-                {
-                  best_gain = gain;
-                  best_criteria = (feature_index, threshold);
-                  best_sets = (left_data, left_labels, right_data, right_labels);
-                }
-            }
-        }
-     }
-            
-  if (best_gain > 0)
-    {
-      left_branch = this.build_decision_tree(best_sets[0], best_sets[1], depth - 1);
-      right_branch = this.build_decision_tree(best_sets[2], best_sets[3], depth - 1);
-      
-      return CDecisionTree(m_max_depth, m_treshold);
-    }
-  else:
-      return DecisionTreeNode(predicted_class=np.argmax(np.bincount(labels)));
- }*/
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 void CDecisionTree::fit(matrix &x, vector &y)
  {
-   
+   matrix data = matrix_utils.concatenate(x, y, 1);
+   this.root = this.build_tree(data);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -252,46 +205,6 @@ void CDecisionTree::split_data(matrix &left, matrix& right, const matrix &data, 
         }
      }
  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-/*
-void CDecisionTree::get_best_split(matrix &data, uint num_features)
- {
-   vector best_split = {};
-   double max_info_gain = -DBL_MAX;
-   vector feature_values = {};
-   
-   matrix left, right;
-   vector left_v, right_v, y_v;
-   
-   
-   for (uint i=0; i<num_features; i++)
-     {
-       feature_values = data.Row(i);
-       vector possible_thresholds = matrix_utils.Unique(feature_values);
-         
-         for (uint j=0; j<possible_thresholds.Size(); j++)
-            {
-              this.split_data(left, right, data, i, possible_thresholds[j]);
-              
-              if (left.Rows()>0 && right.Rows() > 0)
-                {
-                  y_v = data.Col(data.Cols()-1);
-                  right_v = right.Col(right.Cols()-1);
-                  left_v = left.Col(left.Cols()-1);
-                  
-                  double curr_info_gain = this.information_gain(y_v, left_v, right_v);
-                  
-                  if (curr_info_gain > max_info_gain)
-                    {
-                     //best_split
-                    }
-                }
-            }    
-     }
-     
- } */
 //+------------------------------------------------------------------+
 //|      Return the Node for the best split                          |
 //+------------------------------------------------------------------+
@@ -372,7 +285,6 @@ Node CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
              left = best_split.left_child;
              right = best_split.right_child;
              info_gain_ = best_split.info_gain;
-             
            }
       }      
       
@@ -393,5 +305,50 @@ double CDecisionTree::calculate_leaf_value(vector &Y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+double CDecisionTree::make_predictions(vector &x, Node &tree)
+ {
+    if (tree.value != NULL) //This is a leaf value
+      return tree.value;
+      
+    double feature_value = x[tree.feature_index];
+    double pred = 0;
+    
+    if (feature_value <= tree.threshold)
+      {
+       Node left_tree(tree.feature_index,tree.threshold,tree.left_child,tree.right_child,tree.info_gain, tree.value);
+       
+       pred = this.make_predictions(x, left_tree);  
+      }
+    else
+     {
+       Node right_tree(tree.feature_index,tree.threshold,tree.left_child,tree.right_child,tree.info_gain, tree.value);
+       pred = this.make_predictions(x, right_tree);
+     }
+     
+   return pred;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CDecisionTree::predict(vector &x)
+ {  
+   return this.make_predictions(x, this.root);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CDecisionTree::predict(matrix &x)
+ {
+    vector ret(x.Rows());
+    
+    for (ulong i=0; i<x.Rows(); i++)
+       ret[i] = this.predict(x.Row(i));
+       
+   return ret;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
 
  
