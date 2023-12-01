@@ -20,7 +20,6 @@ class CMatrixutils
   CLabelEncoder encoder;
   
 private:
-   void              Unique(const string &Array[], string &classes_arr[]);
    int               CSVOpen(string filename,string delimiter);
    
    double            MathRandom(double mini, double maxi);
@@ -61,6 +60,8 @@ public:
    void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
+   
+   void              Unique(const string &Array[], string &classes_arr[]);
    vector            Unique(vector &v);           //Identifies classes available in a vector
   
    vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
@@ -100,7 +101,6 @@ public:
    matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
    vector            Get(const vector &v, ulong start_index, ulong end_index);
    vector            Unique_count(vector &v);
-   vector            Unique_np(vector &v);
    template<typename T>
    vector            Sort(vector<T> &v);
   }; 
@@ -965,7 +965,7 @@ vector CMatrixutils::Unique(vector &v)
             continue;
         }
      } 
-   return v_classes;
+   return this.Sort(v_classes); //Sort the unique values in ascending order
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1189,14 +1189,6 @@ vector CMatrixutils::Sort(vector<T> &v)
    ArraySort(arr);
    
    return this.ArrayToVector(arr);
- }
-//+------------------------------------------------------------------+
-//| Tries to imitate python-numpy.unique which sorts the unique vars |
-//+------------------------------------------------------------------+
-vector CMatrixutils::Unique_np(vector &v)
- {
-   vector temp = this.Unique(v);
-   return this.Sort(temp); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
