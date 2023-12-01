@@ -598,6 +598,42 @@ struct CLabelEncoder
                   
             return -1;
           } 
+          
+        template<typename T>  
+        int find(vector &vector_, T value)
+          {
+            for (int i=0; i<(int)vector_.Size(); i++)
+               if ((T)vector_[i] == value)
+                   return i+1;
+                  
+            return -1;
+          } 
+         
+         bool BubbleSortStrings(string &arr[])
+           {
+            int arraySize = ArraySize(arr);
+            
+            if (arraySize == 0)
+              {
+               Print(__FUNCTION__," Failed to Sort | ArraySize = 0");
+               return false;
+              }
+            
+            for(int i = 0; i < arraySize - 1; i++)
+              {
+               for(int j = 0; j < arraySize - i - 1; j++)
+                 {
+                  if(StringCompare(arr[j], arr[j + 1], false) > 0)
+                    {
+                     // Swap arr[j] and arr[j + 1]
+                     string temp = arr[j];
+                     arr[j] = arr[j + 1];
+                     arr[j + 1] = temp;
+                    }
+                 }
+              }
+             return true;
+           }
        
       public:
          int encode(string value)
@@ -619,11 +655,29 @@ struct CLabelEncoder
              return size;
            }
          
-         vector<int> encode(string &Arr[])
+         
+         vector encode(string &Arr[])
            {
-             for ()
+            vector ret(ArraySize(Arr));
+            ZeroMemory(labels_mem);
+            
+            if (!BubbleSortStrings(Arr))
+                return ret;
+             
+             for (int i=0; i<ArraySize(Arr); i++)
+                ret[i] = (int)encode(Arr[i]);
+            
+             return ret;
            }  
             
+         void encode(string &Arr[], int &encoded_arr[])
+           {
+             ArrayResize(encoded_arr, ArraySize(Arr));
+             ZeroMemory(labels_mem);
+             
+             for (int i=0; i<ArraySize(Arr); i++)
+                encoded_arr[i] = (int)encode(Arr[i]);
+           }  
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
