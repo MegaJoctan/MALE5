@@ -39,8 +39,7 @@ public:
    template <typename T>
    bool              WriteCsv(string csv_name, matrix<T> &matrix_, string header_string,bool common=false, int digits=5);
    matrix            ReadCsv(string file_name,string delimiter=",",bool common=false);
-   matrix            ReadCsvEncode(string file_name, string delimiter=",");
-   bool              ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",");
+   
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(const matrix &mat);
    
@@ -321,62 +320,11 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 template <typename T>
 bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[], bool common=false, int digits=5)
   {
-   FileDelete(csv_name);
-   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
-
-   if(handle == INVALID_HANDLE)
-     {
-       printf("Invalid %s handle Error %d ",csv_name,GetLastError());
-       return (false);
-     }
-   else
-     {       
-      string concstring;
-      vector<T> row = {};
+   string header_str = "";
+   for (int i=0; i<ArraySize(header); i++)
+      header_str += header[i] + (i+1 == ArraySize(header)) ? "" : ",";
       
-      //FileSeek(handle,0,SEEK_SET);
-      
-      vector<T> colsinrows = matrix_.Row(0);
-      
-      if (ArraySize(header) != (int)colsinrows.Size())
-         {
-            Print("header and columns from the matrix vary is size ");
-            return false;
-         }
-
-//---
-
-      datetime time_start = GetTickCount(), current_time;
-   
-      string header_str = "";
-      for (int i=0; i<ArraySize(header); i++)
-         header_str += header[i] + (i+1 == colsinrows.Size() ? "" : ",");
-      
-      FileWrite(handle,header_str);
-      
-      FileSeek(handle,0,SEEK_SET);
-      
-      for(ulong i=0; i<matrix_.Rows() && !IsStopped(); i++)
-        {
-         ZeroMemory(concstring);
-
-         row = matrix_.Row(i);
-         for(ulong j=0, cols =1; j<row.Size() && !IsStopped(); j++, cols++)
-           {
-            current_time = GetTickCount();
-            
-            concstring += (string)NormalizeDouble(row[j],digits) + (cols == matrix_.Cols() ? "" : ",");
-            
-            Comment("Writting ",csv_name," record [",i+1,"/",matrix_.Rows(),"] Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
-           }
-
-         FileSeek(handle,0,SEEK_END);
-         FileWrite(handle,concstring);
-        }
-     }
-   FileClose(handle);
-   
-   return (true);
+   return WriteCsv(csv_name, matrix_, header_str, common, digits);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -521,183 +469,6 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
 
    return(mat_);
   }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-matrix CMatrixutils::ReadCsvEncode(string file_name,string delimiter=",")
- {
-//--- Obtaining the columns
-
-   matrix matrix_={};
-
-   
-//--- Loading the entire matrix_ to an Array
-
-   int csv_columns=0,  rows_total=0;
-   
-   int handle = CSVOpen(file_name,delimiter); 
-   
-   if (handle != INVALID_HANDLE)
-      {
-       while (!FileIsEnding(handle) && !IsStopped())
-         {
-           string data = FileReadString(handle);
-
-           csv_columns++;
-//---
-           if (FileIsLineEnding(handle)) break;
-         } 
-      }
-      
-   FileClose(handle);
-   
-   if (csv_columns==0)
-     {
-       Print(__FUNCTION__," Couldn't read the csv file header ");
-       return (matrix_);
-     }
-   
-   ArrayResize(csv_header,csv_columns);
-   
-//---
-
-   string toArr[];
-
-    int counter=0; 
-    for (int i=0; i<csv_columns; i++)
-      {                    
-        if ((handle = CSVOpen(file_name,delimiter)) != INVALID_HANDLE)
-         {  
-          int column = 0, rows=0;
-          while (!FileIsEnding(handle) && !IsStopped())
-            {
-              string data = FileReadString(handle);
-
-              column++;
-   //---      
-              if (column==i+1)
-                 {                      
-                     if (rows>=1 ) //Avoid the first column which contains the column's header
-                       {   
-                           counter++;
-                           
-                           ArrayResize(toArr,counter); //array size for all the columns 
-                           toArr[counter-1]=data;
-                           
-                       }
-                      else csv_header[column-1]  =  data;
-                 }
-   //---
-              if (FileIsLineEnding(handle))
-                {              
-                   rows++;
-                   column = 0;
-                }
-            } 
-          rows_total += rows-1; 
-        }
-       FileClose(handle); 
-     }
-
-//---
-    
-    ulong mat_cols = 0,mat_rows = 0;
-    
-    
-    if (ArraySize(toArr) % csv_columns !=0)
-     printf("This CSV file named %s has unequal number of columns = %d and rows %d Its size = %d",file_name,csv_columns,ArraySize(toArr) / csv_columns,ArraySize(toArr));
-    else 
-     {
-        mat_cols = (ulong)csv_columns;       
-        mat_rows = (ulong)ArraySize(toArr)/mat_cols;
-     }
-   
-   //ArrayPrint(toArr);
-
-//--- Encoding the CSV
-
-     matrix_.Resize(mat_rows,mat_cols);    
-      
-//---
-
-     string Arr[];
-      
-     int start =0;
-      
-     vector v = {};
-      
-       for (ulong j=0; j<mat_cols; j++)
-         {
-            ArrayCopy(Arr,toArr,0,start,(int)mat_rows);
-          
-            v = encoder.encode(Arr);
-               
-            matrix_.Col(v, j);
-            
-            start += (int)mat_rows;
-         }
-      
-   return (matrix_);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool CMatrixutils::ReadCsvAsStrings(string file_name,string &array[][COLS], string delimiter=",")
- {
-   int rows_total=0;
-
-   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI,delimiter);
-
-   
-
-   if(handle == INVALID_HANDLE)
-     {
-         printf("Invalid %s handle Error %d ",file_name,GetLastError());
-         Print(GetLastError()==0?" TIP | File Might be in use Somewhere else or in another Directory":"");
-         return false;
-     }
-
-   else
-     {
-      int column = 0, rows=0;
-
-      while(!FileIsEnding(handle) && !IsStopped())
-        {
-         string data = FileReadString(handle);
-
-         //---
-         if(rows ==0)
-           {
-            ArrayResize(csv_header,column+1);
-            csv_header[column] = data;
-           }
-
-         if(rows>0)  //Avoid the first column which contains the column's header
-            array[rows-1,column] = data;
-
-         column++;
-
-         //---
-
-         if(FileIsLineEnding(handle))
-           {
-            rows++;
-            
-            ArrayResize(array,rows);
-
-            column = 0;
-           }
-        }
-
-      rows_total = rows;
-
-      FileClose(handle);
-     }
-   
-   ArrayResize(array,rows_total-1);
-   
-   return (true);
- }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -889,7 +660,7 @@ matrix CMatrixutils::OneHotEncoding(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Unique(const string &Array[],string &classes_arr[])
+void CMatrixutils::Unique(const string &Array[], string &classes_arr[])
  {
    string temp_arr[];
 
@@ -902,7 +673,7 @@ void CMatrixutils::Unique(const string &Array[],string &classes_arr[])
      {
       for(int j=0; j<ArraySize(Array); j++)
         {
-         if(Array[i] == temp_arr[j] && temp_arr[j] != "nan")
+         if(Array[i] == temp_arr[j] && temp_arr[j] != "-nan")
            {
             bool count_ready = false;
 
@@ -917,7 +688,7 @@ void CMatrixutils::Unique(const string &Array[],string &classes_arr[])
 
                classes_arr[count-1] = Array[i]; 
 
-               temp_arr[j] = "nan"; //modify so that it can no more be counted
+               temp_arr[j] = "-nan"; //modify so that it can no more be counted
               }
             else
                break;
@@ -939,7 +710,7 @@ vector CMatrixutils::Unique(vector &v)
      {
       for(ulong j=0; j<v.Size(); j++)
         {
-         if(v[i] == temp_t[j] && temp_t[j] != -1000)
+         if(v[i] == temp_t[j] && temp_t[j] != -DBL_MAX)
            {
             bool count_ready = false;
 
@@ -955,7 +726,7 @@ vector CMatrixutils::Unique(vector &v)
                v_classes[count-1] = v[i];
                //Print("v_classes ",v_classes);
 
-               temp_t[j] = -1000; //modify so that it can no more be counted
+               temp_t[j] = -DBL_MAX; //modify so that it can no more be counted
               }
             else
                break;
