@@ -20,7 +20,7 @@ class CMatrixutils
   CLabelEncoder encoder;
   
 private:
-   void              Classes(const string &Array[], string &classes_arr[]);
+   void              Unique(const string &Array[], string &classes_arr[]);
    int               CSVOpen(string filename,string delimiter);
    
    double            MathRandom(double mini, double maxi);
@@ -61,13 +61,15 @@ public:
    void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
    matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
-   vector            Classes(vector &v);           //Identifies classes available in a vector
+   vector            Unique(vector &v);           //Identifies classes available in a vector
   
    vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
    vector            Random(double min, double max, int size,int random_state=-1);    //Generates a random vector of a given size
    matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1);
    
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
+   template<typename T>
+   matrix<T>         concatenate(matrix<T> &mat, vector<T> &v, int axis=1);
    matrix            Append(matrix &mat1, matrix &mat2);
    template<typename T>
    bool              Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
@@ -97,7 +99,10 @@ public:
    vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
    matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
    vector            Get(const vector &v, ulong start_index, ulong end_index);
-   vector            Unique(vector &v);
+   vector            Unique_count(vector &v);
+   vector            Unique_np(vector &v);
+   template<typename T>
+   vector            Sort(vector<T> &v);
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -862,7 +867,7 @@ matrix CMatrixutils::OneHotEncoding(vector &v)
    
 //---
 
-   vector v_classes = Classes(v);
+   vector v_classes = Unique(v);
      
 //---
 
@@ -884,7 +889,7 @@ matrix CMatrixutils::OneHotEncoding(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Classes(const string &Array[],string &classes_arr[])
+void CMatrixutils::Unique(const string &Array[],string &classes_arr[])
  {
    string temp_arr[];
 
@@ -926,7 +931,7 @@ void CMatrixutils::Classes(const string &Array[],string &classes_arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Classes(vector &v)
+vector CMatrixutils::Unique(vector &v)
  {
    vector temp_t = v, v_classes = {v[0]};
 
@@ -1065,6 +1070,52 @@ matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
    return m_out;
  }
 //+------------------------------------------------------------------+
+//|   Concatenates the vector to a matrix, axis =0 along the rows    |
+//|   while axis =1 along the colums concatenation
+//+------------------------------------------------------------------+
+template<typename T>
+matrix<T> CMatrixutils::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
+ {
+   matrix<T> ret= mat;
+     
+   ulong new_rows, new_cols;
+   
+   if (axis == 0) //place it along the rows
+    {
+      new_rows = mat.Rows()+1; new_cols = mat.Cols();
+      
+      if (v.Size() != new_cols)
+        {
+          Print(__FUNCTION__," Dimensions don't match the vector v needs to have the same size as the number of columns in the original matrix");
+          return ret;
+        }
+      
+      ret.Resize(new_rows, new_cols);
+      ret.Row(v, new_rows-1);
+    }
+   else if (axis == 1)
+     {
+        new_rows = mat.Rows(); new_cols = mat.Cols()+1;
+        
+        if (v.Size() != new_rows)
+          {
+            Print(__FUNCTION__," Dimensions don't match the vector v needs to have the same size as the number of rows in the original matrix");
+            return ret;
+          }
+        
+        ret.Resize(new_rows, new_cols);
+        ret.Col(v, new_cols-1);
+     }
+   else 
+     {
+       Print(__FUNCTION__," Axis value Can either be 0 or 1");
+       return ret;
+     }
+
+//---
+   return ret;
+ }
+//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
@@ -1115,15 +1166,37 @@ vector CMatrixutils::Search(const vector<T> &v, T value)
 //| Finds the unique values in a vector and returns a vector of      |
 //| the number of values found for each unique value                 |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Unique(vector &v)
+vector CMatrixutils::Unique_count(vector &v)
  {
-  vector classes = this.Classes(v);
+  vector classes = this.Unique(v);
   vector keys(classes.Size());
   
    for (ulong i=0; i<classes.Size(); i++)
      keys[i] = (int)Search(v, classes[i]).Size();
     
   return keys;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+template<typename T>
+vector CMatrixutils::Sort(vector<T> &v)
+ {
+   T arr[];
+   vector temp = v;
+   temp.Swap(arr);
+   
+   ArraySort(arr);
+   
+   return this.ArrayToVector(arr);
+ }
+//+------------------------------------------------------------------+
+//| Tries to imitate python-numpy.unique which sorts the unique vars |
+//+------------------------------------------------------------------+
+vector CMatrixutils::Unique_np(vector &v)
+ {
+   vector temp = this.Unique(v);
+   return this.Sort(temp); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
