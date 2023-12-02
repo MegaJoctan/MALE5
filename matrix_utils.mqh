@@ -44,7 +44,7 @@ public:
    vector            MatrixToVector(matrix &mat);
    
    template<typename T>
-   vector<T>         ArrayToVector(const T &Arr[]);     
+   vector           ArrayToVector(const T &Arr[]);     
    template<typename T>
    bool              VectorToArray(const vector &v,T &arr[]);
    template<typename T>
@@ -466,12 +466,12 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector<T> CMatrixutils::ArrayToVector(const T &Arr[])
+vector CMatrixutils::ArrayToVector(const T &Arr[])
   {
-   vector<T> v(ArraySize(Arr));
+   vector v(ArraySize(Arr));
    
    for (int i=0; i<ArraySize(Arr); i++)
-     v[i] = (T)Arr[i];
+     v[i] = (double)Arr[i];
      
    return (v);
   }
