@@ -41,7 +41,7 @@ public:
    matrix            ReadCsv(string file_name,string delimiter=",",bool common=false);
    
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
-   vector            MatrixToVector(const matrix &mat);
+   vector            MatrixToVector(matrix &mat);
    
    template<typename T>
    vector            ArrayToVector(const T &Arr[]);     
@@ -164,14 +164,12 @@ matrix CMatrixutils::VectorToMatrix(const vector &v, ulong cols=1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::MatrixToVector(const matrix &mat)
+vector CMatrixutils::MatrixToVector(matrix &mat)
   {
     vector v = {};
     
-    if (!v.Assign(mat))
+    if (!mat.Assign(v))
       Print(__FUNCTION__," Failed to turn the matrix to a vector rows ",mat.Rows()," cols ",mat.Cols());
-    
-    v.Swap(v);
     
     return(v);
   }
@@ -483,13 +481,13 @@ vector CMatrixutils::ArrayToVector(const T &Arr[])
 template<typename T>
 bool CMatrixutils::VectorToArray(const vector &v, T &arr[])
   {
-   ArrayResize(arr,(int)v.Size());
+   vector v = {};
 
-   if(ArraySize(arr) == 0)
-      return(false);
-
-   for(ulong i=0; i<v.Size(); i++)
-      arr[i] = v[i];
+   if (!v.Assign(Arr))
+    {
+      Print("Failed to Convert vector to Array Err=",GetLastError());
+      return false;
+    }
 
    return(true);
   }
