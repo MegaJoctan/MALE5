@@ -433,12 +433,7 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
          
          
          if(rows>0)  //Avoid the first column which contains the column's header
-          {
-            if (double(data) == 0) //if a value is a string
-              mat_[rows-1,column] = encoder_column[column].encode(data);
-            else  
-              mat_[rows-1,column] = (double(data));
-          }
+            mat_[rows-1,column] = (double(data));
          
          
          column++;
@@ -477,7 +472,8 @@ vector CMatrixutils::ArrayToVector(const T &Arr[])
   {
    vector v = {};
 
-   v.Assign(Arr);
+   if (!v.Assign(Arr))
+     Print("Failed to Convert vector to Array Err=",GetLastError());
 
    return (v);
   }
