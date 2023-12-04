@@ -28,6 +28,9 @@ private:
    void              Swap(double &var1, double &var2);
    string            ConvertTime(double seconds);
    
+   template<typename T>
+   void              GetCol(const T &Matrix[], T &Col[], int column, int cols);
+
 public:
                      CMatrixutils(void);
                     ~CMatrixutils(void);
@@ -36,17 +39,21 @@ public:
    
    template <typename T>
    bool              WriteCsv(string csv_name, matrix<T> &matrix_, string &header[] ,bool common=false, int digits=5);
+   
    template <typename T>
    bool              WriteCsv(string csv_name, matrix<T> &matrix_, string header_string,bool common=false, int digits=5);
+   
    matrix            ReadCsv(string file_name,string delimiter=",",bool common=false);
+   bool              IsNumber(string text);
+   vector            FixColumn(string &Arr[], double threshold =0.3);
    
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
    vector            MatrixToVector(matrix &mat);
    
    template<typename T>
-   vector           ArrayToVector(const T &Arr[]);     
+   vector            ArrayToVector(const T &Arr[]);     
    template<typename T>
-   bool              VectorToArray(const vector &v,T &arr[]);
+   bool              VectorToArray(const vector<T> &v,T &arr[]);
    template<typename T>
    void              RemoveCol(matrix<T> &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
@@ -91,8 +98,6 @@ public:
    void              Shuffle(matrix<T> &matrix_,int random_state=-1);
    void              NormalizeVector(vector<double> &v, int digits=3);
    void              PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
-   void              SortAscending(vector &v);
-   void              SortDesending(vector &v);
    int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
    string            Stringfy(vector &v, int digits = 2);
    matrix            Zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
@@ -392,17 +397,110 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string header_s
    return (true);
   }
 //+------------------------------------------------------------------+
+//| This Function is aimed at Detectin the Strings columns and it    |
+//| encodes them, while fixing the missing information in the column |
+//+------------------------------------------------------------------+
+vector CMatrixutils::FixColumn(string &Arr[], double threshold =0.3)
+ {
+   int size = ArraySize(Arr);
+   int str_count =0;
+   
+   vector ret(size);
+   
+   for (int i=0; i<size; i++) //Check what percentage of data is strings
+      if (!IsNumber(Arr[i]))
+        str_count++;
+
+//---
+
+   bool is_strings_col = (str_count>=size*threshold);
+     
+   if (is_strings_col) //if a column is detected to be a column full of strings
+     {
+      //Encode it
+      return encoder.encode(Arr);;
+     }       
+     
+//---
+      
+   string value = "";
+   int total =0;
+   double mean=0;
+   
+   for (int i=0; i<size; i++) //Detect Missing values | Remove the rows
+     { 
+       value = Arr[i];
+        if (value == "NaN" || value == "-NaN" || value == "!VALUE" ||
+           value == "" || value == "NA" || value == "N/A" || value == "null" ||
+           value == "Inf" || value == "Infinity" || value == "-Inf" || value == "-Infinity" ||
+           value == "#DIV/0!" || value == "#VALUE!") //Check if there are NotANumber values 
+          continue;
+                
+        mean += (double)Arr[i];
+        total++;
+     }
+   
+   mean /= total;
+
+//---
+   
+   for (int i=0; i<size; i++) //Detect Missing values | Remove the rows
+     { 
+       value = Arr[i];
+        if (value == "NaN" || value == "-NaN" || value == "!VALUE" ||
+           value == "" || value == "NA" || value == "N/A" || value == "null" ||
+           value == "Inf" || value == "Infinity" || value == "-Inf" || value == "-Infinity" ||
+           value == "#DIV/0!" || value == "#VALUE!") //Check if there are NotANumber values 
+          {
+            ret[i] = mean;
+            continue;
+          }
+          
+          ret[i] = double(Arr[i]);       
+     }
+    
+   return ret;  
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CMatrixutils::IsNumber(string text)
+{
+    int length = StringLen(text);   // Get the length of the string.
+    int pointcount = 0;             // Initialize a counter for the number of decimal points.
+
+    // Iterate through each character in the text.
+    for (int i = 0; i < length; i++)
+    {
+        int char1 = StringGetCharacter(text, i);  // Get the ASCII code of the current character.
+
+        // If the character is a decimal point, increment the decimal point counter.
+        if (char1 == 46)
+            pointcount += 1;
+
+        // If the character is a digit or a decimal point and the number of decimal points is less than 2,
+        // continue to the next character; otherwise, return false.
+        if (((char1 >= 48 && char1 <= 57) || char1 == 46) && pointcount < 2)
+            continue;
+        else
+            return false;
+    }
+
+    // If all characters in the text have been checked without returning false, return true.
+    return true;
+}
+//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=false)
   {
-   matrix mat_ = {};
-   int rows_total=0;
+   string Arr[];
+   int all_size = 0;
+   
+   int cols_total=0;
    
    int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
-   
-   CLabelEncoder encoder_column[];
-   
+      
    datetime time_start = GetTickCount(), current_time;
    
    if(handle == INVALID_HANDLE)
@@ -410,7 +508,6 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
       printf("Invalid %s handle Error %d ",file_name,GetLastError());
       Print(GetLastError()==0?" TIP | File Might be in use Somewhere else or in another Directory":"");
      }
-
    else
      {
       int column = 0, rows=0;
@@ -425,43 +522,75 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
            {
             ArrayResize(csv_header,column+1);
             csv_header[column] = data;
-            
-            ArrayResize(encoder_column, column+1);
            }
          
-         
-         if(rows>0)  //Avoid the first column which contains the column's header
-            mat_[rows-1,column] = (double(data));
-         
-         
          column++;
-
+                  
+         if(rows>0)  //Avoid the first column which contains the column's header
+          {
+            all_size++;
+            ArrayResize(Arr,all_size);
+            
+            Arr[all_size-1] = data;
+          }
          //---
 
          if(FileIsLineEnding(handle))
            {
-            rows++;
-
-            mat_.Resize(rows,column);
-            
+            cols_total=column;
+               
+            rows++;               
             column = 0;
-            
+               
             current_time = GetTickCount();
             Comment("Reading ",file_name," record = ",rows," Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
            }
-        }
-
-      rows_total = rows;
-
+        }  
+        
       FileClose(handle);
      }
+     
+   int rows =all_size/cols_total;
    
    Comment("");
+      
+   matrix mat(rows, cols_total);
+   string Col[];
+   vector col_vector;
    
-   mat_.Resize(rows_total-1,mat_.Cols());
+   for (int i=0; i<cols_total; i++)
+      {
+         GetCol(Arr, Col, i+1, cols_total);
+         mat.Col(this.FixColumn(Col), i);
+      }
 
-   return(mat_);
+   return(mat);
   }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+template<typename T>
+void CMatrixutils::GetCol(const T &Matrix[], T &Col[], int column, int cols)
+ {
+   int rows = ArraySize(Matrix)/cols;
+   ArrayResize(Col,rows);
+   
+   int start = 0;
+    for (int i=0; i<cols; i++)
+     {
+      start = i;
+      
+      if (i != column-1)  continue;
+      else
+        for (int j=0; j<rows; j++)
+          {
+            //printf("ColMatrix[%d} Matrix{%d]",j,start);
+            Col[j] = Matrix[start];
+            
+            start += cols;
+          }
+     }  
+ }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -471,7 +600,7 @@ vector CMatrixutils::ArrayToVector(const T &Arr[])
    vector v(ArraySize(Arr));
    
    for (int i=0; i<ArraySize(Arr); i++)
-     v[i] = (double)Arr[i];
+     v[i] = double(Arr[i]);
      
    return (v);
   }
@@ -479,22 +608,18 @@ vector CMatrixutils::ArrayToVector(const T &Arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CMatrixutils::VectorToArray(const vector &v, T &arr[])
+bool CMatrixutils::VectorToArray(const vector<T> &v, T &arr[])
   {
-   vector v = {};
-
-   if (!v.Assign(Arr))
+   vector temp = v;
+   if (!temp.Assign(Arr))
     {
       Print("Failed to Convert vector to Array Err=",GetLastError());
       return false;
     }
-
    return(true);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
@@ -1128,33 +1253,6 @@ void CMatrixutils::Swap(double &var1,double &var2)
    
    var1 = temp2;
    var2 = temp_1;
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CMatrixutils::SortAscending(vector &v)
- { 
-    ulong n = v.Size();
-    for (ulong i = 0; i < n - 1; i++)
-      {
-        ulong minIndex = i;
-        for (ulong j = i + 1; j < n; j++)
-          {
-            if (v[j] < v[minIndex]) {
-                minIndex = j;
-           }
-      }
-      
-      Swap(v[i], v[minIndex]);
-    }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CMatrixutils::SortDesending(vector &v)
- {
-   SortAscending(v);
-   Reverse(v); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
