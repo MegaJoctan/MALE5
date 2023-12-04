@@ -611,7 +611,7 @@ template<typename T>
 bool CMatrixutils::VectorToArray(const vector<T> &v, T &arr[])
   {
    vector temp = v;
-   if (!temp.Assign(Arr))
+   if (!temp.Swap(arr))
     {
       Print("Failed to Convert vector to Array Err=",GetLastError());
       return false;
