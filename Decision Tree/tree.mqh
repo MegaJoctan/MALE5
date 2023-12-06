@@ -10,79 +10,96 @@
 //+------------------------------------------------------------------+
 #include <MALE5\matrix_utils.mqh>
 
-struct Node
+struct NodeClass
   {
-  // for decision node
-  
-  uint feature_index;
-  double threshold;
-  matrix left_child,
-         right_child;
-  double info_gain;
-  
-  // for leaf node
-  
-  double value;
-     
-     Node() {} //default constructor
-     Node(uint &feature_index_, double threshold_, matrix &left_, matrix &right_, double info_gain_=NULL, double value_=NULL)
-      { 
-        /* constructor */
-        
-        // for decision node
-        
-        this.feature_index = feature_index_;
-        this.threshold = threshold_;
-        this.left_child = left_;
-        this.right_child = right_;
-        this.info_gain = info_gain_;
-        
-        // for leaf node
-        
-        this.value = value_;
-      }
   };
 
 #define log2(value) MathLog(value) / MathLog(2)
 
+class Node
+{
+  public:
+    // for decision node
+       
+    uint feature_index;
+    double threshold;
+    double info_gain;
+     
+    // for leaf node
+     
+    double value;   
+      
+    Node *left_child;
+    Node *right_child;
+
+    Node() : left_child(NULL), right_child(NULL) {} // default constructor
+
+    Node(uint feature_index_, double threshold_=NULL, Node *left_=NULL, Node *right_=NULL, double info_gain_=NULL, double value_=NULL)
+        : left_child(left_), right_child(right_)
+    {
+        this.feature_index = feature_index_;
+        this.threshold = threshold_;
+        this.info_gain = info_gain_;
+        this.value = value_;
+    }
+    
+   void Print()
+    {
+      printf("feature_index: %d \nthreshold: %f \ninfo_gain: %f \nleaf_value: %f",feature_index,threshold, info_gain, value);
+    }    
+};
+
+struct split_info
+  {
+   uint feature_index;
+   double threshold;
+   matrix dataset_left,
+          dataset_right;
+   double info_gain;
+  };
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+enum mode {MODE_ENTROPY, MODE_GINI};
 
 class CDecisionTree
   {
-protected:
-   
-   Node get_best_split(matrix &data, uint num_features);
-   Node build_tree(matrix &data, uint curr_depth=0);
-   
-   Node root;
-//---
+CMatrixutils   matrix_utils;
 
-   CMatrixutils   matrix_utils;
+protected:
+      
+   Node *build_tree(matrix &data, uint curr_depth=0);
+   double  calculate_leaf_value(vector &Y);
+   
+//---
    
    uint m_max_depth;
    uint m_min_samples_split;
    
-   enum mode {MODE_ENTROPY, MODE_GINI};
    mode m_mode;
    
    double  gini_index(vector &y);
    double  entropy(vector &y);
    double  information_gain(vector &parent, vector &left_child, vector &right_child);
-   double  calculate_leaf_value(vector &Y);
    
-   void  split_data(matrix &left, matrix& right, const matrix &data, uint feature_index, double threshold=0.5);
    
-   double make_predictions(vector &x, Node &tree);
-     
+   split_info  get_best_split(matrix &data, uint num_features);
+   split_info  split_data(const matrix &data, uint feature_index, double threshold=0.5);
+   
+   double make_predictions(vector &x, const Node &tree);
+   void delete_tree(Node* node);
+   
 public:
+                     Node *root;
+                     
                      CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
                     ~CDecisionTree(void);
                     
-                    void fit(matrix &x, vector &y);
-                    double predict(vector &x);
-                    vector predict(matrix &x);
+                     void fit(matrix &x, vector &y);
+                     void print_tree(Node *tree, string indent=" ",string padl="");
+                     double predict(vector &x);
+                     vector predict(matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -93,21 +110,33 @@ CDecisionTree::CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mo
    m_max_depth = max_depth;
    
    m_mode = mode_;
+   root = new Node();
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CDecisionTree::~CDecisionTree(void)
+ {   
+   this.delete_tree(root);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CDecisionTree::delete_tree(Node* node)
  {
-   //while(CheckPointer(node)!=POINTER_INVALID)
-   //  delete (node);
+    if (CheckPointer(node) != POINTER_INVALID)
+    {
+        delete_tree(node.left_child);
+        delete_tree(node.right_child);
+        delete node;
+    }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 double CDecisionTree::gini_index(vector &y)
  {
-   vector unique = matrix_utils.Unique(y);
+   vector unique = matrix_utils.Unique_count(y);
    
    vector probabilities = unique / (double)y.Size();
    
@@ -118,7 +147,7 @@ double CDecisionTree::gini_index(vector &y)
 //+------------------------------------------------------------------+
 double CDecisionTree::entropy(vector &y)
  {    
-   vector class_labels = matrix_utils.Unique(y);
+   vector class_labels = matrix_utils.Unique_count(y);
      
    vector p_cls = class_labels / double(y.Size());
   
@@ -134,8 +163,7 @@ double CDecisionTree::information_gain(vector &parent, vector &left_child, vecto
     double weight_left = left_child.Size() / (double)parent.Size(),
            weight_right = right_child.Size() / (double)parent.Size();
     
-    double gain =0;
-    
+    double gain =0;    
     switch(m_mode)
       {
        case  MODE_GINI:
@@ -151,42 +179,46 @@ double CDecisionTree::information_gain(vector &parent, vector &left_child, vecto
 //+------------------------------------------------------------------+
 //|         function to print the tree                               |
 //+------------------------------------------------------------------+
-/*
-void CDecisionTree::print_tree(vector tree=NULL, string indent=" "):
+void CDecisionTree::print_tree(Node *tree, string indent=" ",string padl="")
   {
-     if (!tree)
-         tree = this.root;
-
-     if tree.value is not None:
-         print(tree.value)
-
-     else:
-         print("X_"+str(tree.feature_index), "<=", tree.threshold, "?", tree.info_gain)
-         print("%sleft:" % (indent), end="")
-         self.print_tree(tree.left, indent + indent)
-         print("%sright:" % (indent), end="")
-         self.print_tree(tree.right, indent + indent)
-  }         
-*/
+     if (tree.value != NULL)
+        Print(padl+(indent=="left"?"left: ":"right: "),tree.value);
+     else
+       {
+         indent = "";
+         padl += " ";
+         
+         Print(padl+"X_",tree.feature_index, "<=", tree.threshold, "?", tree.info_gain);
+         
+         print_tree(tree.left_child, "left","--->"+padl);
+         
+         print_tree(tree.right_child, "right","--->"+padl);
+       }
+  }  
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void CDecisionTree::fit(matrix &x, vector &y)
  {
    matrix data = matrix_utils.concatenate(x, y, 1);
+   
    this.root = this.build_tree(data);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDecisionTree::split_data(matrix &left, matrix& right, const matrix &data, uint feature_index, double threshold=0.5)
+split_info CDecisionTree::split_data(const matrix &data, uint feature_index, double threshold=0.5)
  {
    int left_size=0, right_size =0;
    vector row = {};
    
-   left.Resize(0, data.Cols());
-   right.Resize(0,data.Cols());
+   split_info split;
    
+   ulong cols = data.Cols();
+   
+   split.dataset_left.Resize(0, cols);
+   split.dataset_right.Resize(0, cols);
+      
     for (ulong i=0; i<data.Rows(); i++)
      {       
        row = data.Row(i);
@@ -194,57 +226,61 @@ void CDecisionTree::split_data(matrix &left, matrix& right, const matrix &data, 
        if (row[feature_index] <= threshold)
         {
           left_size++;
-          left.Resize(left_size, left.Cols());
-          left.Row(row, left_size-1); 
+          split.dataset_left.Resize(left_size, cols);
+          split.dataset_left.Row(row, left_size-1); 
         }
        else
         {
          right_size++;
-         right.Resize(right_size, right.Cols());
-         right.Row(row, right_size-1);
+         split.dataset_right.Resize(right_size, cols);
+         split.dataset_right.Row(row, right_size-1);         
         }
      }
+   return split;
  }
 //+------------------------------------------------------------------+
 //|      Return the Node for the best split                          |
 //+------------------------------------------------------------------+
-Node CDecisionTree::get_best_split(matrix &data, uint num_features)
+split_info CDecisionTree::get_best_split(matrix &data, uint num_features)
   {
-    uint feature_index_;
-    double threshold_=0; 
-    matrix left, right;
-    double info_gain_=NULL, value_=NULL;
-    
-    
+  
    double max_info_gain = -DBL_MAX;
    vector feature_values = {};
-   
-   vector left_v, right_v, y_v;
+   vector left_v={}, right_v={}, y_v={};
    
 //---
-
+   
+   split_info best_split;
+   split_info split;
+   
    for (uint i=0; i<num_features; i++)
      {
-       feature_values = data.Row(i);
+       feature_values = data.Col(i);
        vector possible_thresholds = matrix_utils.Unique(feature_values);
-         
+                  
          for (uint j=0; j<possible_thresholds.Size(); j++)
-            {
-              this.split_data(left, right, data, i, possible_thresholds[j]);
+            {              
+              split = this.split_data(data, i, possible_thresholds[j]);
               
-              if (left.Rows()>0 && right.Rows() > 0)
+              if (split.dataset_left.Rows()>0 && split.dataset_right.Rows() > 0)
                 {
                   y_v = data.Col(data.Cols()-1);
-                  right_v = right.Col(right.Cols()-1);
-                  left_v = left.Col(left.Cols()-1);
+                  right_v = split.dataset_right.Col(split.dataset_right.Cols()-1);
+                  left_v = split.dataset_left.Col(split.dataset_left.Cols()-1);
                   
                   double curr_info_gain = this.information_gain(y_v, left_v, right_v);
-                  
+                                    
                   if (curr_info_gain > max_info_gain)
-                    {
-                      feature_index_ = i;
-                      threshold_ = possible_thresholds[j];
-                      info_gain_ = curr_info_gain;
+                    {             
+                      #ifdef DEBUG_MODE
+                        printf("split left: [%dx%d] split right: [%dx%d] curr_info_gain: %f max_info_gain: %f",split.dataset_left.Rows(),split.dataset_left.Cols(),split.dataset_right.Rows(),split.dataset_right.Cols(),curr_info_gain,max_info_gain);
+                      #endif 
+                      
+                      best_split.feature_index = i;
+                      best_split.threshold = possible_thresholds[j];
+                      best_split.dataset_left = split.dataset_left;
+                      best_split.dataset_right = split.dataset_right;
+                      best_split.info_gain = curr_info_gain;
                       
                       max_info_gain = curr_info_gain;
                     }
@@ -252,44 +288,44 @@ Node CDecisionTree::get_best_split(matrix &data, uint num_features)
             }    
      }
      
-    return Node(feature_index_, threshold_, left, right, info_gain_);
+    return best_split;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Node CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
+Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
  {
     matrix X;
     vector Y;
       
     matrix_utils.XandYSplitMatrices(data,X,Y); 
     
-    uint feature_index_;
-    double threshold_=0; 
-    matrix left, right;
-    double info_gain_=NULL, value_=NULL;
-    
     ulong samples = X.Rows(), features = X.Cols();
-    
+        
+    Node *node= NULL; 
+            
     if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
       {
-         Node best_split = this.get_best_split(data, (uint)features);
+         split_info best_split = this.get_best_split(data, (uint)features);
          
+         #ifdef DEBUG_MODE
+          Print("best_split left: [",best_split.dataset_left.Rows(),"x",best_split.dataset_left.Cols(),"]\nbest_split right: [",best_split.dataset_right.Rows(),"x",best_split.dataset_right.Cols(),"]\nfeature_index: ",best_split.feature_index,"\nInfo gain: ",best_split.info_gain,"\nThreshold: ",best_split.threshold);
+         #endif 
+                  
          if (best_split.info_gain > 0)
            {
-             Node left_subtree = this.build_tree(best_split.left_child, curr_depth+1);
-             Node right_subtree = this.build_tree(best_split.right_child, curr_depth+1);
-             
-             feature_index_ = best_split.feature_index;
-             threshold_ = best_split.threshold;
-             left = best_split.left_child;
-             right = best_split.right_child;
-             info_gain_ = best_split.info_gain;
+             Node *left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
+             Node *right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
+                          
+             node = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);
+             return node;
            }
       }      
-      
-     double leaf_value = this.calculate_leaf_value(Y);
-     return Node(feature_index_,threshold_,left,right,info_gain_,leaf_value);
+     
+     node = new Node();
+     node.value = this.calculate_leaf_value(Y);
+          
+     return node;
  }
 //+------------------------------------------------------------------+
 //|   returns the element from Y that has the highest count,         |
@@ -297,15 +333,15 @@ Node CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
 //+------------------------------------------------------------------+
 double CDecisionTree::calculate_leaf_value(vector &Y)
  {   
-   vector uniques = matrix_utils.Unique(Y);
-   vector classes = matrix_utils.Classes(Y);
+   vector uniques = matrix_utils.Unique_count(Y);
+   vector classes = matrix_utils.Unique(Y);
    
    return classes[uniques.ArgMax()];
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTree::make_predictions(vector &x, Node &tree)
+double CDecisionTree::make_predictions(vector &x, const Node &tree)
  {
     if (tree.value != NULL) //This is a leaf value
       return tree.value;
@@ -313,16 +349,18 @@ double CDecisionTree::make_predictions(vector &x, Node &tree)
     double feature_value = x[tree.feature_index];
     double pred = 0;
     
+    #ifdef DEBUG_MODE
+      Print("Tree.value: ",tree.value);
+      printf("Tree.threshold %f tree.feature_index %d leaf_value %f",tree.threshold,tree.feature_index,tree.value);
+    #endif 
+    
     if (feature_value <= tree.threshold)
       {
-       Node left_tree(tree.feature_index,tree.threshold,tree.left_child,tree.right_child,tree.info_gain, tree.value);
-       
-       pred = this.make_predictions(x, left_tree);  
+       pred = this.make_predictions(x, tree.left_child);  
       }
     else
      {
-       Node right_tree(tree.feature_index,tree.threshold,tree.left_child,tree.right_child,tree.info_gain, tree.value);
-       pred = this.make_predictions(x, right_tree);
+       pred = this.make_predictions(x, tree.right_child);
      }
      
    return pred;
@@ -331,7 +369,7 @@ double CDecisionTree::make_predictions(vector &x, Node &tree)
 //|                                                                  |
 //+------------------------------------------------------------------+
 double CDecisionTree::predict(vector &x)
- {  
+ {     
    return this.make_predictions(x, this.root);
  }
 //+------------------------------------------------------------------+
@@ -349,6 +387,3 @@ vector CDecisionTree::predict(matrix &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-
- 
