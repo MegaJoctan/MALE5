@@ -10,11 +10,9 @@
 //+------------------------------------------------------------------+
 #include <MALE5\matrix_utils.mqh>
 
-struct NodeClass
-  {
-  };
 
-#define log2(value) MathLog(value) / MathLog(2)
+#define log2(leaf_value) MathLog(leaf_value) / MathLog(2)
+
 
 class Node
 {
@@ -27,10 +25,10 @@ class Node
      
     // for leaf node
      
-    double value;   
+    double leaf_value;   
       
-    Node *left_child;
-    Node *right_child;
+    Node *left_child; //left child Node
+    Node *right_child; //right child Node
 
     Node() : left_child(NULL), right_child(NULL) {} // default constructor
 
@@ -40,12 +38,12 @@ class Node
         this.feature_index = feature_index_;
         this.threshold = threshold_;
         this.info_gain = info_gain_;
-        this.value = value_;
+        this.leaf_value = value_;
     }
     
-   void Print()
+   void __Print__()
     {
-      printf("feature_index: %d \nthreshold: %f \ninfo_gain: %f \nleaf_value: %f",feature_index,threshold, info_gain, value);
+      printf("feature_index: %d \nthreshold: %f \ninfo_gain: %f \nleaf_value: %f",feature_index,threshold, info_gain, leaf_value);
     }    
 };
 
@@ -65,10 +63,10 @@ enum mode {MODE_ENTROPY, MODE_GINI};
 
 class CDecisionTree
   {
-CMatrixutils   matrix_utils;
-
 protected:
-      
+   
+   CMatrixutils   matrix_utils;   
+   
    Node *build_tree(matrix &data, uint curr_depth=0);
    double  calculate_leaf_value(vector &Y);
    
@@ -81,7 +79,7 @@ protected:
    
    double  gini_index(vector &y);
    double  entropy(vector &y);
-   double  information_gain(vector &parent, vector &left_child, vector &right_child);
+   double  information_gain(vector &parent, vector &l_child, vector &r_child);
    
    
    split_info  get_best_split(matrix &data, uint num_features);
@@ -89,6 +87,8 @@ protected:
    
    double make_predictions(vector &x, const Node &tree);
    void delete_tree(Node* node);
+   
+   Node *nodes[]; //Keeping track of all the nodes in a tree
    
 public:
                      Node *root;
@@ -110,13 +110,19 @@ CDecisionTree::CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mo
    m_max_depth = max_depth;
    
    m_mode = mode_;
-   root = new Node();
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CDecisionTree::~CDecisionTree(void)
  {   
+   #ifdef DEBUG_MODE
+      Print(__FUNCTION__," Deleting Tree nodes =",nodes.Size());
+   #endif 
+   
+   for (int i=0; i<(int)nodes.Size(); i++)
+     this.delete_tree(nodes[i]);
+     
    this.delete_tree(root);
  }
 //+------------------------------------------------------------------+
@@ -158,19 +164,19 @@ double CDecisionTree::entropy(vector &y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTree::information_gain(vector &parent, vector &left_child, vector &right_child)
+double CDecisionTree::information_gain(vector &parent, vector &l_child, vector &r_child)
  {  
-    double weight_left = left_child.Size() / (double)parent.Size(),
-           weight_right = right_child.Size() / (double)parent.Size();
+    double weight_left = l_child.Size() / (double)parent.Size(),
+           weight_right = r_child.Size() / (double)parent.Size();
     
     double gain =0;    
     switch(m_mode)
       {
        case  MODE_GINI:
-         gain = gini_index(parent) - ( (weight_left*gini_index(left_child)) + (weight_right*gini_index(right_child)) );
+         gain = gini_index(parent) - ( (weight_left*gini_index(l_child)) + (weight_right*gini_index(r_child)) );
          break;
        case MODE_ENTROPY:
-         gain = entropy(parent) - ( (weight_left*entropy(left_child)) + (weight_right*entropy(right_child)) );
+         gain = entropy(parent) - ( (weight_left*entropy(l_child)) + (weight_right*entropy(r_child)) );
          break;
       }
     
@@ -181,14 +187,13 @@ double CDecisionTree::information_gain(vector &parent, vector &left_child, vecto
 //+------------------------------------------------------------------+
 void CDecisionTree::print_tree(Node *tree, string indent=" ",string padl="")
   {
-     if (tree.value != NULL)
-        Print(padl+(indent=="left"?"left: ":"right: "),tree.value);
-     else
+     if (tree.leaf_value != NULL)
+        Print((padl+indent+": "),tree.leaf_value); 
+     else //if we havent' reached the leaf node keep printing child trees
        {
-         indent = "";
          padl += " ";
          
-         Print(padl+"X_",tree.feature_index, "<=", tree.threshold, "?", tree.info_gain);
+         Print((padl+indent)+": X_",tree.feature_index, "<=", tree.threshold, "?", tree.info_gain);
          
          print_tree(tree.left_child, "left","--->"+padl);
          
@@ -201,8 +206,11 @@ void CDecisionTree::print_tree(Node *tree, string indent=" ",string padl="")
 void CDecisionTree::fit(matrix &x, vector &y)
  {
    matrix data = matrix_utils.concatenate(x, y, 1);
-   
+      
    this.root = this.build_tree(data);
+   
+   //while (CheckPointer(tree_build) == POINTER_INVALID)
+   //  delete (tree_build);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -298,11 +306,13 @@ Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
     matrix X;
     vector Y;
       
-    matrix_utils.XandYSplitMatrices(data,X,Y); 
+    matrix_utils.XandYSplitMatrices(data,X,Y); //Split the input matrix into feature matrix X and target vector Y.
     
-    ulong samples = X.Rows(), features = X.Cols();
+    ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
         
-    Node *node= NULL; 
+    ArrayResize(nodes, nodes.Size()+1); //Append the nodes
+    
+    Node *left_child, *right_child;
             
     if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
       {
@@ -314,18 +324,18 @@ Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
                   
          if (best_split.info_gain > 0)
            {
-             Node *left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
-             Node *right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
-                          
-             node = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);
-             return node;
+             left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
+             right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
+                      
+             nodes[nodes.Size()-1] = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);  
+             return nodes[nodes.Size()-1];
            }
       }      
      
-     node = new Node();
-     node.value = this.calculate_leaf_value(Y);
-          
-     return node;
+     nodes[nodes.Size()-1] = new Node();
+     nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
+     
+     return nodes[nodes.Size()-1];
  }
 //+------------------------------------------------------------------+
 //|   returns the element from Y that has the highest count,         |
@@ -343,15 +353,14 @@ double CDecisionTree::calculate_leaf_value(vector &Y)
 //+------------------------------------------------------------------+
 double CDecisionTree::make_predictions(vector &x, const Node &tree)
  {
-    if (tree.value != NULL) //This is a leaf value
-      return tree.value;
+    if (tree.leaf_value != NULL) //This is a leaf leaf_value
+      return tree.leaf_value;
       
     double feature_value = x[tree.feature_index];
     double pred = 0;
     
     #ifdef DEBUG_MODE
-      Print("Tree.value: ",tree.value);
-      printf("Tree.threshold %f tree.feature_index %d leaf_value %f",tree.threshold,tree.feature_index,tree.value);
+      printf("Tree.threshold %f tree.feature_index %d leaf_value %f",tree.threshold,tree.feature_index,tree.leaf_value);
     #endif 
     
     if (feature_value <= tree.threshold)
@@ -366,14 +375,14 @@ double CDecisionTree::make_predictions(vector &x, const Node &tree)
    return pred;
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//|      Commonly used for making predictions in REAL-TIME           |
 //+------------------------------------------------------------------+
 double CDecisionTree::predict(vector &x)
  {     
    return this.make_predictions(x, this.root);
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//|   Commonly used for making predictions in TRAIN-TEST             |
 //+------------------------------------------------------------------+
 vector CDecisionTree::predict(matrix &x)
  {
