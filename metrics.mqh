@@ -10,98 +10,89 @@
 //|                                                                  |
 //|                                                                  |
 //+------------------------------------------------------------------+
+
+#include <MALE5\matrix_utils.mqh>
+
+#define ZeroDivide(value) value==0?1.0:(double)value
+              
+struct confusion_matrix_struct
+{
+    double accuracy;
+    vector<double> precision;
+    vector<double> recall;
+    vector<double> f1_score;
+    vector<double> specificity;
+    vector<double> support;
+   
+    vector<double> avg;
+    vector<double> w_avg;
+   
+};
+
 class CMetrics
   {
+CMatrixutils matrix_utils;
 
 protected:
-   int SearchPatterns(vector &A, int value_A, vector &B, int value_B);
-   vector Classes(vector &v);
+   int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
+   
 //-- From matrix utility class
-
-   void VectorRemoveIndex(vector &v, ulong index);
-   void MatrixRemoveRow(matrix &mat,ulong row); 
-   void MatrixRemoveCol(matrix &mat, ulong col);
    
 public:
                      CMetrics(void);
                     ~CMetrics(void);
                     
-                    double r_squared(vector &A, vector &F); 
-                    double adjusted_r(vector &A, vector &F,uint indep_vars=1);
-//---
-                
-                    struct confusion_m
-                     {
-                         double accuracy;
-                         vector<double> precision;
-                         vector<double> recall;
-                         vector<double> f1_score;
-                         vector<double> specificity;
-                         vector<double> support;
-                        
-                         vector<double> avg;
-                         vector<double> w_avg;
-                        
-                     } confusion_matrix_struct;
+                  //--- Regression metrics
+                  
+                    double r_squared(vector &True, vector &Pred); 
+                    double adjusted_r(vector &True, vector &Pred,uint indep_vars=1);
                     
-                    double confusion_matrix(vector &A, vector &F, bool report_show=true);
+                    double rss(vector &True, vector &Pred);
+                    double mse(vector &True, vector &Pred);
+                    double rmse(vector &True, vector &Pred);
+                    double mae(vector &True, vector &Pred);
+                 
+                 //--- Classification metrics
                     
-                    double RSS(vector &A, vector &F);
-                    double MSE(vector &A, vector &F);
+                    double accuracy_score(vector &True, vector &Pred);
+                    confusion_matrix_struct confusion_matrix(vector &True, vector &Pred, bool report_show=true);
                     
   };
-
 //+------------------------------------------------------------------+
-
+//|                                                                  |
+//+------------------------------------------------------------------+
 CMetrics::CMetrics(void)
   {
-    ZeroMemory(confusion_matrix_struct);
+  
   }
-
 //+------------------------------------------------------------------+
-
+//|                                                                  |
+//+------------------------------------------------------------------+
 CMetrics::~CMetrics(void)
  {
  
  }
-
 //+------------------------------------------------------------------+
-
-double CMetrics::r_squared(vector &A,vector &P)
- {
-   if (A.Size() != P.Size())
-      {
-         Print(__FUNCTION__," Vector A and P are not equal in size ");
-         return(0);
-      }
- 
-   double tss = 0, //total sum of squares
-          rss;     //residual sum of squares
-          
-   vector c = MathPow(A-A.Mean(),2);
-   
-   tss = c.Sum();    
-   
-   c = MathPow(A-P,2);
-   
-   rss = c.Sum();
-   
-   return(1-(rss/tss));      
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMetrics::r_squared(vector &True, vector &P)
+ { 
+   return(P.RegressionMetric(True, REGRESSION_R2));      
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-double CMetrics::adjusted_r(vector &A,vector &F,uint indep_vars=1)
+double CMetrics::adjusted_r(vector &True,vector &Pred,uint indep_vars=1)
  {
-   if (A.Size() != F.Size())
+   if (True.Size() != Pred.Size())
       {
-         Print(__FUNCTION__," Vector A and P are not equal in size ");
+         Print(__FUNCTION__," Vector True and P are not equal in size ");
          return(0);
       }
       
-   double r2 = r_squared(A,F);
-   ulong N = F.Size();
+   double r2 = r_squared(True,Pred);
+   ulong N = Pred.Size();
    
    return(1-( (1-r2)*(N-1) )/(N - indep_vars -1));
  }
@@ -109,12 +100,11 @@ double CMetrics::adjusted_r(vector &A,vector &F,uint indep_vars=1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
- 
-double CMetrics::confusion_matrix(vector &A,vector &F,bool report_show=true)
+confusion_matrix_struct  CMetrics::confusion_matrix(vector &True,vector &Pred,bool report_show=true)
  {     
     ulong TP=0, TN=0, FP=0, FN=0;
     
-    vector classes = Classes(A);
+    vector classes = matrix_utils.Unique(True);
     
     matrix conf_m(classes.Size(),classes.Size());
     conf_m.Fill(0); 
@@ -123,10 +113,10 @@ double CMetrics::confusion_matrix(vector &A,vector &F,bool report_show=true)
     
     vector conf_v(ulong(MathPow(classes.Size(),2)));
     
-    if (A.Size() != F.Size())
+    if (True.Size() != Pred.Size())
       {
-         Print("A and F vectors are not same in size ");
-         return(0);
+         Print("True and Pred vectors are not same in size ");
+         //return confusion_matrix_struct;
       }
 
 //---  
@@ -138,134 +128,76 @@ double CMetrics::confusion_matrix(vector &A,vector &F,bool report_show=true)
 //--- 
           for (ulong j=0; j<classes.Size(); j++)
              {                
-                 conf_m[i][j] = SearchPatterns(A,(int)classes[i],F,(int)classes[j]);                  
+                 conf_m[i][j] = SearchPatterns(True,(int)classes[i],Pred,(int)classes[j]);                  
              }
       }
+   
+   confusion_matrix_struct confusion_mat;
       
 //--- METRICS
    
    vector diag = conf_m.Diag();
-   confusion_matrix_struct.accuracy = NormalizeDouble(diag.Sum()/conf_m.Sum(),3);
+   confusion_mat.accuracy = NormalizeDouble(diag.Sum()/conf_m.Sum(),3);
 
 //--- precision
    
-   confusion_matrix_struct.precision.Resize(classes.Size());
-   vector col_v = {};
+   confusion_mat.precision = Pred.ClassificationMetric(True, CLASSIFICATION_PRECISION, AVERAGE_BINARY);
    
-   double value = 0;
-   
-   for (ulong i=0; i<classes.Size(); i++)
-      {
-         col_v = conf_m.Col(i);
-         VectorRemoveIndex(col_v,i);
-         
-         TP = (ulong)diag[i];
-         FP = (ulong)col_v.Sum();
-         
-         value = TP/double(TP+FP);     
-         
-         confusion_matrix_struct.precision[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
-      }
-
 //--- recall
-
-   vector row_v = {};
-   confusion_matrix_struct.recall.Resize(classes.Size());
    
-   for (ulong i=0; i<classes.Size(); i++)
-      {
-         row_v = conf_m.Row(i);
-         VectorRemoveIndex(row_v,i);
-         
-         TP = (ulong)diag[i];
-         FN = (ulong)row_v.Sum();
-         
-         value = TP/double(TP+FN);
-         
-         confusion_matrix_struct.recall[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
-      }
-
+   confusion_mat.recall = Pred.ClassificationMetric(True, CLASSIFICATION_RECALL, AVERAGE_BINARY);
+   
 //--- specificity
 
-   matrix temp_mat = {};
-   ZeroMemory(col_v);
-   
-   confusion_matrix_struct.specificity.Resize(classes.Size());
-   
-   for (ulong i=0; i<classes.Size(); i++)
-      {
-          temp_mat.Copy(conf_m);
-          
-          MatrixRemoveCol(temp_mat,i);
-          MatrixRemoveRow(temp_mat,i);
-          
-          col_v = conf_m.Col(i);
-          VectorRemoveIndex(col_v,i);
-         
-          FP = (ulong)col_v.Sum();
-          TN = (ulong)temp_mat.Sum(); 
-          
-          value = TN/double(TN+FP);
-          
-          confusion_matrix_struct.specificity[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
-      }
+   confusion_mat.specificity = Pred.ClassificationMetric(True, CLASSIFICATION_BALANCED_ACCURACY, AVERAGE_BINARY);
 
 //--- f1 score
-
-   confusion_matrix_struct.f1_score.Resize(classes.Size());
    
-   for (ulong i=0; i<classes.Size(); i++)
-     {
-       confusion_matrix_struct.f1_score[i] = 2*((confusion_matrix_struct.precision[i]*confusion_matrix_struct.recall[i])/(confusion_matrix_struct.precision[i]+confusion_matrix_struct.recall[i]));      
-       
-       value = confusion_matrix_struct.f1_score[i];
-       
-       confusion_matrix_struct.f1_score[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
-     }
+   confusion_mat.f1_score = Pred.ClassificationMetric(True, CLASSIFICATION_F1, AVERAGE_BINARY);
 
 //--- support
-
-   confusion_matrix_struct.support.Resize(classes.Size());
    
-   ZeroMemory(row_v);
+   confusion_mat.support.Resize(classes.Size());
+   
+   vector row_v;
    for (ulong i=0; i<classes.Size(); i++)
      {
          row_v = conf_m.Row(i);
-         confusion_matrix_struct.support[i] = NormalizeDouble(MathIsValidNumber(row_v.Sum())?row_v.Sum():0,8);
+         confusion_mat.support[i] = NormalizeDouble(MathIsValidNumber(row_v.Sum())?row_v.Sum():0,8);
      }
      
    int total_size = (int)conf_m.Sum();
    
 //--- Avg and w avg
    
-   confusion_matrix_struct.avg.Resize(5);
-   confusion_matrix_struct.w_avg.Resize(5);
+   confusion_mat.avg.Resize(5);
+   confusion_mat.w_avg.Resize(5);
      
-    confusion_matrix_struct.avg[0] = confusion_matrix_struct.precision.Mean();       
+    confusion_mat.avg[0] = confusion_mat.precision.Mean();       
     
-    confusion_matrix_struct.avg[1] = confusion_matrix_struct.recall.Mean();
-    confusion_matrix_struct.avg[2] = confusion_matrix_struct.specificity.Mean();
-    confusion_matrix_struct.avg[3] = confusion_matrix_struct.f1_score.Mean();
+    confusion_mat.avg[1] = confusion_mat.recall.Mean();
+    confusion_mat.avg[2] = confusion_mat.specificity.Mean();
+    confusion_mat.avg[3] = confusion_mat.f1_score.Mean();
     
-    confusion_matrix_struct.avg[4] = total_size;
+    confusion_mat.avg[4] = total_size;
    
 //--- w avg
     
-   vector support_prop = confusion_matrix_struct.support/(double)total_size;
+   vector support_prop = confusion_mat.support/(double)total_size;
    
-   vector c = confusion_matrix_struct.precision * support_prop;
-   confusion_matrix_struct.w_avg[0] = c.Sum();
+   vector c = confusion_mat.precision * support_prop;
+   confusion_mat.w_avg[0] = c.Sum();
    
-   c = confusion_matrix_struct.recall * support_prop;
-   confusion_matrix_struct.w_avg[1] = c.Sum();
+   c = confusion_mat.recall * support_prop;
+   confusion_mat.w_avg[1] = c.Sum();
    
-   c = confusion_matrix_struct.specificity * support_prop;
-   confusion_matrix_struct.w_avg[2] = c.Sum();
+   c = confusion_mat.specificity * support_prop;
+   confusion_mat.w_avg[2] = c.Sum();
    
-   c = confusion_matrix_struct.f1_score * support_prop;
-   confusion_matrix_struct.w_avg[3] = c.Sum();
+   c = confusion_mat.f1_score * support_prop;
+   confusion_mat.w_avg[3] = c.Sum();
    
-   confusion_matrix_struct.w_avg[4] = (int)total_size;
+   confusion_mat.w_avg[4] = (int)total_size;
    
 //--- Report
    
@@ -278,52 +210,58 @@ double CMetrics::confusion_matrix(vector &A,vector &F,bool report_show=true)
            report += "\n\t"+string(classes[i]);
              //for (ulong j=0; j<3; j++)
              
-               report += StringFormat("\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f",confusion_matrix_struct.precision[i],confusion_matrix_struct.recall[i],confusion_matrix_struct.specificity[i],confusion_matrix_struct.f1_score[i],confusion_matrix_struct.support[i]);
+               report += StringFormat("\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f",confusion_mat.precision[i],confusion_mat.recall[i],confusion_mat.specificity[i],confusion_mat.f1_score[i],confusion_mat.support[i]);
          }
      
-      report += StringFormat("\n\nAccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%.2f\n",confusion_matrix_struct.accuracy);
+      report += StringFormat("\n\nAccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%.2f\n",confusion_mat.accuracy);
        
-      report += StringFormat("Average \t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_matrix_struct.avg[0],confusion_matrix_struct.avg[1],confusion_matrix_struct.avg[2],confusion_matrix_struct.avg[3],confusion_matrix_struct.avg[4]);
-      report += StringFormat("\nW Avg \t\t\t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_matrix_struct.w_avg[0],confusion_matrix_struct.w_avg[1],confusion_matrix_struct.w_avg[2],confusion_matrix_struct.w_avg[3],confusion_matrix_struct.w_avg[4]);
+      report += StringFormat("Average \t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_mat.avg[0],confusion_mat.avg[1],confusion_mat.avg[2],confusion_mat.avg[3],confusion_mat.avg[4]);
+      report += StringFormat("\nW Avg \t\t\t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f",confusion_mat.w_avg[0],confusion_mat.w_avg[1],confusion_mat.w_avg[2],confusion_mat.w_avg[3],confusion_mat.w_avg[4]);
           
       Print("Confusion Matrix\n",conf_m);    
       Print("\nClassification Report\n",report);
    }
 //---
-  
       
-   return (confusion_matrix_struct.accuracy);
+   return (confusion_mat);
  }
-
 //+------------------------------------------------------------------+
-
-double CMetrics::RSS(vector &A,vector &F)
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMetrics::rss(vector &True,vector &Pred)
  {
-   vector c = A-F;
+   vector c = True-Pred;
    c = MathPow(c,2);
    
    return (c.Sum()); 
  }
-
 //+------------------------------------------------------------------+
-
-double CMetrics::MSE(vector &A,vector &F)
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMetrics::mse(vector &True,vector &Pred)
  {
-   vector c = A - F;
+   vector c = True - Pred;
    c = MathPow(c,2);
    
    return(c.Sum()/c.Size()); 
  }
-
 //+------------------------------------------------------------------+
-
-int CMetrics::SearchPatterns(vector &A, int value_A, vector &B, int value_B)
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMetrics::accuracy_score(vector &True,vector &Pred)
+ {
+   return this.confusion_matrix(True,Pred,false).accuracy;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+int CMetrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
  {
    int count=0;
   
-   for (ulong i=0; i<A.Size(); i++)
+   for (ulong i=0; i<True.Size(); i++)
      {
-       if (A[i] == value_A && B[i] == value_B)
+       if (True[i] == value_A && B[i] == value_B)
          { 
            count++;
          }
@@ -331,99 +269,19 @@ int CMetrics::SearchPatterns(vector &A, int value_A, vector &B, int value_B)
       
     return count;
  }
-
 //+------------------------------------------------------------------+
-
-void CMetrics::VectorRemoveIndex(vector &v, ulong index)
-  {
-   vector new_v(v.Size()-1);
-
-   for(ulong i=0, count = 0; i<v.Size(); i++)
-      if(i != index)
-        {
-         new_v[count] = v[i];
-         count++;
-        }
-    v.Copy(new_v);
-  }
-
+//|                                                                  |
 //+------------------------------------------------------------------+
-
-void CMetrics::MatrixRemoveCol(matrix &mat, ulong col)
-  {
-   matrix new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
-
-   for (ulong i=0, new_col=0; i<mat.Cols(); i++) 
-     {
-        if (i == col)
-          continue;
-        else
-          {
-           new_matrix.Col(mat.Col(i),new_col);
-           new_col++;
-          }    
-     }
-
-   mat.Copy(new_matrix);
-  }
-  
-//+------------------------------------------------------------------+
-
-void CMetrics::MatrixRemoveRow(matrix &mat,ulong row)
-  {
-   matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one Row
- 
-      for(ulong i=0, new_rows=0; i<mat.Rows(); i++)
-        {
-         if(i == row)
-            continue;
-         else
-           {
-            new_matrix.Row(mat.Row(i),new_rows);
-            new_rows++;
-           }
-        }
-
-   mat.Copy(new_matrix);
-  }
-
-//+------------------------------------------------------------------+
-
-vector CMetrics::Classes(vector &v)
+double CMetrics::rmse(vector &True,vector &Pred)
  {
-   vector temp_t = v, v_classes = {v[0]};
-
-   for(ulong i=0, count =1; i<v.Size(); i++)  //counting the different neighbors
-     {
-      for(ulong j=0; j<v.Size(); j++)
-        {
-         if(v[i] == temp_t[j] && temp_t[j] != -1000)
-           {
-            bool count_ready = false;
-
-            for(ulong n=0; n<v_classes.Size(); n++)
-               if(v[i] == v_classes[n])
-                    count_ready = true;
-
-            if(!count_ready)
-              {
-               count++;
-               v_classes.Resize(count);
-
-               v_classes[count-1] = v[i];
-               //Print("v_classes ",v_classes);
-
-               temp_t[j] = -1000; //modify so that it can no more be counted
-              }
-            else
-               break;
-            //Print("t vectors vector ",v);
-           }
-         else
-            continue;
-        }
-     } 
-   return v_classes;
+   return Pred.RegressionMetric(True, REGRESSION_RMSE);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CMetrics::mae(vector &True, vector &Pred)
+ {
+   return Pred.RegressionMetric(True, REGRESSION_MAE);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
