@@ -110,13 +110,15 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True,vector &Pred,bo
     conf_m.Fill(0); 
     
     vector row(classes.Size());       
-    
     vector conf_v(ulong(MathPow(classes.Size(),2)));
+    
+    
+    confusion_matrix_struct confusion_mat;
     
     if (True.Size() != Pred.Size())
       {
          Print("True and Pred vectors are not same in size ");
-         //return confusion_matrix_struct;
+         return confusion_mat;
       }
 
 //---  
@@ -131,8 +133,18 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True,vector &Pred,bo
                  conf_m[i][j] = SearchPatterns(True,(int)classes[i],Pred,(int)classes[j]);                  
              }
       }
-   
-   confusion_matrix_struct confusion_mat;
+
+
+    for (ulong i=0; i<classes.Size(); i++)
+      {  
+       ulong col_=0, row_=0; 
+         
+//--- 
+          for (ulong j=0; j<classes.Size(); j++)
+             {                
+                 conf_m[i][j] = SearchPatterns(True,(int)classes[i],Pred,(int)classes[j]);                  
+             }
+      }
       
 //--- METRICS
    
@@ -141,25 +153,85 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True,vector &Pred,bo
 
 //--- precision
    
-   confusion_mat.precision = Pred.ClassificationMetric(True, CLASSIFICATION_PRECISION, AVERAGE_BINARY);
+   confusion_mat.precision.Resize(classes.Size());
+   vector col_v = {};
    
+   double value = 0;
+   
+   for (ulong i=0; i<classes.Size(); i++)
+      {
+         col_v = conf_m.Col(i);
+         matrix_utils.VectorRemoveIndex(col_v,i);
+         
+         TP = (ulong)diag[i];
+         FP = (ulong)col_v.Sum();
+         
+         value = ZeroDivide(TP)/ZeroDivide(TP+FP);     
+         
+         confusion_mat.precision[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
+      }
+
 //--- recall
+
+   vector row_v = {};
+   confusion_mat.recall.Resize(classes.Size());
    
-   confusion_mat.recall = Pred.ClassificationMetric(True, CLASSIFICATION_RECALL, AVERAGE_BINARY);
-   
+   for (ulong i=0; i<classes.Size(); i++)
+      {
+         row_v = conf_m.Row(i);
+         matrix_utils.VectorRemoveIndex(row_v,i);
+         
+         TP = (ulong)diag[i];
+         FN = (ulong)row_v.Sum();
+         
+         value = ZeroDivide(TP)/ZeroDivide(TP+FN);
+         
+         confusion_mat.recall[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
+      }
+
 //--- specificity
 
-   confusion_mat.specificity = Pred.ClassificationMetric(True, CLASSIFICATION_BALANCED_ACCURACY, AVERAGE_BINARY);
+   matrix temp_mat = {};
+   ZeroMemory(col_v);
+   
+   confusion_mat.specificity.Resize(classes.Size());
+   
+   for (ulong i=0; i<classes.Size(); i++)
+      {
+          temp_mat.Copy(conf_m);
+          
+          matrix_utils.RemoveCol(temp_mat,i);
+          matrix_utils.RemoveRow(temp_mat,i);
+          
+          col_v = conf_m.Col(i);
+          matrix_utils.VectorRemoveIndex(col_v,i);
+         
+          FP = (ulong)col_v.Sum();
+          TN = (ulong)temp_mat.Sum(); 
+          
+          value = ZeroDivide(TN)/ZeroDivide(TN+FP);
+          
+          confusion_mat.specificity[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
+      }
 
 //--- f1 score
+
+   confusion_mat.f1_score.Resize(classes.Size());
    
-   confusion_mat.f1_score = Pred.ClassificationMetric(True, CLASSIFICATION_F1, AVERAGE_BINARY);
+   for (ulong i=0; i<classes.Size(); i++)
+     {
+       confusion_mat.f1_score[i] = 2*((confusion_mat.precision[i]*confusion_mat.recall[i])/(confusion_mat.precision[i]+confusion_mat.recall[i]));      
+       
+       value = confusion_mat.f1_score[i];
+       
+       confusion_mat.f1_score[i] = NormalizeDouble(MathIsValidNumber(value)?value:0,8);
+     }
 
 //--- support
-   
+
    confusion_mat.support.Resize(classes.Size());
    
-   vector row_v;
+   ZeroMemory(row_v);
    for (ulong i=0; i<classes.Size(); i++)
      {
          row_v = conf_m.Row(i);
