@@ -61,7 +61,7 @@ struct split_info
 //+------------------------------------------------------------------+
 enum mode {MODE_ENTROPY, MODE_GINI};
 
-class CDecisionTree
+class CDecisionTreeClassifier
   {
 protected:
    
@@ -93,8 +93,8 @@ protected:
 public:
                      Node *root;
                      
-                     CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
-                    ~CDecisionTree(void);
+                     CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
+                    ~CDecisionTreeClassifier(void);
                     
                      void fit(matrix &x, vector &y);
                      void print_tree(Node *tree, string indent=" ",string padl="");
@@ -104,7 +104,7 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CDecisionTree::CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI)
+CDecisionTreeClassifier::CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI)
  {
    m_min_samples_split = min_samples_split;
    m_max_depth = max_depth;
@@ -114,7 +114,7 @@ CDecisionTree::CDecisionTree(uint min_samples_split=2, uint max_depth=2, mode mo
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CDecisionTree::~CDecisionTree(void)
+CDecisionTreeClassifier::~CDecisionTreeClassifier(void)
  {   
    #ifdef DEBUG_MODE
       Print(__FUNCTION__," Deleting Tree nodes =",nodes.Size());
@@ -128,7 +128,7 @@ CDecisionTree::~CDecisionTree(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDecisionTree::delete_tree(Node* node)
+void CDecisionTreeClassifier::delete_tree(Node* node)
  {
     if (CheckPointer(node) != POINTER_INVALID)
     {
@@ -140,7 +140,7 @@ void CDecisionTree::delete_tree(Node* node)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTree::gini_index(vector &y)
+double CDecisionTreeClassifier::gini_index(vector &y)
  {
    vector unique = matrix_utils.Unique_count(y);
    
@@ -151,7 +151,7 @@ double CDecisionTree::gini_index(vector &y)
 //+------------------------------------------------------------------+
 //|      function to compute entropy                                 |
 //+------------------------------------------------------------------+
-double CDecisionTree::entropy(vector &y)
+double CDecisionTreeClassifier::entropy(vector &y)
  {    
    vector class_labels = matrix_utils.Unique_count(y);
      
@@ -164,7 +164,7 @@ double CDecisionTree::entropy(vector &y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTree::information_gain(vector &parent, vector &l_child, vector &r_child)
+double CDecisionTreeClassifier::information_gain(vector &parent, vector &l_child, vector &r_child)
  {  
     double weight_left = l_child.Size() / (double)parent.Size(),
            weight_right = r_child.Size() / (double)parent.Size();
@@ -185,7 +185,7 @@ double CDecisionTree::information_gain(vector &parent, vector &l_child, vector &
 //+------------------------------------------------------------------+
 //|         function to print the tree                               |
 //+------------------------------------------------------------------+
-void CDecisionTree::print_tree(Node *tree, string indent=" ",string padl="")
+void CDecisionTreeClassifier::print_tree(Node *tree, string indent=" ",string padl="")
   {
      if (tree.leaf_value != NULL)
         Print((padl+indent+": "),tree.leaf_value); 
@@ -203,19 +203,16 @@ void CDecisionTree::print_tree(Node *tree, string indent=" ",string padl="")
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDecisionTree::fit(matrix &x, vector &y)
+void CDecisionTreeClassifier::fit(matrix &x, vector &y)
  {
    matrix data = matrix_utils.concatenate(x, y, 1);
       
    this.root = this.build_tree(data);
-   
-   //while (CheckPointer(tree_build) == POINTER_INVALID)
-   //  delete (tree_build);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-split_info CDecisionTree::split_data(const matrix &data, uint feature_index, double threshold=0.5)
+split_info CDecisionTreeClassifier::split_data(const matrix &data, uint feature_index, double threshold=0.5)
  {
    int left_size=0, right_size =0;
    vector row = {};
@@ -249,7 +246,7 @@ split_info CDecisionTree::split_data(const matrix &data, uint feature_index, dou
 //+------------------------------------------------------------------+
 //|      Return the Node for the best split                          |
 //+------------------------------------------------------------------+
-split_info CDecisionTree::get_best_split(matrix &data, uint num_features)
+split_info CDecisionTreeClassifier::get_best_split(matrix &data, uint num_features)
   {
   
    double max_info_gain = -DBL_MAX;
@@ -301,7 +298,7 @@ split_info CDecisionTree::get_best_split(matrix &data, uint num_features)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
+Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
  {
     matrix X;
     vector Y;
@@ -310,8 +307,7 @@ Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
     
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
         
-    ArrayResize(nodes, nodes.Size()+1); //Append the nodes
-    
+    ArrayResize(nodes, nodes.Size()+1); //Append the nodes to memory
     Node *left_child, *right_child;
             
     if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
@@ -341,7 +337,7 @@ Node *CDecisionTree::build_tree(matrix &data, uint curr_depth=0)
 //|   returns the element from Y that has the highest count,         |
 //|  effectively finding the most common element in the list.        |
 //+------------------------------------------------------------------+
-double CDecisionTree::calculate_leaf_value(vector &Y)
+double CDecisionTreeClassifier::calculate_leaf_value(vector &Y)
  {   
    vector uniques = matrix_utils.Unique_count(Y);
    vector classes = matrix_utils.Unique(Y);
@@ -351,7 +347,7 @@ double CDecisionTree::calculate_leaf_value(vector &Y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTree::make_predictions(vector &x, const Node &tree)
+double CDecisionTreeClassifier::make_predictions(vector &x, const Node &tree)
  {
     if (tree.leaf_value != NULL) //This is a leaf leaf_value
       return tree.leaf_value;
@@ -377,14 +373,14 @@ double CDecisionTree::make_predictions(vector &x, const Node &tree)
 //+------------------------------------------------------------------+
 //|      Commonly used for making predictions in REAL-TIME           |
 //+------------------------------------------------------------------+
-double CDecisionTree::predict(vector &x)
+double CDecisionTreeClassifier::predict(vector &x)
  {     
    return this.make_predictions(x, this.root);
  }
 //+------------------------------------------------------------------+
 //|   Commonly used for making predictions in TRAIN-TEST             |
 //+------------------------------------------------------------------+
-vector CDecisionTree::predict(matrix &x)
+vector CDecisionTreeClassifier::predict(matrix &x)
  {
     vector ret(x.Rows());
     
@@ -392,6 +388,160 @@ vector CDecisionTree::predict(matrix &x)
        ret[i] = this.predict(x.Row(i));
        
    return ret;
+ }
+ 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+class CDecisionTreeRegressor: public CDecisionTreeClassifier
+  {
+private:
+                     double  calculate_leaf_value(vector &Y);
+                     split_info  get_best_split(matrix &data, uint num_features);
+                     double variance_reduction(vector &parent, vector &l_child, vector &r_child);
+                     
+                     Node *build_tree(matrix &data, uint curr_depth=0);
+public:
+                     CDecisionTreeRegressor(uint min_samples_split=2, uint max_depth=2);
+                    ~CDecisionTreeRegressor(void);
+                    
+                     void fit(matrix &x, vector &y);
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CDecisionTreeRegressor::CDecisionTreeRegressor(uint min_samples_split=2, uint max_depth=2):CDecisionTreeClassifier(min_samples_split, max_depth)
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CDecisionTreeRegressor::~CDecisionTreeRegressor(void)
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|         function to compute variance reduction                   |
+//+------------------------------------------------------------------+
+double CDecisionTreeRegressor::variance_reduction(vector &parent, vector &l_child, vector &r_child)
+ {
+    double weight_l = l_child.Size() / (double)parent.Size(),
+           weight_r = r_child.Size() / (double)parent.Size();
+     
+    return parent.Var() - ((weight_l * l_child.Var()) + (weight_r * r_child.Var()));
+ }
+//+------------------------------------------------------------------+
+//|      Return the Node for the best split                          |
+//+------------------------------------------------------------------+
+split_info CDecisionTreeRegressor::get_best_split(matrix &data, uint num_features)
+  {
+   double max_info_gain = -DBL_MAX;
+   vector feature_values = {};
+   vector left_v={}, right_v={}, y_v={};
+   
+//---
+   
+   split_info best_split;
+   split_info split;
+   
+   for (uint i=0; i<num_features; i++)
+     {
+       feature_values = data.Col(i);
+       vector possible_thresholds = matrix_utils.Unique(feature_values);
+                  
+         for (uint j=0; j<possible_thresholds.Size(); j++)
+            {              
+              split = this.split_data(data, i, possible_thresholds[j]);
+              
+              if (split.dataset_left.Rows()>0 && split.dataset_right.Rows() > 0)
+                {
+                  y_v = data.Col(data.Cols()-1);
+                  right_v = split.dataset_right.Col(split.dataset_right.Cols()-1);
+                  left_v = split.dataset_left.Col(split.dataset_left.Cols()-1);
+                  
+                  double curr_info_gain = this.variance_reduction(y_v, left_v, right_v);
+                                    
+                  if (curr_info_gain > max_info_gain)
+                    {             
+                      #ifdef DEBUG_MODE
+                        printf("split left: [%dx%d] split right: [%dx%d] curr_info_gain: %f max_info_gain: %f",split.dataset_left.Rows(),split.dataset_left.Cols(),split.dataset_right.Rows(),split.dataset_right.Cols(),curr_info_gain,max_info_gain);
+                      #endif 
+                      
+                      best_split.feature_index = i;
+                      best_split.threshold = possible_thresholds[j];
+                      best_split.dataset_left = split.dataset_left;
+                      best_split.dataset_right = split.dataset_right;
+                      best_split.info_gain = curr_info_gain;
+                      
+                      max_info_gain = curr_info_gain;
+                    }
+                }
+            }    
+     }
+     
+    return best_split;
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+Node *CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
+ {
+    matrix X;
+    vector Y;
+      
+    matrix_utils.XandYSplitMatrices(data,X,Y); //Split the input matrix into feature matrix X and target vector Y.
+    
+    ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
+        
+    ArrayResize(nodes, nodes.Size()+1); //Append the nodes to memory
+    Node *left_child, *right_child;
+            
+    if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
+      {
+         split_info best_split = this.get_best_split(data, (uint)features);
+         
+         #ifdef DEBUG_MODE
+          Print("best_split left: [",best_split.dataset_left.Rows(),"x",best_split.dataset_left.Cols(),"]\nbest_split right: [",best_split.dataset_right.Rows(),"x",best_split.dataset_right.Cols(),"]\nfeature_index: ",best_split.feature_index,"\nInfo gain: ",best_split.info_gain,"\nThreshold: ",best_split.threshold);
+         #endif 
+                  
+         if (best_split.info_gain > 0)
+           {
+             left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
+             right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
+                      
+             nodes[nodes.Size()-1] = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);  
+             return nodes[nodes.Size()-1];
+           }
+      }      
+     
+     nodes[nodes.Size()-1] = new Node();
+     nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
+     
+     return nodes[nodes.Size()-1];
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CDecisionTreeRegressor::fit(matrix &x, vector &y)
+ {
+   matrix data = matrix_utils.concatenate(x, y, 1);
+      
+   this.root = this.build_tree(data);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CDecisionTreeRegressor::calculate_leaf_value(vector &Y)
+ {
+   return Y.Mean();
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
