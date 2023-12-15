@@ -653,8 +653,7 @@ bool CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatr
 template<typename T>
 void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
  {
-   if (random_state != -1)
-     MathSrand(random_state);
+   MathSrand(random_state!=-1?random_state:GetTickCount());
      
    int swap_index;
    double temp;
@@ -675,7 +674,7 @@ void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=fal
           }
         else
           {
-            v[i] = temp_v[this.MathRandom<int>(0, SIZE)];
+            v[i] = temp_v[this.MathRandom(0, SIZE)];
           }
       }   
  }
@@ -686,8 +685,7 @@ void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=fal
 template<typename T>
 void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
  {
-   if (random_state != -1)
-     MathSrand(random_state);
+   MathSrand(random_state!=-1?random_state:GetTickCount());
   
    int ROWS=(int)matrix_.Rows(), COL=(int)matrix_.Cols();   
    
@@ -700,7 +698,7 @@ void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
       {
         if (!replace)
           {
-            swap_index = rand() % ROWS;
+            swap_index = MathRand() % ROWS;
             
             temp = matrix_.Row(i);
                   
@@ -710,7 +708,8 @@ void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
           }
         else
           {
-            random = this.MathRandom<int>(1, ROWS);  
+            random = this.MathRandom(1, ROWS);  
+            
             temp = temp_m.Row(random-1);                      
             matrix_.Row(temp, i);
           }
@@ -905,8 +904,7 @@ T CMatrixutils:: MathRandom(T mini, T maxi)
 template<typename T> 
 vector CMatrixutils::Random(T min, T max,int size,int random_state=-1)
  {
-  if (random_state != -1)
-    MathSrand(random_state);
+   MathSrand(random_state!=-1?random_state:GetTickCount());
     
    vector v(size);
    
@@ -920,8 +918,7 @@ vector CMatrixutils::Random(T min, T max,int size,int random_state=-1)
 //+------------------------------------------------------------------+
 matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
  {
-   if (random_state != -1)
-     MathSrand(random_state);
+   MathSrand(random_state!=-1?random_state:GetTickCount());
      
      matrix mat(rows,cols);
      

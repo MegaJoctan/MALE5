@@ -31,7 +31,7 @@ public:
                      CRandomForestClassifier(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1);
                     ~CRandomForestClassifier(void);
                     
-                    void fit(matrix &x, vector &y);
+                    void fit(matrix &x, vector &y, bool replace=true);
                     double predict(vector &x);
                     vector predict(matrix &x);
   };
@@ -59,13 +59,12 @@ CRandomForestClassifier::~CRandomForestClassifier(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CRandomForestClassifier::fit(matrix &x, vector &y)
+void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true)
  {
   matrix x_subset;
   vector y_subset;
   matrix data = this.matrix_utils.concatenate(x, y, 1);
-  
-  CDecisionTreeClassifier *tree;
+  matrix temp_data = data;
   vector preds;
   
   datetime time_start = GetTickCount(), current_time;
@@ -76,22 +75,30 @@ void CRandomForestClassifier::fit(matrix &x, vector &y)
      {
        time_start = GetTickCount();
        
-       tree = new CDecisionTreeClassifier(this.m_minsplit, this.m_maxdepth);
+       printf("   ===> Tree no: %d",i+1);
        
-       matrix_utils.Randomize(data, m_random_state);       
-       this.matrix_utils.XandYSplitMatrices(data, x_subset, y_subset); //Get randomized subsets
+       temp_data = data;
+       matrix_utils.Randomize(temp_data, m_random_state, replace);
        
-       tree.fit(x_subset, y_subset);
-       preds = tree.predict(x_subset);
+       if (!this.matrix_utils.XandYSplitMatrices(temp_data, x_subset, y_subset)) //Get randomized subsets
+         {
+            ArrayRemove(forest,i,1); //Delete the invalid tree in a forest
+            printf("%s %d Failed to split data for a tree ",__FUNCTION__,__LINE__);
+            continue;
+         } 
+       
+       forest[i] = new CDecisionTreeClassifier(this.m_minsplit, this.m_maxdepth);
+              
+       forest[i].fit(x_subset, y_subset); //Add the trained tree to the forest
+       preds = forest[i].predict(x_subset);
        
        current_time = GetTickCount();
-      
-       printf("   ===> Tree no: %d Accuracy Score: %.3f Time taken %s",i+1,metrics.accuracy_score(y_subset, preds),ConvertTime((current_time - time_start) / 1000.0));
-        
-       forest[i] = tree; //Add the trained tree to the forest
-      
-       delete (tree); //delete that tree to prevent memory leaks
+       
+       printf("       Accuracy Score: %.3f Time taken %s",metrics.accuracy_score(y_subset, preds),ConvertTime((current_time - time_start) / 1000.0));
      }
+     
+   m_ntrees = ArraySize(forest); //The successfully build trees
+   
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -100,12 +107,12 @@ double CRandomForestClassifier::predict(vector &x)
  {
    vector predictions(m_ntrees); //predictions from all the trees
     
-    for (uint i=0; i<this.m_ntrees; i++)
+    for (uint i=0; i<this.m_ntrees; i++) //all trees make the predictions
       predictions[i] = forest[i].predict(x);
-   
+      
    vector uniques = matrix_utils.Unique(predictions);   
    
-   return uniques[matrix_utils.Unique_count(predictions).ArgMax()];   //select the majority decision
+   return uniques[matrix_utils.Unique_count(predictions).ArgMax()]; //select the majority decision
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -180,7 +187,7 @@ public:
                      CRandomForestRegressor(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1);
                     ~CRandomForestRegressor(void);
                     
-                    void fit(matrix &x, vector &y);
+                    void fit(matrix &x, vector &y, bool replace=true);
                     double predict(vector &x);
                     vector predict(matrix &x);
   };
@@ -237,13 +244,13 @@ string CRandomForestRegressor::ConvertTime(double seconds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CRandomForestRegressor::fit(matrix &x, vector &y)
+void CRandomForestRegressor::fit(matrix &x, vector &y, bool replace=true)
  {
   matrix x_subset;
   vector y_subset;
   matrix data = this.matrix_utils.concatenate(x, y, 1);
+  matrix temp_data = data;
   
-  CDecisionTreeRegressor *tree;
   vector preds;
   
   datetime time_start = GetTickCount(), current_time;
@@ -254,21 +261,25 @@ void CRandomForestRegressor::fit(matrix &x, vector &y)
      {
        time_start = GetTickCount();
        
-       tree = new CDecisionTreeRegressor(this.m_minsplit, this.m_maxdepth);
+       temp_data = data;
+       matrix_utils.Randomize(temp_data, m_random_state, replace);
        
-       matrix_utils.Randomize(data, m_random_state);
-       this.matrix_utils.XandYSplitMatrices(data, x_subset, y_subset); //Get randomized subsets
+       if (!this.matrix_utils.XandYSplitMatrices(temp_data, x_subset, y_subset)) //Get randomized subsets
+         {  
+            ArrayRemove(forest,i,1); //Delete the invalid tree in a forest
+            printf("%s %d Failed to split data for a tree ",__FUNCTION__,__LINE__);
+            continue;
+         }
        
-       tree.fit(x_subset, y_subset);
-       preds = tree.predict(x_subset);
+       forest[i] = new CDecisionTreeRegressor(this.m_minsplit, this.m_maxdepth);       
+       forest[i].fit(x_subset, y_subset); //Add the trained tree to the forest
+       preds = forest[i].predict(x_subset);
        
        current_time = GetTickCount();
        printf("   ===> Tree no: %d R_2 Score: %.3f Time taken: %s",i+1,metrics.r_squared(y_subset, preds), ConvertTime((current_time - time_start) / 1000.0));
-       
-       forest[i] = tree; //Add the trained tree to the forest
-      
-       delete (tree); //delete that tree to prevent memory leaks
      }
+     
+   m_ntrees = ArraySize(forest); //The successfully build trees  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -279,8 +290,7 @@ double CRandomForestRegressor::predict(vector &x)
     
     for (uint i=0; i<this.m_ntrees; i++)
       predictions[i] = forest[i].predict(x);
-      
-   
+
    return predictions.Mean();   
  }
 //+------------------------------------------------------------------+
