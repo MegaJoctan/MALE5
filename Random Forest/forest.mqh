@@ -75,8 +75,6 @@ void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true)
      {
        time_start = GetTickCount();
        
-       printf("   ===> Tree no: %d",i+1);
-       
        temp_data = data;
        matrix_utils.Randomize(temp_data, m_random_state, replace);
        
@@ -88,13 +86,13 @@ void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true)
          } 
        
        forest[i] = new CDecisionTreeClassifier(this.m_minsplit, this.m_maxdepth);
-              
+                     
        forest[i].fit(x_subset, y_subset); //Add the trained tree to the forest
        preds = forest[i].predict(x_subset);
        
        current_time = GetTickCount();
        
-       printf("       Accuracy Score: %.3f Time taken %s",metrics.accuracy_score(y_subset, preds),ConvertTime((current_time - time_start) / 1000.0));
+       printf("   ==> Tree <%d> Rand Seed <%s> R_2 Score: %.3f Time taken: %s",i+1,m_random_state==-1?"None":string(m_random_state),metrics.r_squared(y_subset, preds), ConvertTime((current_time - time_start) / 1000.0));
      }
      
    m_ntrees = ArraySize(forest); //The successfully build trees
@@ -252,7 +250,6 @@ void CRandomForestRegressor::fit(matrix &x, vector &y, bool replace=true)
   matrix temp_data = data;
   
   vector preds;
-  
   datetime time_start = GetTickCount(), current_time;
   
   Print("[ Regressor Random Forest Building ]");
@@ -276,7 +273,8 @@ void CRandomForestRegressor::fit(matrix &x, vector &y, bool replace=true)
        preds = forest[i].predict(x_subset);
        
        current_time = GetTickCount();
-       printf("   ===> Tree no: %d R_2 Score: %.3f Time taken: %s",i+1,metrics.r_squared(y_subset, preds), ConvertTime((current_time - time_start) / 1000.0));
+       
+       printf("   ==> Tree <%d> Rand Seed <%s> R_2 Score: %.3f Time taken: %s",i+1,m_random_state==-1?"None":string(m_random_state),metrics.r_squared(y_subset, preds), ConvertTime((current_time - time_start) / 1000.0));
      }
      
    m_ntrees = ArraySize(forest); //The successfully build trees  
