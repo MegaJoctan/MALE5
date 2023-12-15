@@ -21,9 +21,8 @@ class CMatrixutils
   
 private:
    int               CSVOpen(string filename,string delimiter);
-   
-   double            MathRandom(double mini, double maxi);
-   int               MathRandom(int mini, int maxi);
+   template<typename T>
+   T                 MathRandom(T mini, T maxi);
    string            CalcTimeElapsed(double seconds);
    void              Swap(double &var1, double &var2);
    string            ConvertTime(double seconds);
@@ -55,13 +54,13 @@ public:
    template<typename T>
    bool              VectorToArray(const vector<T> &v,T &arr[]);
    template<typename T>
-   void              RemoveCol(matrix<T> &mat, ulong col);
+   bool              RemoveCol(matrix<T> &mat, ulong col);
    void              RemoveMultCols(matrix &mat, int &cols[]);
    void              RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY);
    void              RemoveRow(matrix &mat,ulong row);
    void              VectorRemoveIndex(vector &v, ulong index);  
    template<typename T>
-   void              XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
+   bool              XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
    void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    matrix            DesignMatrix(matrix &x_matrix);              
@@ -69,10 +68,9 @@ public:
    
    void              Unique(const string &Array[], string &classes_arr[]);
    vector            Unique(vector &v);           //Identifies classes available in a vector
-  
-   vector            Random(int min, int max, int size,int random_state=-1);          //Generates a random integer vector of a given size
-   vector            Random(double min, double max, int size,int random_state=-1);    //Generates a random vector of a given size
-   matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1);
+   template<typename T> 
+   vector            Random(T min, T max, int size,int random_state=-1);          //Generates a random vector of type T sized = size
+   matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1); 
    
    vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
    template<typename T>
@@ -93,9 +91,10 @@ public:
    matrix            HadamardProduct(matrix &a, matrix &b);
    
    template<typename T>
-   void              Shuffle(vector<T> &v, int random_state=-1);
+   void              Randomize(vector<T> &v, int random_state=-1, bool replace=false);
    template<typename T>
-   void              Shuffle(matrix<T> &matrix_,int random_state=-1);
+   void              Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false);
+   
    void              NormalizeVector(vector<double> &v, int digits=3);
    void              PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
    int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
@@ -183,13 +182,13 @@ vector CMatrixutils::MatrixToVector(matrix &mat)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
+bool CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
   {
    matrix<T> new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
    if (col > mat.Cols())
      {
        Print(__FUNCTION__," column out of range");
-       return;
+       return false;
      }
 
    for (ulong i=0, new_col=0; i<mat.Cols(); i++) 
@@ -204,6 +203,8 @@ void CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
      }
 
    mat.Copy(new_matrix);
+   
+   return true;
   }
 
 //+------------------------------------------------------------------+
@@ -239,7 +240,11 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int &cols[])
         {
          column_vector = mat.Col(i);
          if(column_vector.Sum()==0)
-            RemoveCol(mat,i);
+            if (!RemoveCol(mat,i))
+              {
+                printf("%s Line %d Failed to remove a column %d from a matrix",__FUNCTION__,__LINE__,i);
+                break;
+              }
         }
   }
 //+------------------------------------------------------------------+
@@ -256,9 +261,6 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
       Print(__FUNCTION__," Columns to remove can't be more than the available columns");
       return;
      }
-   
-   
-   Print("From ",from," total ",total);
 
    vector Zeros(mat.Rows());
    Zeros.Fill(0);
@@ -277,7 +279,11 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
       
       for(ulong i=0; i<mat.Cols(); i++) //loop the entire matrix searching for columns to remove
          if(mat.Col(i).Sum()==0)
-            RemoveCol(mat,i);
+            if (!RemoveCol(mat,i))
+              {
+                printf("%s Line %s Failed to remove a column %d from a matrix",__FUNCTION__,__LINE__,i);
+                break;
+              }
     }
  }
 
@@ -623,20 +629,29 @@ bool CMatrixutils::VectorToArray(const vector<T> &v, T &arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
+bool CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
   {
    y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
-
+   
+   if (matrix_.Rows() == 0 || matrix_.Cols()==0)
+     {
+       #ifdef DEBUG_MODE
+         printf("%s Line %d Cannot split the matrix of size[%dx%d]",__FUNCTION__,__LINE__,matrix_.Rows(),matrix_.Cols());
+       #endif 
+       
+       return false;
+     }
+   
    y_vector = matrix_.Col(y_column);
    xmatrix.Copy(matrix_);
-
-   RemoveCol(xmatrix, y_column); //Remove the y column
+   
+   return RemoveCol(xmatrix, y_column); //Remove the y column
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Shuffle(vector<T> &v, int random_state=-1)
+void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
  {
    if (random_state != -1)
      MathSrand(random_state);
@@ -645,22 +660,31 @@ void CMatrixutils::Shuffle(vector<T> &v, int random_state=-1)
    double temp;
    
    int SIZE = (int)v.Size();
+   vector<T> temp_v = v;
    
-   for (int i=0; i<SIZE; i++)
+   for (int i=0; i<SIZE; i++) //Fisher yates algorithm
       {
-         swap_index = rand() % SIZE;
-         
-         temp = v[i];
-         
-         v[i] = v[swap_index];
-         v[swap_index] = temp;
+        if (!replace)
+          {
+            swap_index = rand() % SIZE;
+            
+            temp = v[i];
+            
+            v[i] = v[swap_index];
+            v[swap_index] = temp;
+          }
+        else
+          {
+            v[i] = temp_v[this.MathRandom<int>(0, SIZE)];
+          }
       }   
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| replace =true parameter allows the same index to be chosen more  |
+//| than once, simulating the bootstrapping process.                 |    
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Shuffle(matrix<T> &matrix_,int random_state=-1)
+void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
  {
    if (random_state != -1)
      MathSrand(random_state);
@@ -669,16 +693,27 @@ void CMatrixutils::Shuffle(matrix<T> &matrix_,int random_state=-1)
    
    int swap_index;
    vector<T> temp(COL);
+   matrix<T> temp_m = matrix_;
+   int random = 0;
    
    for (int i=0; i<ROWS; i++)
       {
-         swap_index = rand() % ROWS;
-         
-         temp = matrix_.Row(i);
-               
-         matrix_.Row(matrix_.Row(swap_index),i);
-         
-         matrix_.Row(temp,swap_index);
+        if (!replace)
+          {
+            swap_index = rand() % ROWS;
+            
+            temp = matrix_.Row(i);
+                  
+            matrix_.Row(matrix_.Row(swap_index),i);
+            
+            matrix_.Row(temp,swap_index);
+          }
+        else
+          {
+            random = this.MathRandom<int>(1, ROWS);  
+            temp = temp_m.Row(random-1);                      
+            matrix_.Row(temp, i);
+          }
       }   
 
  }
@@ -694,7 +729,7 @@ void CMatrixutils::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train
    
 //--- Random pseudo matrix
    
-   Shuffle(matrix_,random_state);
+   Randomize(matrix_,random_state);
    
 //---
 
@@ -761,7 +796,6 @@ matrix CMatrixutils::OneHotEncoding(vector &v)
      
 //---
 
-
      mat.Resize(v.Size(),v_classes.Size());
      mat.Fill(-100);
      
@@ -811,7 +845,6 @@ void CMatrixutils::Unique(const string &Array[], string &classes_arr[])
               }
             else
                break;
-            //Print("t vectors vector ",v);
            }
          else
             continue;
@@ -860,24 +893,17 @@ vector CMatrixutils::Unique(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMatrixutils:: MathRandom(double mini, double maxi)
+template<typename T>
+T CMatrixutils:: MathRandom(T mini, T maxi)
   {
-     double f   = (MathRand() / 32767.0);
-     return mini + (f * (maxi - mini));
+     double  f  = (MathRand() / 32767.0);
+     return (mini + (T)(f * (maxi - mini)));
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CMatrixutils:: MathRandom(int mini, int maxi)
-  {
-     double f   = (MathRand() / 32767.0);
-     
-     return mini + int(f * (maxi - mini));
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-vector CMatrixutils::Random(double min,double max,int size,int random_state=-1)
+template<typename T> 
+vector CMatrixutils::Random(T min, T max,int size,int random_state=-1)
  {
   if (random_state != -1)
     MathSrand(random_state);
@@ -885,24 +911,9 @@ vector CMatrixutils::Random(double min,double max,int size,int random_state=-1)
    vector v(size);
    
    for (ulong i=0; i<v.Size(); i++)
-      v[i] = MathRandom(min,max);
+      v[i] = MathRandom<T>(min,max);
       
    return (v);    
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-vector CMatrixutils::Random(int min,int max,int size,int random_state=-1)
- {
-  if (random_state != -1)
-    MathSrand(random_state);
-    
-   vector v(size);
-   
-   for (ulong i=0; i<v.Size(); i++) 
-      v[i] = MathRandom(min,max); 
-
-   return (v);  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -916,7 +927,7 @@ matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int rand
      
      for (ulong r=0; r<rows; r++)
        for (ulong c=0; c<cols; c++)
-            mat[r][c] = MathRandom(min,max);
+            mat[r][c] = MathRandom<double>(min,max);
      
      return (mat);
  }
@@ -952,7 +963,6 @@ matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
    
    m_out.Resize(mat1.Rows()+mat2.Rows(), MathMax(mat1.Cols(), mat2.Cols()));
    
-   
    for (ulong rows=mat1.Rows(), nrows_index=0; rows<m_out.Rows(); rows++, nrows_index++)
      for (ulong col=0; col<m_out.Cols(); col++)
          m_out[rows][col] = mat2[nrows_index][col];  
@@ -972,8 +982,11 @@ matrix<T> CMatrixutils::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
    
    if (axis == 0) //place it along the rows
     {
+      if (mat.Cols() == 0)
+        mat.Resize(mat.Rows(), v.Size());
+        
       new_rows = mat.Rows()+1; new_cols = mat.Cols();
-      
+                 
       if (v.Size() != new_cols)
         {
           Print(__FUNCTION__," Dimensions don't match the vector v needs to have the same size as the number of columns in the original matrix");
@@ -985,6 +998,9 @@ matrix<T> CMatrixutils::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
     }
    else if (axis == 1)
      {
+         if (mat.Rows() == 0)
+           mat.Resize(v.Size(), mat.Cols());
+           
         new_rows = mat.Rows(); new_cols = mat.Cols()+1;
         
         if (v.Size() != new_rows)
