@@ -10,7 +10,6 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-
 enum norm_technique
  {
    NORM_MIN_MAX_SCALER, //MIN MAX SCALER
@@ -584,30 +583,52 @@ bool CPreprocessing::ReverseMeanNormalization(T_matrix &matrix_)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
+
 struct CLabelEncoder
   {
       private:
-       string labels_mem[];
+        int dummy;
+        
+         void Unique(const string &Array[], string &classes_arr[]) //From matrix utils
+          {
+            string temp_arr[];
          
-       template<typename T>
-         int find(T &arr[], T value)
-          {
-            for (int i=0; i<ArraySize(arr); i++)
-               if (arr[i] == value)
-                   return i+1;
-                  
-            return -1;
-          } 
-          
-        template<typename T>  
-        int find(vector &vector_, T value)
-          {
-            for (int i=0; i<(int)vector_.Size(); i++)
-               if ((T)vector_[i] == value)
-                   return i+1;
-                  
-            return -1;
-          } 
+            ArrayResize(classes_arr,1);
+            ArrayCopy(temp_arr,Array);
+            
+            classes_arr[0] = Array[0];
+            
+            for(int i=0, count =1; i<ArraySize(Array); i++)  //counting the different neighbors
+              {
+               for(int j=0; j<ArraySize(Array); j++)
+                 {
+                  if(Array[i] == temp_arr[j] && temp_arr[j] != "-nan")
+                    {
+                     bool count_ready = false;
+         
+                     for(int n=0; n<ArraySize(classes_arr); n++)
+                        if(Array[i] == classes_arr[n])
+                             count_ready = true;
+         
+                     if(!count_ready)
+                       {
+                        count++;
+                        ArrayResize(classes_arr,count);
+         
+                        classes_arr[count-1] = Array[i]; 
+         
+                        temp_arr[j] = "-nan"; //modify so that it can no more be counted
+                       }
+                     else
+                        break;
+                     //Print("t vectors vector ",v);
+                    }
+                  else
+                     continue;
+                 }
+              }
+          }
+         //--- Sort the array based on the bubble algorithm
          
          bool BubbleSortStrings(string &arr[])
            {
@@ -635,49 +656,25 @@ struct CLabelEncoder
              return true;
            }
        
-      public:
-         int encode(string value)
-           {
-              int size = ArraySize(labels_mem);
-              int found_value = find(labels_mem, value);
-              
-              if (size ==0 ? true : found_value == -1) //value wasn't found
-               {  
-                  size++;
-                  ArrayResize(labels_mem, size);
-                  labels_mem[size-1] = value;
-               }
-              else
-                {
-                  size = found_value;
-                }
-               
-             return size;
-           }
-         
+      public:         
          
          vector encode(string &Arr[])
            {
-            vector ret(ArraySize(Arr));
-            ZeroMemory(labels_mem);
+            string unique_values[];
+            Unique(Arr, unique_values);
             
-            if (!BubbleSortStrings(Arr))
+            vector ret(ArraySize(Arr));
+                                    
+            if (!BubbleSortStrings(unique_values))
                 return ret;
              
-             for (int i=0; i<ArraySize(Arr); i++)
-                ret[i] = (int)encode(Arr[i]);
-            
+             for (int i=0; i<ArraySize(unique_values); i++)
+                for (int j=0; j<ArraySize(Arr); j++)
+                   if (unique_values[i] == Arr[j])
+                     ret[j] = i+1;
+                 
              return ret;
-           }  
-            
-         void encode(string &Arr[], int &encoded_arr[])
-           {
-             ArrayResize(encoded_arr, ArraySize(Arr));
-             ZeroMemory(labels_mem);
-             
-             for (int i=0; i<ArraySize(Arr); i++)
-                encoded_arr[i] = (int)encode(Arr[i]);
-           }  
+           }
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
