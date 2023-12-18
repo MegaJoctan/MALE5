@@ -9,11 +9,13 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 #include <Graphics\Graphic.mqh>
+#include <MALE5\matrix_utils.mqh>
 
 class CPlots
   {  
 protected:
    CGraphic *graph;
+   CMatrixutils matrix_utils;
    
    long m_chart_id;
    int m_subwin;
@@ -31,7 +33,7 @@ public:
          
          
          void PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, bool chart_show=true);
-         bool ScatterCurvePlots(string plot_name,double &x[], double &y[], string legend, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue, bool   points_fill = true);
+         bool ScatterCurvePlots(string plot_name,vector& x , vector& y , string legend, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue, bool   points_fill = true);
          bool ScatterCurvePlotsMatrix(string plot_name, matrix &normalized_matrix,string legend="col",  string x_axis_label="x_axis",string y_axis_label = "y_axis", bool points_fill = true);
   };
   
@@ -93,8 +95,8 @@ bool CPlots::GraphCreate(string plot_name)
 
 bool CPlots::ScatterCurvePlots(
                                  string plot_name,
-                                 double &x[],
-                                 double &y[],
+                                 vector& x,
+                                 vector& y,
                                  string legend,
                                  string x_axis_label = "x-axis",
                                  string y_axis_label = "y-axis",
@@ -107,8 +109,12 @@ bool CPlots::ScatterCurvePlots(
      return (false);
    
 //---
+   
+   double x_arr[], y_arr[];
+   matrix_utils.VectorToArray(x, x_arr);
+   matrix_utils.VectorToArray(y, y_arr);
  
-   graph.CurveAdd(x, y, clr, CURVE_POINTS_AND_LINES, legend);
+   graph.CurveAdd(x_arr, y_arr, clr, CURVE_POINTS_AND_LINES, legend);
 
    graph.XAxis().Name(x_axis_label);
    graph.XAxis().NameSize(13);
