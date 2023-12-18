@@ -8,8 +8,8 @@
 //+------------------------------------------------------------------+
 //|         Principle Component Analysis Library                     |
 //+------------------------------------------------------------------+
-#include <MALE5\preprocessing.mqh>
 #include <MALE5\MqPlotLib\plots.mqh>
+#include <MALE5\matrix_utils.mqh>
 
 enum criterion
   {
@@ -24,8 +24,8 @@ enum criterion
 
 class Cpca
   {
-CPreprocessing       *pre_processing;
 CPlots   plt;
+CMatrixutils matrix_utils;
 
 protected:
    ulong   rows, cols;
@@ -33,9 +33,6 @@ protected:
    vector            eigen_vectors;
    
    void              Swap(double &var1, double &var2);
-   void              SortAscending(vector &v);
-   void              ReverseOrder(vector &v);
-   bool              VectorToArray(const vector &v,double &arr[]);
    
 public:
                      Cpca(matrix &Matrix);
@@ -55,12 +52,9 @@ Cpca::Cpca(matrix &Matrix)
    rows = Matrix.Rows(); 
    cols = Matrix.Cols();
    
-   pre_processing = new CPreprocessing(Matrix, NORM_STANDARDIZATION);
-   
    matrix Cova = Matrix.Cov(false);
    
    #ifdef DEBUG_MODE
-      Print("Standardized data\n",Matrix);
       Print("Covariances\n", Cova);
    #endif 
    
@@ -93,10 +87,6 @@ Cpca::Cpca(matrix &Matrix)
 
    pca_scores_standardized.Copy(pca_scores);
    
-   delete (pre_processing);
-   
-   pre_processing = new CPreprocessing(pca_scores_standardized, NORM_STANDARDIZATION);
-   
    #ifdef DEBUG_MODE
       Print("SCORES COEFF ",pca_scores_coefficients); 
       Print("PCA SCORES | STANDARDIZED\n",pca_scores_standardized);
@@ -107,7 +97,7 @@ Cpca::Cpca(matrix &Matrix)
 //+------------------------------------------------------------------+
 Cpca::~Cpca(void)
  {
-   delete (pre_processing);
+ 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -132,7 +122,7 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
   
   double sum=0;
   ulong  max;
-  vector v_cols = {};
+  vector<double> v_cols = {};
    
    switch(CRITERION_)
      {
@@ -192,11 +182,13 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
          
           vars = pca_scores_coefficients;
           
-          SortAscending(vars); //Make sure they are in ascending first order
-          ReverseOrder(vars);  //Set them to descending order
+          matrix_utils.Sort(vars); //Make sure they are in ascending first order
+          matrix_utils.Reverse(vars);  //Set them to descending order
           
-          VectorToArray(v_cols, x);
-          VectorToArray(vars, y);
+          if (!matrix_utils.VectorToArray(v_cols, x))
+            return PCAS; 
+          if (!matrix_utils.VectorToArray(vars, y))
+            return PCAS;
           
           plt.ScatterCurvePlots("Scree plot",x,y,"variance","PCA","Variance");
 
@@ -228,54 +220,6 @@ void Cpca::Swap(double &var1,double &var2)
    var1 = temp2;
    var2 = temp_1;
  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void Cpca::SortAscending(vector &v)
- { 
-    ulong n = v.Size();
-    for (ulong i = 0; i < n - 1; i++)
-      {
-        ulong minIndex = i;
-        for (ulong j = i + 1; j < n; j++)
-          {
-            if (v[j] < v[minIndex]) {
-                minIndex = j;
-           }
-      }
-      
-      Swap(v[i], v[minIndex]);
-    }
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-void Cpca::ReverseOrder(vector &v)
- {
-  vector v_temp = v;
-  
-   for (ulong i=0, j=v.Size()-1; i<v.Size(); i++, j--)
-        v[i] = v_temp[j];
-        
-   ZeroMemory(v_temp);
- }
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool Cpca::VectorToArray(const vector &v,double &arr[])
-  {
-   ArrayResize(arr,(int)v.Size());
-
-   if(ArraySize(arr) == 0)
-      return(false);
-
-   for(ulong i=0; i<v.Size(); i++)
-      arr[i] = v[i];
-
-   return(true);
-  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
