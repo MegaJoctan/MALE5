@@ -19,7 +19,7 @@ class Node
   public:
     // for decision node
        
-    int feature_index;
+    uint feature_index;
     double threshold;
     double info_gain;
      
@@ -49,7 +49,7 @@ class Node
 
 struct split_info
   {
-   int feature_index;
+   uint feature_index;
    double threshold;
    matrix dataset_left,
           dataset_right;
@@ -92,7 +92,7 @@ protected:
    
    
    split_info  get_best_split(const matrix &data, uint num_features);
-   split_info  split_data(const matrix &data, int feature_index, double threshold=0.5);
+   split_info  split_data(const matrix &data, uint feature_index, double threshold=0.5);
    
    double make_predictions(vector &x, const Node &tree);
    
@@ -130,10 +130,10 @@ CDecisionTreeClassifier::~CDecisionTreeClassifier(void)
       Print(__FUNCTION__," Deleting Tree nodes =",nodes.Size());
    #endif 
    
-   for (int i=0; i<(int)nodes.Size(); i++)
-     this.delete_tree(nodes[i]);
-     
    this.delete_tree(root);
+   
+   for (int i=0; i<(int)nodes.Size(); i++)
+     this.delete_tree(nodes[i]);  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -222,7 +222,7 @@ void CDecisionTreeClassifier::fit(matrix &x, vector &y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-split_info CDecisionTreeClassifier::split_data(const matrix &data, int feature_index, double threshold=0.5)
+split_info CDecisionTreeClassifier::split_data(const matrix &data, uint feature_index, double threshold=0.5)
  {
    int left_size=0, right_size =0;
    vector row = {};
@@ -323,8 +323,11 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
          
     if (!matrix_utils.XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
-         printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
-         return nodes[nodes.Size()-1];
+         #ifdef DEBUG_MODE
+            printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
+         #endif 
+         
+         return NULL; //return null pointer
       }
     
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
@@ -351,7 +354,7 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
       }      
      
      nodes[nodes.Size()-1] = new Node();
-     nodes[nodes.Size()-1].leaf_value = Y.Size()==0? 0 : this.calculate_leaf_value(Y);
+     nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
      
      is_fitted = true;
      
@@ -375,15 +378,17 @@ double CDecisionTreeClassifier::make_predictions(vector &x, const Node &tree)
  {   
    if (!check_is_fitted(__FUNCTION__))
      return 0;
+   
+   //if (CheckPointer(tree)=POINTER_INVALID)
      
-    if (tree.leaf_value != NULL) //This is a leaf leaf_value
+    if (tree.leaf_value != NULL) //This is a leaf_value
       return tree.leaf_value;
     
     #ifdef DEBUG_MODE
       printf("Tree.threshold %f tree.feature_index %d leaf_value %f",tree.threshold,tree.feature_index,tree.leaf_value);
     #endif 
     
-    if (tree.feature_index < 0 || tree.feature_index>=(int)x.Size())
+    if (tree.feature_index>=x.Size())
       return tree.leaf_value;
           
     double feature_value = x[tree.feature_index];
@@ -391,11 +396,13 @@ double CDecisionTreeClassifier::make_predictions(vector &x, const Node &tree)
     
     if (feature_value <= tree.threshold)
       {
-       pred = this.make_predictions(x, tree.left_child);  
+       if (CheckPointer(tree.left_child)!=POINTER_INVALID)
+          pred = this.make_predictions(x, tree.left_child);  
       }
     else
      {
-       pred = this.make_predictions(x, tree.right_child);
+       if (CheckPointer(tree.right_child)!=POINTER_INVALID)
+         pred = this.make_predictions(x, tree.right_child);
      }
      
    return pred;
@@ -425,7 +432,7 @@ vector CDecisionTreeClassifier::predict(matrix &x)
        
    return ret;
  }
-/*
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //|                                                                  |
@@ -535,8 +542,11 @@ Node *CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
       
     if (!matrix_utils.XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
-         printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
-         return nodes[nodes.Size()-1];
+         #ifdef DEBUG_MODE 
+           printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
+         #endif 
+         
+         return NULL; //Return a NULL pointer
       }
       
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
@@ -588,4 +598,3 @@ double CDecisionTreeRegressor::calculate_leaf_value(vector &Y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-*/
