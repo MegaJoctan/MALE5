@@ -47,7 +47,8 @@ public:
    vector            FixColumn(string &Arr[], double threshold =0.3);
    
    matrix            VectorToMatrix(const vector &v, ulong cols=1);
-   vector            MatrixToVector(matrix &mat);
+   template<typename T>
+   vector            MatrixToVector(matrix<T> &mat);
    
    template<typename T>
    vector            ArrayToVector(const T &Arr[]);     
@@ -168,12 +169,14 @@ matrix CMatrixutils::VectorToMatrix(const vector &v, ulong cols=1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::MatrixToVector(matrix &mat)
+template<typename T>
+vector CMatrixutils::MatrixToVector(matrix<T> &mat)
   {
-    vector v = {};
+    vector<T> v = {};
+    matrix<T> temp_mat = mat;
     
-    if (!mat.Assign(v))
-      Print(__FUNCTION__," Failed to turn the matrix to a vector rows ",mat.Rows()," cols ",mat.Cols());
+    if (!temp_mat.Swap(v))
+      Print(__FUNCTION__," Failed to turn the matrix[",mat.Rows(),"x",mat.Cols(),"] into a vector");
     
     return(v);
   }
