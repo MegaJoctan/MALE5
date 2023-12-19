@@ -25,8 +25,8 @@ protected:
    CMatrixutils      matrix_utils; 
    
                      ulong  n;
-                     matrix XMatrix;
-                     vector YVector;
+                     matrix x_matrix;
+                     vector y_vector;
                        
                      vector c_prior_proba; //class prior probability
                      vector c_evidence;    //class evidence
@@ -36,26 +36,33 @@ protected:
 public:
                      vector classes;       //classes available 
                      
-                     CNaiveBayes(matrix &x_matrix, vector &y_vector);
+                     CNaiveBayes(void);
                     ~CNaiveBayes(void);
                     
-                     int NaiveBayes(vector &x_vector);
-                     vector NaiveBayes(matrix &x_matrix);
+                     void fit(matrix &x, vector &y);
+                     int predict(vector &x);
+                     vector predict(matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
+CNaiveBayes::CNaiveBayes(void)
  {
  
-   XMatrix.Copy(x_matrix);
-   YVector.Copy(y_vector); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CNaiveBayes::fit(matrix &x, vector &y)
+ {
+   x_matrix.Copy(x);
+   y_vector.Copy(y); 
    
-   classes = matrix_utils.Classes(YVector);
+   classes = matrix_utils.Unique(y_vector);
    
    c_evidence.Resize((ulong)classes.Size());
    
-   n = YVector.Size();
+   n = y_vector.Size();
    
    if (n==0) { Print("--> n == 0 | Naive Bayes class failed"); return; }
    
@@ -64,13 +71,12 @@ CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
    vector v = {};
    for (ulong i=0; i<c_evidence.Size(); i++)
        {
-         v = matrix_utils.Search(YVector,(int)classes[i]);
+         v = matrix_utils.Search(y_vector,classes[i]);
          
          c_evidence[i] = (int)v.Size();
        }
 
-//---
-    
+//---    
    
    c_prior_proba.Resize(classes.Size());
    
@@ -87,16 +93,14 @@ CNaiveBayes::CNaiveBayes(matrix &x_matrix, vector &y_vector)
 //+------------------------------------------------------------------+
 CNaiveBayes::~CNaiveBayes(void)
  {
-   ZeroMemory(XMatrix);
-   ZeroMemory(YVector); 
-   ZeroMemory(c_prior_proba);
+ 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CNaiveBayes::NaiveBayes(vector &x_vector)
+int CNaiveBayes::predict(vector &x)
  {   
-   vector v = calcProba(x_vector);
+   vector v = calcProba(x);
    
    double sum = v.Sum();
    
@@ -114,16 +118,16 @@ int CNaiveBayes::NaiveBayes(vector &x_vector)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CNaiveBayes::NaiveBayes(matrix &x_matrix)
+vector CNaiveBayes::predict(matrix &x)
  {
-  ulong rows = x_matrix.Rows();
+  ulong rows = x.Rows();
  
   vector v(rows), pred(rows); 
   
    for (ulong i=0; i<rows; i++)
     { 
-       v = x_matrix.Row(i);
-       pred[i] = NaiveBayes(v);
+       v = x.Row(i);
+       pred[i] = predict(v);
     }
     
    return pred;
@@ -135,9 +139,9 @@ vector CNaiveBayes::calcProba(vector &v_features)
  {
     vector proba_v(classes.Size()); //vector to return
     
-    if (v_features.Size() != XMatrix.Cols())
+    if (v_features.Size() != x_matrix.Cols())
       {
-         printf("FATAL | Can't calculate probability,  fetures columns size = %d is not equal to XMatrix columns =%d",v_features.Size(),XMatrix.Cols());
+         printf("FATAL | Can't calculate probability,  fetures columns size = %d is not equal to x_matrix columns =%d",v_features.Size(),x_matrix.Cols());
          return proba_v;
       }
 
@@ -148,14 +152,14 @@ vector CNaiveBayes::calcProba(vector &v_features)
     for (ulong c=0; c<classes.Size(); c++)
       {
         double proba = 1;
-          for (ulong i=0; i<XMatrix.Cols(); i++)
+          for (ulong i=0; i<x_matrix.Cols(); i++)
             {
-                v = XMatrix.Col(i);
+                v = x_matrix.Col(i);
                 
                 int count =0;
                 for (ulong j=0; j<v.Size(); j++)
                   {
-                     if (v_features[i] == v[j] && classes[c] == YVector[j])
+                     if (v_features[i] == v[j] && classes[c] == y_vector[j])
                         count++;
                   }
                   
@@ -169,14 +173,10 @@ vector CNaiveBayes::calcProba(vector &v_features)
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 //|                                                                  |
 //|            NORMAL DISTRIBUTION CLASS                             |
 //|                                                                  |
 //|                                                                  |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
@@ -248,42 +248,51 @@ class CGaussianNaiveBayes
       vector            c_prior_proba; //prior probability
       vector            c_evidence;
       ulong             n;
-      
-   protected:
    
       CMatrixutils       matrix_utils;
+      norm_technique     m_norm;
       
-      matrix             XMatrix;
-      vector             YVector; 
-      ulong              m_cols;  //columns in XMatrix
+      matrix             x_matrix;
+      vector             y_vector;
+      
+      ulong              m_cols;  //columns in x_matrix
       
       bool               during_training;
       vector             calcProba(vector &v_features);
    
    public:              
    
-      vector            classes; //Target classes            
-                        CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector ,norm_technique NORM_METHOD=NORM_STANDARDIZATION);
+      vector            classes; //Target classes     
+             
+                        CGaussianNaiveBayes(norm_technique NORM_METHOD=NORM_STANDARDIZATION);
                        ~CGaussianNaiveBayes(void);
                         
-                        int GaussianNaiveBayes(vector &x_features);
-                        vector GaussianNaiveBayes(matrix &x_matrix);
-                        vector CGaussianNaiveBayesProba(vector &x_vec);
+                        void fit(matrix &x, vector &y);
+                        
+                        int predict_bin(vector &x);
+                        vector predict_bin(matrix &x);
+                        vector predict_proba(vector &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector, norm_technique NORM_METHOD=NORM_STANDARDIZATION)
+CGaussianNaiveBayes::CGaussianNaiveBayes(norm_technique NORM_METHOD=NORM_STANDARDIZATION)
+ :m_norm(NORM_METHOD) 
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CGaussianNaiveBayes::fit(matrix &x, vector &y)
  { 
-      
-   XMatrix.Copy(x_matrix);
-   YVector.Copy(y_vector);
+   x_matrix = x;
+   y_vector = y;
    
-   normalize_x = new CPreprocessing(XMatrix, NORM_METHOD);
+   normalize_x = new CPreprocessing(x_matrix, m_norm);
    
-   classes = matrix_utils.Classes(YVector);
-   
-   m_cols = XMatrix.Cols();
+   classes = matrix_utils.Unique(y_vector);
+   m_cols = x_matrix.Cols();
     
 //---
    
@@ -291,7 +300,7 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector, nor
    
    c_evidence.Resize((ulong)classes.Size());
    
-   n = YVector.Size();
+   n = y_vector.Size();
    
    if (n==0) { Print("---> n == 0 | Gaussian Naive Bayes class failed"); return; }
    
@@ -300,7 +309,7 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector, nor
    vector v = {};
    for (ulong i=0; i<c_evidence.Size(); i++)
        {          
-         v = matrix_utils.Search(YVector,(int)classes[i]);
+         v = matrix_utils.Search(y_vector, classes[i]);
          
          c_evidence[i] = (int)v.Size();
        }
@@ -324,24 +333,24 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(matrix &x_matrix, vector &y_vector, nor
 //+------------------------------------------------------------------+
 CGaussianNaiveBayes::~CGaussianNaiveBayes(void)
  {
-   ZeroMemory(XMatrix);
-   ZeroMemory(YVector);
+   ZeroMemory(x_matrix);
+   ZeroMemory(y_vector);
    delete (normalize_x);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
+int CGaussianNaiveBayes::predict_bin(vector &x)
  { 
-  vector temp_x = x_features;
+  vector temp_x = x;
   
   if (!during_training)  
      normalize_x.Normalization(temp_x);
        
    if (temp_x.Size() != m_cols)
      {
-       Print("CRITICAL | The given x_features have different size than the trained x_features");
+       Print("CRITICAL | The given x have different size than the trained x");
        return (-1);
      }
    
@@ -352,9 +361,9 @@ int CGaussianNaiveBayes::GaussianNaiveBayes(vector &x_features)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CGaussianNaiveBayes::CGaussianNaiveBayesProba(vector &x_vec)
+vector CGaussianNaiveBayes::predict_proba(vector &x)
  {
-  vector temp_x = x_vec;
+  vector temp_x = x;
   vector ret_v = {};
   
   if (!during_training)  
@@ -362,7 +371,7 @@ vector CGaussianNaiveBayes::CGaussianNaiveBayesProba(vector &x_vec)
        
    if (temp_x.Size() != m_cols)
      {
-       Print("CRITICAL | The given x_features have different size than the trained x_features");
+       Print("CRITICAL | The given x have different size than the trained x");
        return (ret_v);
      }
         
@@ -373,16 +382,16 @@ vector CGaussianNaiveBayes::CGaussianNaiveBayesProba(vector &x_vec)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CGaussianNaiveBayes::GaussianNaiveBayes(matrix &x_matrix)
+vector CGaussianNaiveBayes::predict_bin(matrix &x)
  {
-  ulong rows = x_matrix.Rows();
+  ulong rows = x.Rows();
   vector v(rows), pred(rows); 
   
    for (ulong i=0; i<rows; i++)
     { 
-       v = x_matrix.Row(i);
+       v = x.Row(i);
        
-       pred[i] = GaussianNaiveBayes(v);
+       pred[i] = predict_bin(v);
     }
    
    return pred;
@@ -398,7 +407,7 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
     
     if (v_features.Size() != m_cols)
       {
-         printf("FATAL | Can't calculate probability, fetures columns size = %d is not equal to XMatrix columns =%d",v_features.Size(),XMatrix.Cols());
+         printf("FATAL | Can't calculate probability, fetures columns size = %d is not equal to x_matrix columns =%d",v_features.Size(),m_cols);
          return proba_v;
       }
 
@@ -411,14 +420,14 @@ vector CGaussianNaiveBayes::calcProba(vector &v_features)
         double proba = 1;
           for (ulong i=0; i<m_cols; i++)
             {
-                v = XMatrix.Col(i);
+                v = x_matrix.Col(i);
                 
                 int count =0;
                 vector calc_v = {};
                 
                 for (ulong j=0; j<v.Size(); j++)
                   {
-                     if (classes[c] == YVector[j])
+                     if (classes[c] == y_vector[j])
                        {
                          count++;
                          calc_v.Resize(count);
