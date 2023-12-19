@@ -114,9 +114,6 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
 
 //--- for scree
    
-   double x[], y[];
-   
-//---
 
   matrix PCAS = {};
   
@@ -185,12 +182,7 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
           matrix_utils.Sort(vars); //Make sure they are in ascending first order
           matrix_utils.Reverse(vars);  //Set them to descending order
           
-          if (!matrix_utils.VectorToArray(v_cols, x))
-            return PCAS; 
-          if (!matrix_utils.VectorToArray(vars, y))
-            return PCAS;
-          
-          plt.ScatterCurvePlots("Scree plot",x,y,"variance","PCA","Variance");
+          plt.ScatterCurvePlots("Scree plot",v_cols,vars,"variance","PCA","Variance");
 
 //---
 
