@@ -11,97 +11,94 @@
 #include <MALE5\preprocessing.mqh>
 #include <MALE5\matrix_utils.mqh>
 #include <MALE5\metrics.mqh>
-
-#define CLEAR_MEM(mat) mat.Resize(1,0);  ZeroMemory(mat);
  
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 class CLogisticRegression
   {
-CPreprocessing      *normalize_x;
 CMatrixutils         matrix_utils;
 CMetrics             metrics;
-
+CPreprocessing       *norm_x;
 private:
-                    norm_technique M_NORM;
                     
-                    bool isTrain;
-                    matrix XMatrix; 
-                    vector YVector;
+                    vector classes;
                     
-                    ulong m_rows, m_cols;
+                     bool istrained;          
+                     bool checkIsTrained(string func)
+                       {
+                         if (!istrained)
+                           {
+                             Print(func," Tree not trained, Call fit function first to train the model");
+                             return false;   
+                           }
+                         return (true);
+                       }
                     
                     double Logit(vector &x);
                     vector Logit(matrix &x); //Logitstic loss function for training 
 
-                    void ParameterEstimationGrad(uint epochs=1000, double alpha=0.01, double tol=1e-8);
-                    
-public:
-                     CLogisticRegression(matrix &x_matrix, vector &y_vector, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8);
-                    ~CLogisticRegression(void);
+                    void ParameterEstimationGrad(matrix &x, vector &y, uint epochs=1000, double alpha=0.01, double tol=1e-8);
                     
                     matrix Betas;
-                    vector classes;
-                    
+                                        
                     vector Odds(vector &proba);
                     vector lnOdss(vector &odds);
+
                     
-                    int    LogitPred(vector &v);
-                    vector LogitPredProba(vector &v);
-                    vector LogitPred(matrix &mat);
-                    matrix LogitPredProba(matrix &mat);
+public:
+                     CLogisticRegression(void);
+                    ~CLogisticRegression(void);
+                    
+       
+                    void fit(matrix &x, vector &y, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8);        
+                         
+                    int    predict(vector &v);
+                    vector predict(matrix &mat);
+                    vector predictProba(vector &v);
                     
   };
 //+------------------------------------------------------------------+
-//| This is where the logistic model gets |
+//|                                                                  |
 //+------------------------------------------------------------------+
-CLogisticRegression::CLogisticRegression(matrix &x_matrix, vector &y_vector, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8)
+CLogisticRegression::CLogisticRegression(void)
+ :istrained(false)
  {
-   m_rows = x_matrix.Rows();
-   m_cols = x_matrix.Cols();
+ 
+ }
+//+------------------------------------------------------------------+
+//| This is where the logistic model gets trained                    |
+//+------------------------------------------------------------------+
+void CLogisticRegression::fit(matrix &x, vector &y, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8)
+ {
+   ulong rows = x.Rows();
+   ulong cols = x.Cols();
 
-   Betas.Resize(m_cols+1, 1);
+   Betas.Resize(cols+1, 1);
    Betas.Fill(0);
    
 //---
    
-   XMatrix = x_matrix;
-   YVector = y_vector; 
-   
-   classes = matrix_utils.Classes(y_vector);
-   
-   M_NORM = NORM_METHOD;
+   matrix XMatrix = x;
+   classes = matrix_utils.Unique(y);
     
-   normalize_x = new CPreprocessing(XMatrix, M_NORM);
-
-//---
-
-   isTrain = true; //we are on isTrain 
+   norm_x = new CPreprocessing(XMatrix, NORM_METHOD);
     
-   ParameterEstimationGrad(epochs, alpha, tol);
+   ParameterEstimationGrad(x,y, epochs, alpha, tol);
    
 //---
-   
-   
+      
    #ifdef DEBUG_MODE
       Print("Betas\n",Betas);
    #endif 
-   
-   isTrain  = false;
-   
-   CLEAR_MEM(XMatrix);
-   CLEAR_MEM(YVector);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CLogisticRegression::~CLogisticRegression(void)
- {
-   CLEAR_MEM(Betas);
-   
-   if (CheckPointer(normalize_x) != POINTER_INVALID)  
-      delete (normalize_x);
+ {   
+   if (CheckPointer(norm_x) != POINTER_INVALID)  
+      delete (norm_x);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -124,8 +121,7 @@ double CLogisticRegression::Logit(vector &x)
  {
   vector temp_x = x;
   
-   if (!isTrain && M_NORM != NORM_NONE) 
-         normalize_x.Normalization(temp_x);
+  norm_x.Normalization(temp_x);
  
 //---
 
@@ -165,9 +161,9 @@ vector CLogisticRegression::Logit(matrix &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha=0.01, double tol=1e-8)
+void CLogisticRegression::ParameterEstimationGrad(matrix &x, vector &y, uint epochs=1000, double alpha=0.01, double tol=1e-8)
  {     
-   matrix XDesignMatrix = matrix_utils.DesignMatrix(XMatrix);
+   matrix XDesignMatrix = matrix_utils.DesignMatrix(x);
    matrix XT = XDesignMatrix.Transpose();
    
    vector P = {}; matrix PA = {}; 
@@ -180,15 +176,15 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
    
     for (ulong i=0; i<epochs; i++)
      {
-       prev_cost = P.Loss(YVector,LOSS_BCE);;
+       prev_cost = P.Loss(y,LOSS_BCE);;
        
        P = Logit(XDesignMatrix);
        
-       PA = matrix_utils.VectorToMatrix(P - YVector); 
+       PA = matrix_utils.VectorToMatrix(P - y); 
        
-       Betas -= (alpha/(double)m_rows) * (XT.MatMul(PA));
+       Betas -= (alpha/(double)x.Rows()) * (XT.MatMul(PA));
        
-       curr_cost = P.Loss(YVector,LOSS_BCE);
+       curr_cost = P.Loss(y,LOSS_BCE);
 
        if (MathAbs(prev_cost - curr_cost) < tol)
         {
@@ -196,20 +192,14 @@ void CLogisticRegression::ParameterEstimationGrad(uint epochs=1000, double alpha
            break;
         }
 
-       printf("Epoch [%d/%d] Loss %.8f Accuracy %.3f tol %.8f", i+1, epochs, curr_cost, metrics.confusion_matrix(YVector, round(P), classes,false),MathAbs(curr_cost-prev_cost));
+       //printf("Epoch [%d/%d] Loss %.8f Accuracy %.3f tol %.8f", i+1, epochs, curr_cost, metrics.confusion_matrix(y, P, false),MathAbs(curr_cost-prev_cost));
      }
-     
-//--- Clear the training memory
-
-   CLEAR_MEM(XDesignMatrix);
-   CLEAR_MEM(XT);
-   CLEAR_MEM(P);
-   CLEAR_MEM(PA);
+   istrained = true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CLogisticRegression::LogitPred(vector &v)
+int CLogisticRegression::predict(vector &v)
  { 
    double p1 = Logit(v);
    vector v_out = {p1, 1-p1};
@@ -220,7 +210,7 @@ int CLogisticRegression::LogitPred(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-vector CLogisticRegression::LogitPredProba(vector &v)
+vector CLogisticRegression::predictProba(vector &v)
  {
    double p1 = Logit(v);
    vector v_out = {p1, 1-p1};
@@ -231,34 +221,16 @@ vector CLogisticRegression::LogitPredProba(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CLogisticRegression::LogitPred(matrix &mat)
+vector CLogisticRegression::predict(matrix &mat)
  {
   ulong size = mat.Rows();
   
   vector v(size);
   
    for (ulong i=0; i<size; i++)
-      v[i] = LogitPred(mat.Row(i));
+      v[i] = predict(mat.Row(i));
    
    return (v);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-matrix CLogisticRegression::LogitPredProba(matrix &mat)
- {
-   ulong rows = mat.Rows(), cols = mat.Cols();
-   
-   matrix mat_out(rows, 2);
-   vector v;
-   
-   for (ulong i=0; i<rows; i++)
-    { 
-      v = LogitPredProba(mat.Row(i)); 
-      mat_out.Row(v, i);
-    } 
-    
-   return (mat_out); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
