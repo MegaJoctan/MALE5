@@ -71,6 +71,7 @@ You can also post bug reports and feature requests (only) in [GitHub issues](htt
 If you find this project helpful, Support us by taking one or more of the actions
 
 [BuyMeCoffee](https://www.buymeacoffee.com/omegajoctan)
+
 [OurProducts](https://www.mql5.com/en/users/omegajoctan/seller)
 
 Register to our recommended broker:
