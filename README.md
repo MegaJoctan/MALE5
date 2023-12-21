@@ -1,4 +1,11 @@
-# MALE5: Machine Learning for MQL5
+## MALE5: Machine Learning for MQL5
+
+  <a href="https://discord.gg/HKPJWzP9" style="text-decoration:none">
+    <img src="https://img.shields.io/badge/Join-Discord-%237289DA?style=flat&logo=discord" alt="Discord"/>
+  </a>
+  <a href="https://t.me/fxalgebra_discussion" style="text-decoration:none">
+    <img src="https://img.shields.io/badge/Join-Telegram-%232CA5E0?style=flat&logo=telegram" alt="Telegram"/>
+  </a>
 
 ![MALE5](https://user-images.githubusercontent.com/65341461/237021529-a6117bde-d0b5-4f80-9ab0-d3c06d70e527.png)
 
@@ -11,26 +18,37 @@ It was developed to help build machine learning based trading robots, effortless
 
 This Library is:
 
--   **Simple to use** You can literly start building your system once you call class constructor
--   **Flexible** You can use it any program scripts, Indicator, EA's
--   **Resources cheap** It doesn't consume a lot of memory neither the CPU, takes short time intervals to train
+-   **Simple to use:** You can literally start building your system once you call class constructor
+-   **Flexible:** You can use it in any program scripts, Indicator, EA's
+-   **Resource-efficient:** It doesn't consume a lot of memory nor CPU, takes short time intervals to train
 
-**ML Algorithms Available:**
+## ML Algorithms Available
+**Linear Models**
 
-*currently there are not many algorithms ready as I am a solodev finding a way through*
+- Linear Regression
+- Logistic Regression
+- Polynomial Regression
+- Ridge & Lasso Regression
 
--   Linear Regression
--   Logistic Regression
--   Polynomial Regression
--   ridge  & Laso Regression
--   Classification decision tree
--   Naive bayes
--   FeedForward Neural Network
--   KNN nearest neighbors
--   Support Vector Machines
--   Kohonen Maps
--   Principal Compent Analysis
--   K-means clustering
+**Decision Tree**
+**Ranodm Forest**
+**Naive bayes & Gaussian Naive Bayes**
+**Neural Networks**
+
+- Pattern Nets
+- Regressor Nets
+- Kohonen Maps
+
+**Neighobors**
+- KNN Nearest Neighbors
+
+**Support Vector Machines**
+**Clustering**
+
+- KMeans 
+- Hierachical/Agglomerative clustering
+**Data Mining**
+- Principal Component Analysis(pca)
 
 **Clustering techniques | Unsupervised Learning:**
 
@@ -38,35 +56,26 @@ This Library is:
 
 ## Installing 
 
-Create a directory with the name MALE5 under your include directory in Metaeditor then open the command terminal in that directory and type 
-
-``` cmd
-    git clone https://github.com/MegaJoctan/MALE5.git
+Go to the Include directory and open CMD then run
+``` cmd  
+git clone https://github.com/MegaJoctan/MALE5.git
 ```
 
-## Running python Scripts
-
-To run python scripts found in this repo, make sure you have activated virtualEnvironment in your cmd terminal then run 
-`pip install requirements.txt`
-
-After that you will be good to go.
-
 ## Read the Docs
-
-There is a short clear description on how to use this library on this repository wiki [https://github.com/MegaJoctan/MALE5/wiki](https://github.com/MegaJoctan/MALE5/wiki)
-
-## Testing the Library
-There are couple of trading robots/EAs under the directory **\TESTING EAs & SCRIPTS** that could give you a bit of understanding on how to implement some of the algorithms provided in this repository, all you need to do is to move this folder into your Experts folder/directory
+There is a short clear description of how to use this library on this repository wiki https://github.com/MegaJoctan/MALE5/wiki
 
 ## Opening an issue
+You can also post bug reports and feature requests (only) in [GitHub issues](https://github.com/MegaJoctan/MALE5/issues).
 
-You can also post **bug reports and feature requests** (only)
-in [GitHub issues](https://github.com/MegaJoctan/MALE5/issues).
+## Support the Project
+If you find this project helpful, Support us by taking one or more of the actions
 
-## Contributing 
+[BuyMeCoffee](https://www.buymeacoffee.com/omegajoctan)
+[OurProducts](https://www.mql5.com/en/users/omegajoctan/seller)
 
-I welcome and appreciate contributions: feel free to contact me anytime at omegajoctan@gmail.com
+Register to our recommended broker:
+
+[ICMarkets](https://icmarkets.com/?camp=74639)
 
 ## Let's work together
-
 Create a personal Job for me on MQL5 | [HIRE ME](https://www.mql5.com/en/job/new?prefered=omegajoctan)
