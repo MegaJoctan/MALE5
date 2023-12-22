@@ -26,24 +26,22 @@ class CTensors
   {
 CMatrix* matrices[]; 
 
-private:
-
-   matrix Matrix;
-   ulong  m_rows, m_cols;
-
 public:
                      CTensors(uint DIM); //For one dimension tensor
                     ~CTensors(void);
                     
                     uint   TENSOR_DIMENSION;
                     
-                    bool   TensorAdd(matrix &mat_ , ulong POS);
-                    bool   TensorAppend(vector &v, ulong POS);
+                    template<typename T>
+                    bool   Add(matrix<T> &mat_ , ulong POS);
+                    template<typename T>
+                    bool   Append(vector<T> &v, ulong POS);
                     
-                    void   TensorPrint();
-                    matrix Tensor(ulong POS);
-                    void   TensorFill(double value);
-                    void   TensorMemoryClear();
+                    void   Print_();
+                    matrix Get(ulong POS);
+                    template<typename T>
+                    void   Fill(T value);
+                    void   MemoryClear();
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -53,7 +51,6 @@ CTensors::CTensors(uint DIM)
    TENSOR_DIMENSION = DIM;
    
    ArrayResize(matrices, TENSOR_DIMENSION);
-   
    
    for (uint i=0; i<TENSOR_DIMENSION; i++)
        matrices[i] = new CMatrix;
@@ -65,7 +62,6 @@ CTensors::CTensors(uint DIM)
          printf("Can't create a tensor, Invalid pointer Err %d ",GetLastError());
          return;
        }
-
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -81,7 +77,8 @@ CTensors::~CTensors(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
+template<typename T>
+bool  CTensors::Add(matrix<T> &mat_ , ulong POS)
  {
    if (POS > TENSOR_DIMENSION) 
      {
@@ -95,9 +92,10 @@ bool  CTensors::TensorAdd(matrix &mat_ , ulong POS)
    return (true);
  }
 //+------------------------------------------------------------------+
-//|      Appending rows to the Tensor Matrix at POS index            |
+//|      Appending rows to the Get Matrix at POS index               |
 //+------------------------------------------------------------------+
-bool CTensors::TensorAppend(vector &v, ulong POS)
+template<typename T>
+bool CTensors::Append(vector<T> &v, ulong POS)
  {
    if (POS > TENSOR_DIMENSION) 
      {
@@ -108,19 +106,19 @@ bool CTensors::TensorAppend(vector &v, ulong POS)
      
 //---
 
-   matrix mat = this.matrices[POS].Matrix;
+   matrix<T> mat = this.matrices[POS].Matrix;
    
    mat.Resize(mat.Rows()+1, mat.Cols());
    mat.Row(v, mat.Rows()-1);
    
-   TensorAdd(mat, POS);
+   Add(mat, POS);
    
   return (true);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensors::TensorPrint(void)
+void CTensors::Print_(void)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
      Print("TENSOR INDEX <<",i,">>\n",this.matrices[i].Matrix); 
@@ -128,7 +126,7 @@ void CTensors::TensorPrint(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CTensors::Tensor(ulong POS)
+matrix CTensors::Get(ulong POS)
  {
    if (POS > TENSOR_DIMENSION) 
      {
@@ -143,7 +141,8 @@ matrix CTensors::Tensor(ulong POS)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensors::TensorFill(double value)
+template<typename T>
+void CTensors::Fill(T value)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
      this.matrices[i].Matrix.Fill(value);
@@ -151,7 +150,7 @@ void CTensors::TensorFill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensors::TensorMemoryClear(void)
+void CTensors::MemoryClear(void)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
     {
@@ -159,9 +158,6 @@ void CTensors::TensorMemoryClear(void)
       ZeroMemory(this.matrices[i].Matrix);
     }
  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -188,11 +184,11 @@ public:
                      CTensorsVectors(uint DIM);
                     ~CTensorsVectors(void);
                     
-                     bool TensorAdd(vector &v, ulong POS);
-                     void TensorPrint(void);
-                     vector Tensor(ulong POS);
-                     void TensorFill(double value);
-                     void TensorMemoryClear();
+                     bool Add(vector &v, ulong POS);
+                     void Print_(void);
+                     vector Get(ulong POS);
+                     void Fill(double value);
+                     void MemoryClear();
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -229,7 +225,7 @@ CTensorsVectors::~CTensorsVectors(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool  CTensorsVectors::TensorAdd(vector &v, ulong POS)
+bool  CTensorsVectors::Add(vector &v, ulong POS)
  {
    if (POS > TENSOR_DIMENSION) 
      {
@@ -245,7 +241,7 @@ bool  CTensorsVectors::TensorAdd(vector &v, ulong POS)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::TensorPrint(void)
+void CTensorsVectors::Print_(void)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
      Print("TENSOR INDEX <<",i,">>\n",this.vectors[i].Vector); 
@@ -253,7 +249,7 @@ void CTensorsVectors::TensorPrint(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CTensorsVectors::Tensor(ulong POS)
+vector CTensorsVectors::Get(ulong POS)
  {
    if (POS > TENSOR_DIMENSION) 
      {
@@ -268,7 +264,7 @@ vector CTensorsVectors::Tensor(ulong POS)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::TensorFill(double value)
+void CTensorsVectors::Fill(double value)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
      this.vectors[i].Vector.Fill(value);
@@ -276,7 +272,7 @@ void CTensorsVectors::TensorFill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::TensorMemoryClear(void)
+void CTensorsVectors::MemoryClear(void)
  {
    for (ulong i=0; i<TENSOR_DIMENSION; i++)
     {
