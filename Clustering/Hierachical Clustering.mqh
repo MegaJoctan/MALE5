@@ -6,137 +6,164 @@
 #property copyright "Copyright 2023, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 
-#include <MALE5\Tensors.mqh>
 #include <MALE5\matrix_utils.mqh>
+#include <MALE5\linalg.mqh>
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
-class CHierachicalClustering
+
+enum linkage_enum 
+ {
+   LINKAGE_SINGLE,
+   LINKAGE_COMPLETE,
+   LINKAGE_AVG
+ };
+ 
+class CAgglomerativeClustering
   {
-CTensorsVectors *tensors_v;
-CMatrixutils     matrix_utils;
+CMatrixutils matrix_utils;
+CLinAlg linalg;
 
-private:
-   matrix   EuclideanMatrix;
-   matrix   DistanceMatrix;
+protected:
 
-   ulong    m_rows;
-   ulong    m_cols;
+   linkage_enum linkage;
+   vector       labels;
+   ulong        n_clusters;
    
-   vector   Min(matrix &mat);
-   uint     HIERACHIES_DIM;
+   double       compute_linkage(vector &cluster1, vector &cluster2, matrix &distances);
+   matrix       ix_(const vector &v1, const vector &v2);
    
 public:
-                     CHierachicalClustering(matrix &matrix_);
-                    ~CHierachicalClustering(void);
+                     CAgglomerativeClustering(uint clusters=2, linkage_enum linkage_type=LINKAGE_SINGLE);
+                    ~CAgglomerativeClustering(void);
                     
-                    double Euclidean_distance(vector &v1, vector &v2);
+                    void fit(matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CHierachicalClustering::CHierachicalClustering(matrix &matrix_)
+CAgglomerativeClustering::CAgglomerativeClustering(uint clusters=2, linkage_enum linkage_type=LINKAGE_SINGLE)
+ :linkage(linkage_type),
+  n_clusters(clusters)
  {
-   m_rows = matrix_.Rows();
-   m_cols = matrix_.Cols();
-   
-   if (m_rows <= 1)
-      {
-         Print("Failed to Initialize Hierachical clustering | The number of rows in a given matrix needs to be more than one for this to work");
-         return;
-      }
-   
-//---
-   HIERACHIES_DIM = uint(m_rows-1);
-   tensors_v = new CTensorsVectors(HIERACHIES_DIM);
-//---
-   
-   vector cluster = {}, temp_cluster;
-   vector loc(2);
-   
-  //HIERACHIES_DIM =1; //Remove this
-   EuclideanMatrix.Resize(m_rows, m_rows);
-   EuclideanMatrix.Fill(0);
-   
-   for (ulong i=0; i<m_rows; i++)   
-      for (ulong j=0; j<m_rows; j++)
-            EuclideanMatrix[i][j] = Euclidean_distance(matrix_.Row(i),matrix_.Row(j));
-
-    vector diag(m_rows);
-    diag.Fill(DBL_MAX);
-    EuclideanMatrix.Diag(diag);
-    
-//---
-
-   for (uint d=0; d<HIERACHIES_DIM; d++) 
-    {       
-       loc = Min(EuclideanMatrix);
-       
-       #ifdef DEBUG_MODE      
-         Print("Euclidean Matrix[",EuclideanMatrix.Rows(),"x",EuclideanMatrix.Cols(),"]\n",EuclideanMatrix,"\nMinDistance ",EuclideanMatrix.Min()," Located ",loc);
-       #endif 
-      
-       temp_cluster = loc;
-       cluster = matrix_utils.Append(cluster, temp_cluster);
-       tensors_v.TensorAdd(cluster, d);
-       
-       matrix_utils.RemoveRow(EuclideanMatrix, (int)loc[0]);
-       matrix_utils.RemoveCol(EuclideanMatrix, int(loc[0]));
-       
-       //matrix_utils.RemoveRow(EuclideanMatrix, (int)loc[1]);
-       //matrix_utils.RemoveCol(EuclideanMatrix, (int)loc[1]);
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CAgglomerativeClustering::~CAgglomerativeClustering(void)
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CAgglomerativeClustering::compute_linkage(vector &cluster1,vector &cluster2, matrix &distances)
+ {
+  matrix indices = ix_(cluster1, cluster2);
+  vector vec(indices.Rows());
+  
+  Print("np.ix_ ",indices,"\ndistances:\n",distances);
+  
+  for (uint i=0; i<vec.Size(); i++)
+    {
+      printf("index[%dx%d]",(int)indices[i][0], (int)indices[i][1]);
+     
+      vec[i] = distances[(int)indices[i][0], (int)indices[i][1]];
+      Print("distance : ",vec[i]);
     }
-   
-   Print("HIERACHICAL CLUSTERS");
-   tensors_v.TensorPrint();
-   
-//---
     
+  double ret = 0;    
+  
+   switch(linkage)
+     {
+      case  LINKAGE_SINGLE:
+        ret = vec.Min();
+        break;
+        
+      case LINKAGE_COMPLETE:
+        ret = vec.Max();
+        break;
+        
+      case LINKAGE_AVG:
+        ret = vec.Mean();
+        break;
+     } 
+     
+   return ret;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CHierachicalClustering::~CHierachicalClustering(void)
+matrix CAgglomerativeClustering::ix_(const vector &v1, const vector &v2) 
  {
-   delete (tensors_v);
- }
+    int size1 = (int)v1.Size();
+    int size2 = (int)v2.Size();
+
+    // Ensure that the result array has enough space
+    matrix result(size1 * size2, 2);
+
+    // Iterate through combinations and populate the result array
+    int index = 0;
+    for (int i = 0; i < size1; i++) {
+        for (int j = 0; j < size2; j++) {
+            result[index][0] = (int)v1[i];
+            result[index][1] = (int)v2[j];
+            index++;
+        }
+    }
+ return result;
+}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-double CHierachicalClustering:: Euclidean_distance(vector &v1, vector &v2)
-  {
-   double dist = 0;
-   ulong size = 0;
-
-//---
-   
-   if (v1.Size() > v2.Size())
-       v2.Resize(v1.Size());
-   else 
-       v1.Resize(v2.Size());
-
-//---
-   
-   double c = 0;
-   for(ulong i=0; i<v1.Size(); i++)
-      c += MathPow(v1[i] - v2[i], 2);
-
-   dist = MathSqrt(c);
-
-   return(dist);
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-vector CHierachicalClustering:: Min(matrix &mat)
+void CAgglomerativeClustering::fit(matrix &x)
  {
-   vector dir(2);
-   
-   ulong loc = mat.ArgMin();
-   dir[0] = int(loc/mat.Rows()); dir[1]=int(loc % mat.Cols());
-   
-   return (dir);
+  ulong n_samples = x.Rows();
+
+  // Initialize clusters with each data point as a single cluster
+  
+  matrix clusters(n_samples, 1);
+  for (uint i=0; i<n_samples; i++)
+    clusters.Row(clusters.Row(i).Fill(i), i);
+
+  // Compute pairwise distances between clusters
+  
+  matrix distances = matrix_utils.Zeros(n_samples, n_samples);
+  
+  for (uint i=0; i<n_samples; i++)
+      for (uint j=i+1; j<n_samples; j++)
+        {
+          distances[i, j] = linalg.norm(x.Row(i), x.Row(j));
+          distances[j, i] = distances[i, j];
+        }
+        
+  // Main loop: merge clusters until the desired number of clusters is reached
+  while (clusters.Rows() > n_clusters)
+   {
+      Print("clusters\n",clusters);
+      
+      // Find the indices of the two closest clusters
+      double min_distance = DBL_MAX;
+      vector merge_indices = {0, 0};
+
+      for (uint i=0; i<clusters.Rows(); i++)
+          for (uint j=i + 1; j<clusters.Rows(); j++)
+            {
+              double distance = this.compute_linkage(clusters.Row(i), clusters.Row(j), distances);
+              Print("compute linkage res: ",distance);
+              
+              if (distance < min_distance)
+                {
+                  min_distance = distance;
+                  merge_indices[0] = i; merge_indices[1] = j;
+                  
+                  Print("merge indices: ",merge_indices);
+                  
+                  Print("left");
+               }
+            }
+   }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
