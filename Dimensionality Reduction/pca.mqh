@@ -10,6 +10,7 @@
 //+------------------------------------------------------------------+
 #include <MALE5\MqPlotLib\plots.mqh>
 #include <MALE5\matrix_utils.mqh>
+#include "helpers.mqh"
 
 enum criterion
   {
@@ -17,94 +18,120 @@ enum criterion
     CRITERION_KAISER,
     CRITERION_SCREE_PLOT
   };
-
 //+------------------------------------------------------------------+
-//|                                                                  |
+//|            Principal Component Analysis Class                    |
 //+------------------------------------------------------------------+
-
-class Cpca
+class CPCA
   {
 CPlots   plt;
 CMatrixutils matrix_utils;
 
 protected:
-   ulong   rows, cols;
-   matrix            component_matrix;
-   vector            eigen_vectors;
-   
-   void              Swap(double &var1, double &var2);
-   
-public:
-                     Cpca(matrix &Matrix);
-                    ~Cpca(void);
-                    
-                     matrix pca_scores;
-                     vector pca_scores_coefficients;
-                     matrix pca_scores_standardized;
+   int               m_components;
+   matrix            components_matrix;
+   vector            mean;   
+   int n_features;
                      
-                     matrix ExtractComponents(criterion CRITERION_);
+public:
+                     CPCA(int k_components=2);
+                    ~CPCA(void);
+                    
+                     matrix fit_transform(matrix &X);
+                     matrix transform(matrix &X);
+                     matrix extract_components(matrix &X, criterion CRITERION_);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Cpca::Cpca(matrix &Matrix)
- { 
-   rows = Matrix.Rows(); 
-   cols = Matrix.Cols();
-   
-   matrix Cova = Matrix.Cov(false);
-   
-   #ifdef DEBUG_MODE
-      Print("Covariances\n", Cova);
-   #endif 
-   
-   
-   if (!Cova.Eig(component_matrix, eigen_vectors))
-      Print("Failed to get the Component matrix matrix & Eigen vectors");
-   
-   
-   pca_scores = Matrix.MatMul(component_matrix);
-   
-   #ifdef DEBUG_MODE 
-      Print("PCA SCORES\n",pca_scores);
-      Print("\nComponent matrix\n",component_matrix,"\nEigen Vectors\n",eigen_vectors);
-   #endif 
-   
-//---
-
-   pca_scores_coefficients.Resize(cols);
-   vector v_row;
-   
-   for (ulong i=0; i<cols; i++)
-     {
-       v_row = pca_scores.Col(i);
-       
-       pca_scores_coefficients[i] = v_row.Var(); //variance of the pca scores
-     }
-   
-   
-//---
-
-   pca_scores_standardized.Copy(pca_scores);
-   
-   #ifdef DEBUG_MODE
-      Print("SCORES COEFF ",pca_scores_coefficients); 
-      Print("PCA SCORES | STANDARDIZED\n",pca_scores_standardized);
-   #endif 
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-Cpca::~Cpca(void)
+CPCA::CPCA(int k_components=2)
+ :m_components(k_components)
  {
  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix Cpca::ExtractComponents(criterion CRITERION_)
+CPCA::~CPCA(void)
  {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CPCA::fit_transform(matrix &X)
+ { 
+   n_features = (int)X.Cols();
+   
+   if (m_components>n_features)
+     {
+       printf("%s Number of dimensions K[%d] is supposed to be <= number of features %d",__FUNCTION__,m_components,n_features);
+       this.m_components = (int)n_features;
+     }
 
+//---
+
+   this.mean = X.Mean(0);
+   
+   matrix standardized_data = CDimensionReductionHelpers::subtract(X, this.mean);
+   
+   matrix cov_matrix = X.Cov(false);
+   
+   matrix eigen_vectors;
+   vector eigen_values;
+   
+   if (!cov_matrix.Eig(eigen_vectors, eigen_values))
+     printf("Failed to caculate Eigen matrix and vectors Err=%d",GetLastError());
+   
+//--- Sort eigenvectors by decreasing eigenvalues
+
+   eigen_values = matrix_utils.Sort(eigen_values); //Sort ascending
+   matrix_utils.Reverse(eigen_values); //Reverse the order
+   
+   /*
+   Print("eigen values: ",eigen_values);
+   Print("eigen vectors:\n",eigen_vectors);
+   */
+   
+   if (m_components==0)
+     components_matrix = eigen_vectors;
+   else
+      this.components_matrix = CDimensionReductionHelpers::Slice(eigen_vectors, m_components, 1);
+   
+   //Print("components_matrix\n",components_matrix);
+   
+//---
+      
+   return standardized_data.MatMul(components_matrix); //return the pca scores
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CPCA::transform(matrix &X)
+ {
+   if (X.Cols()!=this.n_features)
+     {
+       printf("%s Inconsistent input X matrix size, It is supposed to be of size %d same as the matrix used under fit_transform",__FUNCTION__,n_features);
+       this.m_components = n_features;
+     }
+     
+   matrix standardized_data = CDimensionReductionHelpers::subtract(X, this.mean);
+  
+   return standardized_data.MatMul(this.components_matrix); //return the pca scores
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix CPCA::extract_components(matrix &X, criterion CRITERION_)
+ {
+   ulong rows = X.Rows(),
+         cols = X.Cols();
+         
+   vector pca_scores_coefficients(cols);
+   matrix pca_scores = this.fit_transform(X);
+   
+   for (ulong i=0; i<cols; i++)
+       pca_scores_coefficients[i] = pca_scores.Col(i).Var(); //variance of the pca scores
+     
   vector vars = pca_scores_coefficients;   
   vector vars_percents = (vars/(double)vars.Sum())*100.0;
   
@@ -141,8 +168,6 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
               
               v_cols.Resize(count);
               v_cols[count-1] = (int)max;
-                   
-              if (sum >= 90.0) break;
            }
          
          PCAS.Resize(rows, v_cols.Size());
@@ -179,6 +204,9 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
          
           vars = pca_scores_coefficients;
           
+          if (MQLInfoInteger(MQL_DEBUG))
+            Print("pca_scores_coefficients: ",vars," | ",v_cols);
+          
           matrix_utils.Sort(vars); //Make sure they are in ascending first order
           matrix_utils.Reverse(vars);  //Set them to descending order
           
@@ -200,17 +228,6 @@ matrix Cpca::ExtractComponents(criterion CRITERION_)
         break;
      } 
    return (PCAS);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-void Cpca::Swap(double &var1,double &var2)
- {
-   double temp_1 = var1, temp2=var2;
-   
-   var1 = temp2;
-   var2 = temp_1;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
