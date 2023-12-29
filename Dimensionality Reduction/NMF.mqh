@@ -19,12 +19,10 @@ protected:
    ulong n_features;
    matrix W_;
    matrix H_;
+   double m_tol; //loss tolerance
    
-   void update_factors(matrix &X);
-   void initialize_factors(matrix &X);
-   double calculate_explained_variance(matrix &X);
 public:
-                     CNMF(uint max_iter=100, int random_state=-1);
+                     CNMF(uint max_iter=100, double tol=1e-4, int random_state=-1);
                     ~CNMF(void);
                     
                     matrix fit_transform(matrix &X, uint k=2);
@@ -35,9 +33,10 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CNMF::CNMF(uint max_iter=100,int random_state=-1)
+CNMF::CNMF(uint max_iter=100, double tol=1e-4,int random_state=-1)
  :m_max_iter(max_iter),
- m_randseed(random_state)
+ m_randseed(random_state),
+ m_tol(tol)
  {
    
  }
@@ -72,22 +71,19 @@ matrix CNMF::transform(matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CNMF::initialize_factors(matrix &X)
- { 
-   ulong m = X.Rows(), n = X.Cols();
-   
-   if (m_components == 0)
-     this.m_components = (uint)n;
+matrix CNMF::fit_transform(matrix &X, uint k=2)
+ {
+  ulong m = X.Rows(), n = X.Cols();
+  double best_frobenius_norm = DBL_MIN;
+  
+   m_components = m_components == 0 ? (uint)n : k;      
    
    this.W_ = CMatrixutils::Random(0,1, m, this.m_components, this.m_randseed);
    this.H_ = CMatrixutils::Random(0,1,this.m_components, n, this.m_randseed);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CNMF::update_factors(matrix &X)
- {
-    vector loss(X.Rows());
+   
+//--- Update factors
+      
+   vector loss(this.m_max_iter);
     for (uint i=0; i<this.m_max_iter; i++)
       {
         // Update W
@@ -97,67 +93,45 @@ void CNMF::update_factors(matrix &X)
          this.H_ *= MathAbs((this.W_.Transpose().MatMul(X)) / (this.W_.Transpose().MatMul(this.W_.MatMul(this.H_))+ 1e-10));
          
          loss[i] = MathPow((X - W_.MatMul(H_)).Flat(1), 2);
+                    
+         // Calculate Frobenius norm of the difference
          
+          double frobenius_norm = (X - W_.MatMul(H_)).Norm(MATRIX_NORM_FROBENIUS);
+
          //if (MQLInfoInteger(MQL_DEBUG))
-         //  printf("%s [%d/%d] Loss = %.5f",__FUNCTION__,i,m_max_iter,loss[i]);
+         //  printf("%s [%d/%d] Loss = %.5f frobenius norm %.5f",__FUNCTION__,i+1,m_max_iter,loss[i],frobenius_norm);
+         
+          // heck convergence
+          if (frobenius_norm < this.m_tol)
+              break;
       }
- }
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-matrix CNMF::fit_transform(matrix &X, uint k=2)
- {
-  n_features = X.Cols();
-  m_components = k;
   
-  initialize_factors(X);
-  update_factors(X); 
-  
-  return transform(X); 
+  return this.W_.MatMul(this.H_); 
  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-double CNMF::calculate_explained_variance(matrix &X)
-{   
-    matrix X_approx = fit_transform(X, (uint)X.Cols());
-    matrix diff = (X - X_approx);
-
-    double frobenius_norm_original = X.Norm(MATRIX_NORM_FROBENIUS);
-    double frobenius_norm_diff = diff.Norm(MATRIX_NORM_FROBENIUS);
-
-    // Calculate explained variance as the ratio of squared Frobenius norms
-    double explained_variance = 1.0 - ((frobenius_norm_diff) / ( frobenius_norm_original));
-
-    return explained_variance;
-}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 uint CNMF::select_best_components(matrix &X)
 {
     uint best_components = 1;
-    double best_explained_variance = -DBL_MAX;
     this.m_components = (uint)X.Cols();
-        
+    
+    vector explained_ratio(X.Cols());    
     for (uint k = 1; k <= X.Cols(); k++)
     {
-        // Calculate explained variance or other criterion
-        double explained_variance = calculate_explained_variance(X);
+       // Calculate explained variance or other criterion 
+       matrix X_reduced = fit_transform(X, k);
+   
+       // Calculate explained variance as the ratio of squared Frobenius norms
+       double explained_variance = 1.0 - (X-X_reduced).Norm(MATRIX_NORM_FROBENIUS) / (X.Norm(MATRIX_NORM_FROBENIUS));
         
         if (MQLInfoInteger(MQL_DEBUG))
             printf("k %d Explained Var %.5f",k,explained_variance);
-              
-        // Update best_components if the current k provides a better result
-        if (explained_variance > best_explained_variance)
-        {
-            best_components = k;
-            best_explained_variance = explained_variance;
-        }
+       
+       explained_ratio[k-1] = explained_variance;       
     }
-
-    return best_components;
+    
+    return uint(explained_ratio.ArgMax()+1);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
