@@ -1,6 +1,6 @@
 ## MALE5: Machine Learning for MQL5
 
-  <a href="https://discord.gg/HKPJWzP9" style="text-decoration:none">
+  <a href="https://discord.gg/2qgcadfgrx" style="text-decoration:none">
     <img src="https://img.shields.io/badge/Join-Discord-%237289DA?style=flat&logo=discord" alt="Discord"/>
   </a>
   <a href="https://t.me/fxalgebra_discussion" style="text-decoration:none">
