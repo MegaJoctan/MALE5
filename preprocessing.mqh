@@ -241,7 +241,7 @@ bool CPreprocessing::Standardization(vector<T> &v)
      }
      
    for (ulong i=0; i<m_cols; i++)
-      v[i] = (v[i] - standardization_scaler.mean[i]) / standardization_scaler.std[i];  
+      v[i] = (v[i] - standardization_scaler.mean[i]) / (standardization_scaler.std[i] + 1e-10);  
     
    return true;  
  }
@@ -441,7 +441,7 @@ bool CPreprocessing::MinMaxScaler(vector<T> &v)
      }
      
    for (ulong i=0; i<m_cols; i++)
-     v[i] = (v[i] - min_max_scaler.min[i]) / (min_max_scaler.max[i] - min_max_scaler.min[i]);  
+     v[i] = (v[i] - min_max_scaler.min[i]) / ((min_max_scaler.max[i] - min_max_scaler.min[i]) + 1e-10);  
      
     return true;
  } 
@@ -524,7 +524,7 @@ bool CPreprocessing::MeanNormalization(vector<T> &v)
      }
      
    for (ulong i=0; i<m_cols; i++)
-      v[i] = (v[i] - mean_norm_scaler.mean[i]) / (mean_norm_scaler.max[i] - mean_norm_scaler.min[i]);
+      v[i] = (v[i] - mean_norm_scaler.mean[i]) / ((mean_norm_scaler.max[i] - mean_norm_scaler.min[i]) + 1e-10);
     
    return true;
  }
