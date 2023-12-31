@@ -26,38 +26,34 @@ struct confusion_matrix_struct
    vector<double>    w_avg;
 
   };
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 class CMetrics
   {
-   CMatrixutils      matrix_utils;
-
 protected:
-   int               SearchPatterns(vector &True, int value_A, vector &B, int value_B);
+   static int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
 
    //-- From matrix utility class
 
 public:
-                     CMetrics(void);
-                    ~CMetrics(void);
+   CMetrics(void);
+   ~CMetrics(void);
 
    //--- Regression metrics
 
-   double            r_squared(vector &True, vector &Pred);
-   double            adjusted_r(vector &True, vector &Pred, uint indep_vars = 1);
+   static double r_squared(vector &True, vector &Pred);
+   static double adjusted_r(vector &True, vector &Pred, uint indep_vars = 1);
 
-   double            rss(vector &True, vector &Pred);
-   double            mse(vector &True, vector &Pred);
-   double            rmse(vector &True, vector &Pred);
-   double            mae(vector &True, vector &Pred);
+   static double rss(vector &True, vector &Pred);
+   static double mse(vector &True, vector &Pred);
+   static double rmse(vector &True, vector &Pred);
+   static double mae(vector &True, vector &Pred);
 
    //--- Classification metrics
 
-   double            accuracy_score(vector &True, vector &Pred);
-   confusion_matrix_struct confusion_matrix(vector &True, vector &Pred, bool report_show = true);
-
+   double accuracy_score(vector &True, vector &Pred);
+   static confusion_matrix_struct confusion_matrix(vector &True, vector &Pred, bool report_show = true);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -108,7 +104,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
   {
    ulong TP = 0, TN = 0, FP = 0, FN = 0;
 
-   vector classes = matrix_utils.Unique(True);
+   vector classes = CMatrixutils::Unique(True);
 
    matrix conf_m(classes.Size(), classes.Size());
    conf_m.Fill(0);
@@ -165,7 +161,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
    for(ulong i = 0; i < classes.Size(); i++)
      {
       col_v = conf_m.Col(i);
-      matrix_utils.VectorRemoveIndex(col_v, i);
+      CMatrixutils::VectorRemoveIndex(col_v, i);
 
       TP = (ulong)diag[i];
       FP = (ulong)col_v.Sum();
@@ -183,7 +179,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
    for(ulong i = 0; i < classes.Size(); i++)
      {
       row_v = conf_m.Row(i);
-      matrix_utils.VectorRemoveIndex(row_v, i);
+      CMatrixutils::VectorRemoveIndex(row_v, i);
 
       TP = (ulong)diag[i];
       FN = (ulong)row_v.Sum();
@@ -204,11 +200,11 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
      {
       temp_mat.Copy(conf_m);
 
-      matrix_utils.RemoveCol(temp_mat, i);
-      matrix_utils.RemoveRow(temp_mat, i);
+      CMatrixutils::RemoveCol(temp_mat, i);
+      CMatrixutils::RemoveRow(temp_mat, i);
 
       col_v = conf_m.Col(i);
-      matrix_utils.VectorRemoveIndex(col_v, i);
+      CMatrixutils::VectorRemoveIndex(col_v, i);
 
       FP = (ulong)col_v.Sum();
       TN = (ulong)temp_mat.Sum();
@@ -361,6 +357,4 @@ double CMetrics::mae(vector &True, vector &Pred)
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
