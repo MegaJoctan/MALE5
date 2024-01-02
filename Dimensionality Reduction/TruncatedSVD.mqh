@@ -14,10 +14,11 @@
 class CTruncatedSVD
   {
 CPlots   plt;
-  
+
 uint m_components;
 ulong n_features;
 matrix components_;
+vector mean;
 vector explained_variance_;
 
 public:
@@ -26,6 +27,7 @@ public:
                     
                     matrix fit_transform(matrix& X);
                     matrix transform(matrix &X);
+                    vector transform(vector &X);
                     ulong _select_n_components(vector &singular_values);
   };
 //+------------------------------------------------------------------+
@@ -44,47 +46,50 @@ CTruncatedSVD::CTruncatedSVD(uint k=0)
 CTruncatedSVD::~CTruncatedSVD(void)
  {
  
- }
+ } 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 matrix CTruncatedSVD::fit_transform(matrix &X)
  {
-  n_features = X.Cols();
-  
+  n_features = X.Cols();  
+    
    if (m_components>n_features)
      {
        printf("%s Number of dimensions K[%d] is supposed to be <= number of features %d",__FUNCTION__,m_components,n_features);
        this.m_components = (uint)n_features;
      }
    
+    this.mean = X.Mean(0);
+    
     // Center the data (subtract mean)
-    matrix X_centered = CDimensionReductionHelpers::subtract(X, X.Mean(0));
+    matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
     
-    //Print("X_centered\n",X_centered);
-    
-   // Compute the covariance matrix
+    // Compute the covariance matrix
+   
+    CDimensionReductionHelpers::ReplaceNaN(X_centered);
     matrix cov_matrix = X_centered.Cov(false);
     
+    CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
+    
    // Perform SVD on the covariance matrix
-    matrix U, Vt;
-    vector Sigma;
+    matrix U={}, Vt={};
+    vector Sigma={};
     
     if (!cov_matrix.SVD(U,Vt,Sigma))
        Print(__FUNCTION__," Line ",__LINE__," Failed to calculate SVD Err=",GetLastError());    
-    
-    //Print("u\n",U,"\nsigma\n",Sigma,"\nVt\n",Vt);
-    
+        
      if (m_components == 0)
        {
          m_components = (uint)this._select_n_components(Sigma);
          Print(__FUNCTION__," Best value of K = ",m_components);
        }
-            
+                 
     this.components_ = CDimensionReductionHelpers::Slice(Vt, this.m_components).Transpose();
-    
+    CDimensionReductionHelpers::ReplaceNaN(this.components_);
+        
     if (MQLInfoInteger(MQL_DEBUG))
-      Print("components\n",CDimensionReductionHelpers::Slice(Vt, this.m_components),"\ncomponents_T\n",this.components_);
+      Print("components_T[",components_.Rows(),"X",components_.Cols(),"]\n",this.components_);
     
     this.explained_variance_ = MathPow(CDimensionReductionHelpers::Slice(Sigma, this.m_components), 2) / (X.Rows() - 1);
     
@@ -95,13 +100,25 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
 //+------------------------------------------------------------------+
 matrix CTruncatedSVD::transform(matrix &X)
  {
+   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+   
    if (X.Cols()!=this.n_features)
      {
        printf("%s Inconsistent input X matrix size, It is supposed to be of size %d same as the matrix used under fit_transform",__FUNCTION__,n_features);
        this.m_components = (uint)n_features;
      }
-     
-  return X.MatMul(components_);
+    
+    return X_centered.MatMul(components_);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CTruncatedSVD::transform(vector &X)
+ {
+   matrix INPUT_MAT = CMatrixutils::VectorToMatrix(X, X.Size());
+   matrix OUTPUT_MAT = transform(INPUT_MAT);
+      
+   return CMatrixutils::MatrixToVector(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
