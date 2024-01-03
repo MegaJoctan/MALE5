@@ -8,44 +8,56 @@
 //+------------------------------------------------------------------+
 //|    implementations of standard linear algebra algorithms         |
 //+------------------------------------------------------------------+
-class CLinAlg
+class LinAlg
   {
 public:
-                     CLinAlg(void);
-                    ~CLinAlg(void);
+                     LinAlg(void);
+                    ~LinAlg(void);
                     
-                    matrix dot(matrix &A, matrix &B);
-                    matrix norm(const matrix &A, const matrix &B);
-                    matrix outer(const matrix &A, const matrix &B);
+                    template<typename T>
+                    static matrix<T> dot(matrix<T> &A, matrix<T> &B);
+                    
+                    template<typename T>
+                    static matrix<T> norm(const matrix<T> &A, const matrix<T> &B);
+                    
+                    template<typename T>
+                    static double norm(const vector<T> &v1, const vector<T> &v2);
+                    
+                    template<typename T>
+                    static matrix<T> outer(const matrix<T> &A, const matrix<T> &B);
+                    
+                    static bool svd(matrix &mat, matrix &U, matrix &V, vector &singular_value);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLinAlg::CLinAlg(void)
+LinAlg::LinAlg(void)
  {
  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLinAlg::~CLinAlg(void)
+LinAlg::~LinAlg(void)
  {
  
  }
 //+------------------------------------------------------------------+
 //|	Dot product of two matrices.                                   |
 //+------------------------------------------------------------------+
-matrix CLinAlg::dot(matrix &A,matrix &B)
+template<typename T>
+matrix<T> LinAlg::dot(matrix<T> &A,matrix<T> &B)
  {
    return A.MatMul(B);
  }
 //+------------------------------------------------------------------+
-//| Matrix or vector norm. | Finds the equlidean distance of the     |
+//| Matrix or vector<T> norm. | Finds the equlidean distance of the     |
 //| two matrices                                                     |
 //+------------------------------------------------------------------+
-matrix CLinAlg::norm(const matrix &A, const matrix &B)
+template<typename T>
+matrix<T> LinAlg::norm(const matrix<T> &A, const matrix<T> &B)
  {
-   matrix ret = {};
+   matrix<T> ret = {};
    
     if (B.Cols() != A.Cols())
       {
@@ -55,8 +67,8 @@ matrix CLinAlg::norm(const matrix &A, const matrix &B)
    
    if (A.Rows()==1 || B.Rows()==1)
     {
-      matrix A_temp = A, B_temp = B;      
-      vector A_vector, B_vector;
+      matrix<T> A_temp = A, B_temp = B;      
+      vector<T> A_vector, B_vector;
       
       A_vector.Swap(A_temp);
       B_vector.Swap(B_temp);
@@ -80,7 +92,7 @@ matrix CLinAlg::norm(const matrix &A, const matrix &B)
     }
 
    ulong size = A.Rows() > B.Rows() ? A.Rows() : B.Rows();
-   vector euc(size);
+   vector<T> euc(size);
    
    for (ulong i=0; i<A.Rows(); i++)
       for (ulong j=0; j<B.Rows(); j++)
@@ -90,11 +102,40 @@ matrix CLinAlg::norm(const matrix &A, const matrix &B)
    return ret;
  }
 //+------------------------------------------------------------------+
+//|                Euclidean Distance of two vectors                 |
+//+------------------------------------------------------------------+
+template<typename T>
+double LinAlg::norm(const vector<T> &v1, const vector<T> &v2)
+  {
+   double dist = 0;
+
+   if(v1.Size() != v2.Size())
+      Print(__FUNCTION__, " v1 and v2 not matching in size");
+   else
+     {
+      double c = 0;
+      for(ulong i=0; i<v1.Size(); i++)
+         c += MathPow(v1[i] - v2[i], 2);
+
+      dist = MathSqrt(c);
+     }
+
+   return(dist);
+  }
+//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CLinAlg::outer(const matrix &A,const matrix &B)
+template<typename T>
+matrix<T> LinAlg::outer(const matrix<T> &A,const matrix<T> &B)
  {
     return A.Outer(B);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool LinAlg::svd(matrix &mat, matrix &U,matrix &V,vector &singular_value)
+ {
+   return mat.SVD(U,V,singular_value);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
