@@ -9,7 +9,7 @@
 //|         Principle Component Analysis Library                     |
 //+------------------------------------------------------------------+
 #include <MALE5\MqPlotLib\plots.mqh>
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 #include "helpers.mqh"
 
 enum criterion
@@ -24,27 +24,30 @@ enum criterion
 class CPCA
   {
 CPlots   plt;
-CMatrixutils matrix_utils;
 
 protected:
-   int               m_components;
+   uint              m_components;
+   criterion         m_criterion;
    matrix            components_matrix;
    vector            mean;   
-   int n_features;
+   uint              n_features;
+                     
+                     
+                     uint extract_components(vector &eigen_values, double threshold=0.95);
                      
 public:
-                     CPCA(int k_components=2);
+                     CPCA(int k=0, criterion CRITERION_=CRITERION_SCREE_PLOT);
                     ~CPCA(void);
                     
                      matrix fit_transform(matrix &X);
                      matrix transform(matrix &X);
-                     matrix extract_components(matrix &X, criterion CRITERION_);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CPCA::CPCA(int k_components=2)
- :m_components(k_components)
+CPCA::CPCA(int k=0, criterion CRITERION_=CRITERION_SCREE_PLOT)
+ :m_components(k),
+  m_criterion(CRITERION_)
  {
  
  }
@@ -60,7 +63,7 @@ CPCA::~CPCA(void)
 //+------------------------------------------------------------------+
 matrix CPCA::fit_transform(matrix &X)
  { 
-   n_features = (int)X.Cols();
+   n_features = (uint)X.Cols();
    
    if (m_components>n_features)
      {
@@ -73,31 +76,35 @@ matrix CPCA::fit_transform(matrix &X)
    this.mean = X.Mean(0);
    
    matrix standardized_data = CDimensionReductionHelpers::subtract(X, this.mean);
+   CDimensionReductionHelpers::ReplaceNaN(standardized_data);
    
-   matrix cov_matrix = X.Cov(false);
+   matrix cov_matrix = standardized_data.Cov(false);
    
    matrix eigen_vectors;
    vector eigen_values;
+   
+   Print("Cov Matrix\n",cov_matrix);
+    
+   CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
    
    if (!cov_matrix.Eig(eigen_vectors, eigen_values))
      printf("Failed to caculate Eigen matrix and vectors Err=%d",GetLastError());
    
 //--- Sort eigenvectors by decreasing eigenvalues
-
-   eigen_values = matrix_utils.Sort(eigen_values); //Sort ascending
-   matrix_utils.Reverse(eigen_values); //Reverse the order
    
-   /*
-   Print("eigen values: ",eigen_values);
-   Print("eigen vectors:\n",eigen_vectors);
-   */
-   
+   eigen_values = MatrixExtend::Sort(eigen_values); //Sort ascending
+   MatrixExtend::Reverse(eigen_values); //Reverse the order
+      
    if (m_components==0)
-     components_matrix = eigen_vectors;
-   else
-      this.components_matrix = CDimensionReductionHelpers::Slice(eigen_vectors, m_components, 1);
+     m_components = this.extract_components(eigen_values);
    
-   //Print("components_matrix\n",components_matrix);
+   if (MQLInfoInteger(MQL_DEBUG)) 
+     printf("%s Selected components %d",__FUNCTION__,m_components);
+   
+   this.components_matrix = CDimensionReductionHelpers::Slice(eigen_vectors, m_components, 1); //Get the components matrix
+   
+   if (MQLInfoInteger(MQL_DEBUG))
+     Print("components_matrix\n",components_matrix);
    
 //---
       
@@ -119,115 +126,85 @@ matrix CPCA::transform(matrix &X)
    return standardized_data.MatMul(this.components_matrix); //return the pca scores
  }
 //+------------------------------------------------------------------+
-//|                                                                  |
+//|   Select the number of components based on some criterion        |
 //+------------------------------------------------------------------+
-matrix CPCA::extract_components(matrix &X, criterion CRITERION_)
+uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
  {
-   ulong rows = X.Rows(),
-         cols = X.Cols();
-         
-   vector pca_scores_coefficients(cols);
-   matrix pca_scores = this.fit_transform(X);
-   
-   for (ulong i=0; i<cols; i++)
-       pca_scores_coefficients[i] = pca_scores.Col(i).Var(); //variance of the pca scores
-     
-  vector vars = pca_scores_coefficients;   
-  vector vars_percents = (vars/(double)vars.Sum())*100.0;
+  uint k = 0;
   
-//--- for Kaiser
-
-  double vars_mean = pca_scores_coefficients.Mean();
-
-//--- for scree
-   
-
-  matrix PCAS = {};
+  if (MQLInfoInteger(MQL_DEBUG))
+    Print("EigenValues: ",eigen_values);
   
-  double sum=0;
-  ulong  max;
-  vector<double> v_cols = {};
+   vector eigen_pow = MathPow(eigen_values, 2);
+   vector cum_sum = eigen_pow.CumSum();
+   double sum = eigen_pow.Sum();
    
-   switch(CRITERION_)
+   switch(m_criterion)
      {
-  
       case  CRITERION_VARIANCE: 
-      
-       #ifdef DEBUG_MODE
-        Print("vars percentages ",vars_percents);       
-       #endif 
-       
-         for (int i=0, count=0; i<(int)cols; i++)
-           { 
-             count++;
-             
-              max = vars_percents.ArgMax();
-              sum += vars_percents[max];
-              
-              vars_percents[max] = 0; 
-              
-              v_cols.Resize(count);
-              v_cols[count-1] = (int)max;
-           }
-         
-         PCAS.Resize(rows, v_cols.Size());
-         
-         for (ulong i=0; i<v_cols.Size(); i++)
-            PCAS.Col(pca_scores.Col((ulong)v_cols[i]), i);
-         
-        break;
-      case  CRITERION_KAISER:
-      
-      #ifdef DEBUG_MODE
-         Print("var ",vars," scores mean ",vars_mean);
-      #endif 
-      
-       vars = pca_scores_coefficients;
-        for (ulong i=0, count=0; i<cols; i++)
-           if (vars[i] > vars_mean)
-             {
-               count++;
-       
-               PCAS.Resize(rows, count);
+         {              
+            
+            vector cumulative_variance =  cum_sum / sum;
+            
+            if (MQLInfoInteger(MQL_DEBUG))
+              Print("Cummulative variance: ",cumulative_variance);
+            
+            vector v(cumulative_variance.Size());  v.Fill(0.0);
+            for (ulong i=0; i<v.Size(); i++)
+              v[i] = (cumulative_variance[i] >= threshold);
                
-               PCAS.Col(pca_scores.Col(i), count-1);
-             }           
-           
-        break;
-      case  CRITERION_SCREE_PLOT:
+            k = (uint)v.ArgMax() + 1;
+         }  
          
-         v_cols.Resize(cols);
+        break;
+        
+      case  CRITERION_KAISER:
+         {
+           vector v(eigen_values.Size()); v.Fill(0.0);
+            for (ulong i=0; i<eigen_values.Size(); i++)
+              v[i] = (eigen_values[i] >= 1);
+            
+            k = uint(v.Sum());
+         } 
+        
+        break;
+        
+      case  CRITERION_SCREE_PLOT:
+       {  
+         vector v_cols(eigen_values.Size());
          
          for (ulong i=0; i<v_cols.Size(); i++)
              v_cols[i] = (int)i+1;
              
-         
-          vars = pca_scores_coefficients;
+          vector vars = eigen_values;
           
-          if (MQLInfoInteger(MQL_DEBUG))
-            Print("pca_scores_coefficients: ",vars," | ",v_cols);
+          //matrix_utils.Sort(vars); //Make sure they are in ascending first order
+          //matrix_utils.Reverse(vars);  //Set them to descending order
           
-          matrix_utils.Sort(vars); //Make sure they are in ascending first order
-          matrix_utils.Reverse(vars);  //Set them to descending order
-          
-          plt.ScatterCurvePlots("Scree plot",v_cols,vars,"variance","PCA","Variance");
+          plt.ScatterCurvePlots("Scree plot",v_cols,vars,"EigenValue","PCA","EigenValue");
 
 //---
-
-       vars = pca_scores_coefficients;
-        for (ulong i=0, count=0; i<cols; i++)
-           if (vars[i] > vars_mean)
-             {
-               count++;
-       
-               PCAS.Resize(rows, count);
-               
-               PCAS.Col(pca_scores.Col(i), count-1);
-             }    
+      string warn = "\n<<<< WARNING >>>>\nThe Scree plot doesn't return the determined number of k components\nThe cummulative variance will return the number of k components instead\nThe k returned might be different from what you see on the scree plot";
+             warn += "\nTo apply the same number of k components to the PCA from the scree plot\nCall the PCA model again with that value applied from the plot\n";
+      
+         Print(warn);
+            
+          vector cumulative_variance = cum_sum / sum;
+         
+          if (MQLInfoInteger(MQL_DEBUG))
+            Print("Cummulative variance: ",cumulative_variance);
              
+            vector v(cumulative_variance.Size());  v.Fill(0.0);
+            for (ulong i=0; i<v.Size(); i++)
+              v[i] = (cumulative_variance[i] >= threshold);
+            
+            k = (uint)v.ArgMax() + 1;
+        }          
+           
         break;
      } 
-   return (PCAS);
+     
+   return (k);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
