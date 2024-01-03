@@ -15,133 +15,134 @@
    #define  COLS 1
 #endif 
 
-class CMatrixutils
+class MatrixExtend
   {
-  CLabelEncoder encoder;
   
-private:
-   int               CSVOpen(string filename,string delimiter);
+protected:
    template<typename T>
-   T                 MathRandom(T mini, T maxi);
-   string            CalcTimeElapsed(double seconds);
-   void              Swap(double &var1, double &var2);
-   string            ConvertTime(double seconds);
+   static T          MathRandom(T mini, T maxi);
+   static string     CalcTimeElapsed(double seconds);
+   static void       Swap(double &var1, double &var2);
+   static string     ConvertTime(double seconds);
    
    template<typename T>
-   void              GetCol(const T &Matrix[], T &Col[], int column, int cols);
+   static void       GetCol(const T &Matrix[], T &Col[], int column, int cols);
+   
+   static bool       IsNumber(string text);
+   static vector     FixColumn(CLabelEncoder &encoder, string &Arr[], double threshold =0.3);
+
 
 public:
-                     CMatrixutils(void);
-                    ~CMatrixutils(void);
+                     MatrixExtend(void);
+                    ~MatrixExtend(void);
+   
+//--- File Functions
 
-   string            csv_header[];
-   
    template <typename T>
-   bool              WriteCsv(string csv_name, matrix<T> &matrix_, string &header[] ,bool common=false, int digits=5);
-   
+   static bool       WriteCsv(string csv_name, matrix<T> &matrix_, string &header[] ,bool common=false, int digits=5);
    template <typename T>
-   bool              WriteCsv(string csv_name, matrix<T> &matrix_, string header_string,bool common=false, int digits=5);
+   static bool       WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="",bool common=false, int digits=5);
+   static matrix     ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false);
+   static matrix     DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
    
-   matrix            ReadCsv(string file_name,string delimiter=",",bool common=false);
-   bool              IsNumber(string text);
-   vector            FixColumn(string &Arr[], double threshold =0.3);
-   
-   matrix            VectorToMatrix(const vector &v, ulong cols=1);
-   template<typename T>
-   vector            MatrixToVector(matrix<T> &mat);
+//--- Manipulations
    
    template<typename T>
-   vector            ArrayToVector(const T &Arr[]);     
+   static bool       RemoveCol(matrix<T> &mat, ulong col);
+   static void       RemoveMultCols(matrix &mat, int &cols[]);
+   static void       RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY);
+   static void       RemoveRow(matrix &mat,ulong row);
+   static void       VectorRemoveIndex(vector &v, ulong index);  
+   
+//--- Machine Learning 
+
    template<typename T>
-   bool              VectorToArray(const vector<T> &v,T &arr[]);
-   template<typename T>
-   bool              RemoveCol(matrix<T> &mat, ulong col);
-   void              RemoveMultCols(matrix &mat, int &cols[]);
-   void              RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY);
-   void              RemoveRow(matrix &mat,ulong row);
-   void              VectorRemoveIndex(vector &v, ulong index);  
-   template<typename T>
-   bool              XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
+   static bool       XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
-   void              TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
-   matrix            DesignMatrix(matrix &x_matrix);              
-   matrix            OneHotEncoding(vector &v);    //ONe hot encoding 
+   static void       TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
+   static matrix     DesignMatrix(matrix &x_matrix);              
+   static matrix     OneHotEncoding(vector &v);    //ONe hot encoding 
    
-   void              Unique(const string &Array[], string &classes_arr[]);
-   vector            Unique(vector &v);           //Identifies classes available in a vector
+//--- Detection
+
+   static void       Unique(const string &Array[], string &classes_arr[]);
+   static vector     Unique(vector &v);           //Identifies classes available in a vector
+   static vector     Unique_count(vector &v);
+   
    template<typename T> 
-   vector            Random(T min, T max, int size,int random_state=-1);          //Generates a random vector of type T sized = size
-   matrix            Random(double min, double max, ulong rows, ulong cols, int random_state=-1); 
-   
-   vector            Append(vector &v1, vector &v2);              //Appends v2 to vector 1
-   template<typename T>
-   matrix<T>         concatenate(matrix<T> &mat, vector<T> &v, int axis=1);
-   matrix            Append(matrix &mat1, matrix &mat2);
-   template<typename T>
-   bool              Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
+   static vector     Random(T min, T max, int size,int random_state=-1);          //Generates a random vector of type T sized = size
+   static matrix     Random(double min, double max, ulong rows, ulong cols, int random_state=-1); 
    
    template<typename T>
-   vector            Search(const vector<T> &v, T value);
+   static vector     Search(const vector<T> &v, T value);
+   
+//--- Transformations
+
+   static matrix     VectorToMatrix(const vector &v, ulong cols=1);
+   template<typename T>
+   static vector     MatrixToVector(matrix<T> &mat);
    
    template<typename T>
-   void              Reverse(vector<T> &v);
+   static vector     ArrayToVector(const T &Arr[]);     
    template<typename T>
-   void              Reverse(matrix<T> &mat);
-   matrix            DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
+   static bool       VectorToArray(const vector<T> &v,T &arr[]);
    
-   matrix            HadamardProduct(matrix &a, matrix &b);
+//--- Manipulations
+
+   static vector     concatenate(vector &v1, vector &v2);              //Appends v2 to vector 1
+   static matrix     concatenate(matrix &mat1, matrix &mat2, int axis = 0);
+   template<typename T>
+   static matrix<T>  concatenate(matrix<T> &mat, vector<T> &v, int axis=1);
    
    template<typename T>
-   void              Randomize(vector<T> &v, int random_state=-1, bool replace=false);
+   static bool       Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
+   
+   
+   template<typename T>
+   static void       Reverse(vector<T> &v);
+   template<typename T>
+   static void       Reverse(matrix<T> &mat);
+   
+   static matrix     HadamardProduct(matrix &a, matrix &b);
+   
+   template<typename T>
+   static void       Randomize(vector<T> &v, int random_state=-1, bool replace=false);
    template<typename T>
    void              Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false);
    
-   void              NormalizeVector(vector<double> &v, int digits=3);
-   void              PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
-   int               CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
-   string            Stringfy(vector &v, int digits = 2);
-   matrix            Zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
-   vector            Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
-   matrix            Get(const matrix &mat, ulong start_index, ulong end_index);
-   vector            Get(const vector &v, ulong start_index, ulong end_index);
-   vector            Unique_count(vector &v);
+   static void       NormalizeVector(vector<double> &v, int digits=3);
+   static int        CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
+   static string     Stringfy(vector &v, int digits = 2);
+   static matrix     Zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
+   static vector     Zeros(ulong size) { vector ret_v(size); return( ret_v.Fill(0.0)); }
+   static matrix     Get(const matrix &mat, ulong start_index, ulong end_index);
+   static vector     Get(const vector &v, ulong start_index, ulong end_index);
    template<typename T>
-   vector            Sort(vector<T> &v);
+   static vector     Sort(vector<T> &v);
+
+//--- Others
+   
+   static void       PrintShort(matrix &matrix_,ulong rows=5, int digits=5);
+
   }; 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CMatrixutils::CMatrixutils(void)
+MatrixExtend::MatrixExtend(void)
   {
     
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CMatrixutils::~CMatrixutils(void)
+MatrixExtend::~MatrixExtend(void)
   {
-   ZeroMemory(csv_header);
+  
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CMatrixutils::CSVOpen(string filename,string delimiter)
- { 
-    
-    
-    int csv_handle  = FileOpen(filename,FILE_READ|FILE_CSV|FILE_ANSI,delimiter,CP_UTF8); 
-
-    if (csv_handle == INVALID_HANDLE)
-      {
-         Print(__FUNCTION__," Invalid csv handle err=",GetLastError());
-         return(INVALID_HANDLE);
-      }
-   return (csv_handle);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-matrix CMatrixutils::VectorToMatrix(const vector &v, ulong cols=1)
+matrix MatrixExtend::VectorToMatrix(const vector &v, ulong cols=1)
   {      
    ulong rows = 0;
    matrix mat = {};
@@ -170,7 +171,7 @@ matrix CMatrixutils::VectorToMatrix(const vector &v, ulong cols=1)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector CMatrixutils::MatrixToVector(matrix<T> &mat)
+vector MatrixExtend::MatrixToVector(matrix<T> &mat)
   {
     vector<T> v = {};
     matrix<T> temp_mat = mat;
@@ -185,7 +186,7 @@ vector CMatrixutils::MatrixToVector(matrix<T> &mat)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
+bool MatrixExtend::RemoveCol(matrix<T> &mat, ulong col)
   {
    matrix<T> new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
    if (col > mat.Cols())
@@ -213,7 +214,7 @@ bool CMatrixutils::RemoveCol(matrix<T> &mat, ulong col)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::RemoveMultCols(matrix &mat, int &cols[])
+void MatrixExtend::RemoveMultCols(matrix &mat, int &cols[])
   {
    ulong size = (int)ArraySize(cols);
 
@@ -254,7 +255,7 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int &cols[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CMatrixutils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
+void MatrixExtend::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
  {
    
    total = total==WHOLE_ARRAY ? (int)mat.Cols()-from : total;
@@ -293,7 +294,7 @@ void CMatrixutils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::RemoveRow(matrix &mat,ulong row)
+void MatrixExtend::RemoveRow(matrix &mat,ulong row)
   {
    matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one Row
  
@@ -313,7 +314,7 @@ void CMatrixutils::RemoveRow(matrix &mat,ulong row)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
+void MatrixExtend::VectorRemoveIndex(vector &v, ulong index)
   {
    vector new_v(v.Size()-1);
 
@@ -330,7 +331,7 @@ void CMatrixutils::VectorRemoveIndex(vector &v, ulong index)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[], bool common=false, int digits=5)
+bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[], bool common=false, int digits=5)
   {
    string header_str = "";
    for (int i=0; i<ArraySize(header); i++)
@@ -342,11 +343,14 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string header_string, bool common=false, int digits=5)
+bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="", bool common=false, int digits=5)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
-
+   
+   if (header_string == "")
+     for (ulong i=0; i<matrix_.Cols(); i++)
+       header_string += "None"+ (i==matrix_.Cols()-1?"":","); 
 
    if(handle == INVALID_HANDLE)
      {
@@ -409,8 +413,8 @@ bool CMatrixutils::WriteCsv(string csv_name, matrix<T> &matrix_, string header_s
 //| This Function is aimed at Detectin the Strings columns and it    |
 //| encodes them, while fixing the missing information in the column |
 //+------------------------------------------------------------------+
-vector CMatrixutils::FixColumn(string &Arr[], double threshold =0.3)
- {
+vector MatrixExtend::FixColumn(CLabelEncoder &encoder, string &Arr[], double threshold =0.3)
+ { 
    int size = ArraySize(Arr);
    int str_count =0;
    
@@ -473,7 +477,7 @@ vector CMatrixutils::FixColumn(string &Arr[], double threshold =0.3)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CMatrixutils::IsNumber(string text)
+bool MatrixExtend::IsNumber(string text)
 {
     int length = StringLen(text);   // Get the length of the string.
     int pointcount = 0;             // Initialize a counter for the number of decimal points.
@@ -501,8 +505,10 @@ bool CMatrixutils::IsNumber(string text)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=false)
+matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false)
   {
+   CLabelEncoder encoder;
+  
    string Arr[];
    int all_size = 0;
    
@@ -529,8 +535,7 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
          
          if(rows ==0)
            {
-            ArrayResize(csv_header,column+1);
-            csv_header[column] = data;
+            headers += data;
            }
          
          column++;
@@ -570,7 +575,7 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
    for (int i=0; i<cols_total; i++)
       {
          GetCol(Arr, Col, i+1, cols_total);
-         mat.Col(this.FixColumn(Col), i);
+         mat.Col(FixColumn(encoder, Col), i);
       }
 
    return(mat);
@@ -579,7 +584,7 @@ matrix CMatrixutils::ReadCsv(string file_name,string delimiter=",",bool common=f
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::GetCol(const T &Matrix[], T &Col[], int column, int cols)
+void MatrixExtend::GetCol(const T &Matrix[], T &Col[], int column, int cols)
  {
    int rows = ArraySize(Matrix)/cols;
    ArrayResize(Col,rows);
@@ -604,7 +609,7 @@ void CMatrixutils::GetCol(const T &Matrix[], T &Col[], int column, int cols)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector CMatrixutils::ArrayToVector(const T &Arr[])
+vector MatrixExtend::ArrayToVector(const T &Arr[])
   {
    vector v(ArraySize(Arr));
    
@@ -617,7 +622,7 @@ vector CMatrixutils::ArrayToVector(const T &Arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CMatrixutils::VectorToArray(const vector<T> &v, T &arr[])
+bool MatrixExtend::VectorToArray(const vector<T> &v, T &arr[])
   {
    vector temp = v;
    if (!temp.Swap(arr))
@@ -632,7 +637,7 @@ bool CMatrixutils::VectorToArray(const vector<T> &v, T &arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
+bool MatrixExtend::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
   {
    y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
    
@@ -654,7 +659,7 @@ bool CMatrixutils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatr
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
+void MatrixExtend::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
      
@@ -686,7 +691,7 @@ void CMatrixutils::Randomize(vector<T> &v, int random_state=-1, bool replace=fal
 //| than once, simulating the bootstrapping process.                 |    
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
+void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
   
@@ -723,7 +728,7 @@ void CMatrixutils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-void CMatrixutils::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
+void MatrixExtend::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
    
@@ -767,7 +772,7 @@ void CMatrixutils::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::DesignMatrix(matrix &x_matrix)
+matrix MatrixExtend::DesignMatrix(matrix &x_matrix)
   {
    matrix out_matrix(x_matrix.Rows(),x_matrix.Cols()+1);
 
@@ -788,7 +793,7 @@ matrix CMatrixutils::DesignMatrix(matrix &x_matrix)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::OneHotEncoding(vector &v)
+matrix MatrixExtend::OneHotEncoding(vector &v)
  {
    matrix mat = {}; 
    
@@ -815,7 +820,7 @@ matrix CMatrixutils::OneHotEncoding(vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Unique(const string &Array[], string &classes_arr[])
+void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
  {
    string temp_arr[];
 
@@ -856,7 +861,7 @@ void CMatrixutils::Unique(const string &Array[], string &classes_arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Unique(vector &v)
+vector MatrixExtend::Unique(vector &v)
  {
    vector temp_t = v, v_classes = {v[0]};
 
@@ -890,13 +895,13 @@ vector CMatrixutils::Unique(vector &v)
             continue;
         }
      } 
-   return this.Sort(v_classes); //Sort the unique values in ascending order
+   return MatrixExtend::Sort(v_classes); //Sort the unique values in ascending order
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-T CMatrixutils:: MathRandom(T mini, T maxi)
+T MatrixExtend:: MathRandom(T mini, T maxi)
   {
      double  f  = (MathRand() / 32767.0);
      return (mini + (T)(f * (maxi - mini)));
@@ -905,7 +910,7 @@ T CMatrixutils:: MathRandom(T mini, T maxi)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T> 
-vector CMatrixutils::Random(T min, T max,int size,int random_state=-1)
+vector MatrixExtend::Random(T min, T max,int size,int random_state=-1)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
     
@@ -919,7 +924,7 @@ vector CMatrixutils::Random(T min, T max,int size,int random_state=-1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
+matrix MatrixExtend::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
      
@@ -934,7 +939,7 @@ matrix CMatrixutils::Random(double min,double max,ulong rows,ulong cols,int rand
 //+------------------------------------------------------------------+
 //|   Appends vector v1 to the end of vector v2                      |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Append(vector &v1, vector &v2)
+vector MatrixExtend::concatenate(vector &v1, vector &v2)
  {
    vector v_out = v1; 
    
@@ -951,22 +956,43 @@ vector CMatrixutils::Append(vector &v1, vector &v2)
 //+------------------------------------------------------------------+
 //|   Appends matrix mat1 to the end of mat2                         |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
- { 
-   matrix m_out = mat1;
-   
-   if ((mat1.Cols()==0 || mat2.Cols()==0)? false : (mat1.Cols() != mat2.Cols()))
-     {
-       Print(__FUNCTION__,"Err | mat1 and mat2 must have the same number of cols");
-       return m_out;
+matrix MatrixExtend::concatenate(matrix &mat1, matrix &mat2, int axis = 0)
+ {
+     matrix m_out = {};
+
+     if ((axis == 0 && mat1.Cols() != mat2.Cols() && mat1.Cols()>0) || (axis == 1 && mat1.Rows() != mat2.Rows() && mat1.Rows()>0)) 
+       {
+         Print(__FUNCTION__, "Err | Dimensions mismatch for concatenation");
+         return m_out;
+       }
+
+     if (axis == 0) {
+         m_out.Resize(mat1.Rows() + mat2.Rows(), MathMax(mat1.Cols(), mat2.Cols()));
+
+         for (ulong row = 0; row < mat1.Rows(); row++) {
+             for (ulong col = 0; col < m_out.Cols(); col++) {
+                 m_out[row][col] = mat1[row][col];
+             }
+         }
+
+         for (ulong row = 0; row < mat2.Rows(); row++) {
+             for (ulong col = 0; col < m_out.Cols(); col++) {
+                 m_out[row + mat1.Rows()][col] = mat2[row][col];
+             }
+         }
+     } else if (axis == 1) {
+         m_out.Resize(MathMax(mat1.Rows(), mat2.Rows()), mat1.Cols() + mat2.Cols());
+
+         for (ulong row = 0; row < m_out.Rows(); row++) {
+             for (ulong col = 0; col < mat1.Cols(); col++) {
+                 m_out[row][col] = mat1[row][col];
+             }
+
+             for (ulong col = 0; col < mat2.Cols(); col++) {
+                 m_out[row][col + mat1.Cols()] = mat2[row][col];
+             }
+         }
      }
-   
-   m_out.Resize(mat1.Rows()+mat2.Rows(), MathMax(mat1.Cols(), mat2.Cols()));
-   
-   for (ulong rows=mat1.Rows(), nrows_index=0; rows<m_out.Rows(); rows++, nrows_index++)
-     for (ulong col=0; col<m_out.Cols(); col++)
-         m_out[rows][col] = mat2[nrows_index][col];  
-   
    return m_out;
  }
 //+------------------------------------------------------------------+
@@ -974,7 +1000,7 @@ matrix CMatrixutils::Append(matrix &mat1, matrix &mat2)
 //|   while axis =1 along the colums concatenation
 //+------------------------------------------------------------------+
 template<typename T>
-matrix<T> CMatrixutils::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
+matrix<T> MatrixExtend::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
  {
    matrix<T> ret= mat;
      
@@ -1025,7 +1051,7 @@ matrix<T> CMatrixutils::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CMatrixutils::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulong total=WHOLE_ARRAY)
+bool MatrixExtend::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulong total=WHOLE_ARRAY)
  {
    if (total == WHOLE_ARRAY)
       total = src.Size()-src_start;
@@ -1051,7 +1077,7 @@ bool CMatrixutils::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulo
 //| Such values was located                                          |
 //+------------------------------------------------------------------+
 template<typename T>
-vector CMatrixutils::Search(const vector<T> &v, T value)
+vector MatrixExtend::Search(const vector<T> &v, T value)
  {
    vector<T> v_out ={};
    
@@ -1072,9 +1098,9 @@ vector CMatrixutils::Search(const vector<T> &v, T value)
 //| Finds the unique values in a vector and returns a vector of      |
 //| the number of values found for each unique value                 |
 //+------------------------------------------------------------------+
-vector CMatrixutils::Unique_count(vector &v)
+vector MatrixExtend::Unique_count(vector &v)
  {
-  vector classes = this.Unique(v);
+  vector classes = MatrixExtend::Unique(v);
   vector keys(classes.Size());
   
    for (ulong i=0; i<classes.Size(); i++)
@@ -1086,7 +1112,7 @@ vector CMatrixutils::Unique_count(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector CMatrixutils::Sort(vector<T> &v)
+vector MatrixExtend::Sort(vector<T> &v)
  {
    T arr[];
    vector temp = v;
@@ -1094,13 +1120,13 @@ vector CMatrixutils::Sort(vector<T> &v)
    
    ArraySort(arr);
    
-   return this.ArrayToVector(arr);
+   return MatrixExtend::ArrayToVector(arr);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Reverse(vector<T> &v)
+void MatrixExtend::Reverse(vector<T> &v)
  {
   vector<T> v_temp = v;
   
@@ -1113,7 +1139,7 @@ void CMatrixutils::Reverse(vector<T> &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void CMatrixutils::Reverse(matrix<T> &mat)
+void MatrixExtend::Reverse(matrix<T> &mat)
  {
    matrix<T> temp_mat = mat;
    
@@ -1126,7 +1152,7 @@ void CMatrixutils::Reverse(matrix<T> &mat)
 //|   of the same dimension as the operands. | This operation is     |
 //|  widely known as element wise multiplication                     |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::HadamardProduct(matrix &a,matrix &b)
+matrix MatrixExtend::HadamardProduct(matrix &a,matrix &b)
  {  
   matrix c = {};
   if (a.Rows() != b.Rows() || a.Cols() != b.Cols())
@@ -1143,7 +1169,7 @@ matrix CMatrixutils::HadamardProduct(matrix &a,matrix &b)
 //+------------------------------------------------------------------+
 
 
-string CMatrixutils::CalcTimeElapsed(double seconds)
+string MatrixExtend::CalcTimeElapsed(double seconds)
   {
    string time_str = "";
 
@@ -1162,7 +1188,7 @@ string CMatrixutils::CalcTimeElapsed(double seconds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
+matrix MatrixExtend::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
  {
   matrix matrix_ = {};
   
@@ -1241,7 +1267,7 @@ matrix CMatrixutils::DBtoMatrix(int db_handle, string table_name,string &column_
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::NormalizeVector(vector<double> &v,int digits=3)
+void MatrixExtend::NormalizeVector(vector<double> &v,int digits=3)
  {
    for (ulong i=0; i<v.Size(); i++)
       v[i] = NormalizeDouble(v[i],digits); 
@@ -1249,7 +1275,7 @@ void CMatrixutils::NormalizeVector(vector<double> &v,int digits=3)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
+void MatrixExtend::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
  {
    vector v = {};
     for (ulong i=0; i<rows; i++)
@@ -1263,7 +1289,7 @@ void CMatrixutils::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CMatrixutils::Swap(double &var1,double &var2)
+void MatrixExtend::Swap(double &var1,double &var2)
  {
    double temp_1 = var1, temp2=var2;
    
@@ -1273,7 +1299,7 @@ void CMatrixutils::Swap(double &var1,double &var2)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CMatrixutils::CopyBufferVector(int handle,int buff_num,int start_pos,int count,vector &v)
+int MatrixExtend::CopyBufferVector(int handle,int buff_num,int start_pos,int count,vector &v)
  {
    double buff_arr[];
    
@@ -1285,7 +1311,7 @@ int CMatrixutils::CopyBufferVector(int handle,int buff_num,int start_pos,int cou
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-string CMatrixutils::Stringfy(vector &v, int digits = 2)
+string MatrixExtend::Stringfy(vector &v, int digits = 2)
  {
    string str = "";
    for (ulong i=0; i<v.Size(); i++)
@@ -1298,7 +1324,7 @@ string CMatrixutils::Stringfy(vector &v, int digits = 2)
 //| in measuring the time taken for operations that takes a long     |
 //| time to complete, Such as reading and writing to a large csv file|
 //+------------------------------------------------------------------+
-string CMatrixutils::ConvertTime(double seconds)
+string MatrixExtend::ConvertTime(double seconds)
 {
     string time_str = "";
     uint minutes = 0, hours = 0;
@@ -1328,7 +1354,7 @@ string CMatrixutils::ConvertTime(double seconds)
 //|  Obtains a part of the matrix starting from a start_index row to |
 //|   end_index row Inclusive                                        |
 //+------------------------------------------------------------------+
-matrix CMatrixutils::Get(const matrix &mat, ulong start_index, ulong end_index)
+matrix MatrixExtend::Get(const matrix &mat, ulong start_index, ulong end_index)
  {
   matrix ret_mat(MathAbs(end_index-start_index+1), mat.Cols());
   
@@ -1362,7 +1388,7 @@ matrix CMatrixutils::Get(const matrix &mat, ulong start_index, ulong end_index)
 //|   end_index row Inclusive                                        |
 //+------------------------------------------------------------------+
 
-vector CMatrixutils::Get(const vector &v, ulong start_index, ulong end_index)
+vector MatrixExtend::Get(const vector &v, ulong start_index, ulong end_index)
  {
   vector ret_vec(MathAbs(end_index-start_index+1));
   
