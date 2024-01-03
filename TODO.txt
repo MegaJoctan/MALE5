@@ -1,0 +1,18 @@
+Make pca for production, Introduce fit_transform and transform functions
+
+Re-code Polynomial & ridge regression
+Fix Naive Bayes
+Nearest Neighbors
+
+
+Fix RegressionNN class
+Fix ClassificationNN class
+
+Make KMeans for production
+Implement Hierachical clustering
+Fix SVM 
+Add Ensemble techniques
+
+
+Replace CMatrixUtils with MatrixExtend module
+replace builtin covariance with linalg.cova which removes all Nan values
