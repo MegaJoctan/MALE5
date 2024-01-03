@@ -6,16 +6,93 @@
 #property copyright "Copyright 2022, Fxalgebra.com"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 
+ 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+class StandardizationScaler
+  {
+protected:
+   vector mean, std;
+   
+public:
+                     StandardizationScaler(void);
+                    ~StandardizationScaler(void);
+                    
+                    matrix fit_transform(const matrix &X);
+                    matrix transform(const matrix &X);
+                    vector transform(const vector &X);
+                    bool save(string csv_name);
+  };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+StandardizationScaler::StandardizationScaler(void)
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+StandardizationScaler::~StandardizationScaler(void)
+ {
+ 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix StandardizationScaler::fit_transform(const matrix &X)
+ { 
+    for (ulong i=0; i<X.Cols(); i++)
+      { 
+         this.mean[i] = X.Col(i).Mean();
+         this.std[i] = X.Col(i).Std();
+      }
+
+//---
+   return this.transform(X);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix StandardizationScaler::transform(const matrix &X)
+ {
+   matrix X_norm = X;
+   
+   for (ulong i=0; i<X.Cols(); i++)
+     X_norm.Col(this.transform(X.Col(i)), i);
+   
+   return X_norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector StandardizationScaler::transform(const vector &X)
+ {
+   vector v(X.Size());
+   if (this.mean.Size()==0 || this.std.Size()==0)
+     {
+       printf("%s Call the fit_transform function fist before attempting to transform the new data",__FUNCTION__);
+       return v;
+     }
+   
+   if (X.Size() != this.mean.Size())
+     {
+         printf("%s X of size [%d] doesn't match the same number of features in a given X matrix on the fit_transform function call",__FUNCTION__,this.mean.Size());
+         return v;
+     }
+   
+   for (ulong i=0; i<v.Size(); i++)
+      v[i] = (X[i] - this.mean[i]) / (this.std[i] + 1e-10);  
+   
+   return v;
+ }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-enum norm_technique
- {
-   NORM_MIN_MAX_SCALER, //MIN MAX SCALER
-   NORM_MEAN_NORM,      //MEAN NORMALIZATION
-   NORM_STANDARDIZATION, //STANDARDIZATION
- }; 
+
+/*
 
 #define  NaN DBL_MAX*2
 
@@ -180,6 +257,10 @@ CPreprocessing::CPreprocessing(matrix<T> &matrix_, norm_technique NORM_MODE)
                 min_max_scaler.max[i] = v.Max();
              }
              
+         break;     
+         
+      case NORM_NONE:
+             
          break;       
     }
    
@@ -337,6 +418,10 @@ bool CPreprocessing::Normalization(vector<T> &v)
          if (MeanNormalization(v))
           norm = false;
          break;
+         
+      case NORM_NONE:
+             
+         break;     
      }
    return norm;
  }
@@ -365,6 +450,10 @@ bool CPreprocessing::Normalization(matrix<T> &matrix_)
         if (!MeanNormalization(matrix_))
         norm =false;
         break;
+        
+      case NORM_NONE:
+             
+         break;     
      }
      
   return norm;
@@ -398,6 +487,10 @@ bool CPreprocessing::ReverseNormalization(vector<T> &v)
          if (!ReverseMeanNormalization(v))
          norm =  false;
          break;   
+         
+      case NORM_NONE:
+             
+         break;     
      }
    return norm;
  }
@@ -425,6 +518,10 @@ bool CPreprocessing::ReverseNormalization(matrix<T> &matrix_)
         ReverseMeanNormalization(matrix_);
         norm = false;
         break;
+        
+      case NORM_NONE:
+             
+         break;     
     }
   return norm;
  }
@@ -597,7 +694,7 @@ bool CPreprocessing::ReverseMeanNormalization(matrix<T> &matrix_)
 //|                                                                  |
 //|                                                                  |
 //+------------------------------------------------------------------+
-
+*/
 
 struct CLabelEncoder
   {
