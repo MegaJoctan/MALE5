@@ -11,7 +11,7 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 
 struct confusion_matrix_struct
   {
@@ -104,7 +104,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
   {
    ulong TP = 0, TN = 0, FP = 0, FN = 0;
 
-   vector classes = CMatrixutils::Unique(True);
+   vector classes = MatrixExtend::Unique(True);
 
    matrix conf_m(classes.Size(), classes.Size());
    conf_m.Fill(0);
@@ -161,7 +161,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
    for(ulong i = 0; i < classes.Size(); i++)
      {
       col_v = conf_m.Col(i);
-      CMatrixutils::VectorRemoveIndex(col_v, i);
+      MatrixExtend::VectorRemoveIndex(col_v, i);
 
       TP = (ulong)diag[i];
       FP = (ulong)col_v.Sum();
@@ -179,7 +179,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
    for(ulong i = 0; i < classes.Size(); i++)
      {
       row_v = conf_m.Row(i);
-      CMatrixutils::VectorRemoveIndex(row_v, i);
+      MatrixExtend::VectorRemoveIndex(row_v, i);
 
       TP = (ulong)diag[i];
       FN = (ulong)row_v.Sum();
@@ -200,11 +200,11 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
      {
       temp_mat.Copy(conf_m);
 
-      CMatrixutils::RemoveCol(temp_mat, i);
-      CMatrixutils::RemoveRow(temp_mat, i);
+      MatrixExtend::RemoveCol(temp_mat, i);
+      MatrixExtend::RemoveRow(temp_mat, i);
 
       col_v = conf_m.Col(i);
-      CMatrixutils::VectorRemoveIndex(col_v, i);
+      MatrixExtend::VectorRemoveIndex(col_v, i);
 
       FP = (ulong)col_v.Sum();
       TN = (ulong)temp_mat.Sum();
