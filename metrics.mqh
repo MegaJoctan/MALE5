@@ -29,7 +29,7 @@ struct confusion_matrix_struct
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-class CMetrics
+class Metrics
   {
 protected:
    static int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
@@ -37,8 +37,8 @@ protected:
    //-- From matrix utility class
 
 public:
-   CMetrics(void);
-   ~CMetrics(void);
+   Metrics(void);
+   ~Metrics(void);
 
    //--- Regression metrics
 
@@ -58,21 +58,21 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CMetrics::CMetrics(void)
+Metrics::Metrics(void)
   {
 
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CMetrics::~CMetrics(void)
+Metrics::~Metrics(void)
   {
 
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::r_squared(vector &True, vector &Pred)
+double Metrics::r_squared(vector &True, vector &Pred)
   {
    return(Pred.RegressionMetric(True, REGRESSION_R2));
   }
@@ -83,7 +83,7 @@ double CMetrics::r_squared(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
+double Metrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
   {
    if(True.Size() != Pred.Size())
      {
@@ -100,7 +100,7 @@ double CMetrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, bool report_show = true)
+confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, bool report_show = true)
   {
    ulong TP = 0, TN = 0, FP = 0, FN = 0;
 
@@ -300,7 +300,7 @@ confusion_matrix_struct  CMetrics::confusion_matrix(vector &True, vector &Pred, 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::rss(vector &True, vector &Pred)
+double Metrics::rss(vector &True, vector &Pred)
   {
    vector c = True - Pred;
    c = MathPow(c, 2);
@@ -310,7 +310,7 @@ double CMetrics::rss(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::mse(vector &True, vector &Pred)
+double Metrics::mse(vector &True, vector &Pred)
   {
    vector c = True - Pred;
    c = MathPow(c, 2);
@@ -320,14 +320,14 @@ double CMetrics::mse(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::accuracy_score(vector &True, vector &Pred)
+double Metrics::accuracy_score(vector &True, vector &Pred)
   {
    return this.confusion_matrix(True, Pred, false).accuracy;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CMetrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
+int Metrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
   {
    int count = 0;
 
@@ -344,14 +344,14 @@ int CMetrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::rmse(vector &True, vector &Pred)
+double Metrics::rmse(vector &True, vector &Pred)
   {
    return Pred.RegressionMetric(True, REGRESSION_RMSE);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CMetrics::mae(vector &True, vector &Pred)
+double Metrics::mae(vector &True, vector &Pred)
   {
    return Pred.RegressionMetric(True, REGRESSION_MAE);
   }
