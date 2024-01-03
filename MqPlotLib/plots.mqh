@@ -9,13 +9,12 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 #include <Graphics\Graphic.mqh>
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 
 class CPlots
   {  
 protected:
    CGraphic *graph;
-   CMatrixutils matrix_utils;
    
    long m_chart_id;
    int m_subwin;
@@ -111,8 +110,8 @@ bool CPlots::ScatterCurvePlots(
 //---
    
    double x_arr[], y_arr[];
-   matrix_utils.VectorToArray(x, x_arr);
-   matrix_utils.VectorToArray(y, y_arr);
+   MatrixExtend::VectorToArray(x, x_arr);
+   MatrixExtend::VectorToArray(y, y_arr);
  
    graph.CurveAdd(x_arr, y_arr, clr, CURVE_POINTS_AND_LINES, legend);
 
