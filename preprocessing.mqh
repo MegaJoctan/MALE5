@@ -333,13 +333,13 @@ bool MinMaxScaler::save(string save_dir,string column_names,bool common_dir=fals
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-class MeanNormalizationScaler
+class RobustScaler
   {
 protected:
-   vector mean, max, min;
+   vector median, quantile_range;
 public:
-                     MeanNormalizationScaler(void);
-                    ~MeanNormalizationScaler(void);
+                     RobustScaler(void);
+                    ~RobustScaler(void);
                     
                     matrix fit_transform(const matrix &X);
                     matrix transform(const matrix &X);
@@ -349,35 +349,34 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MeanNormalizationScaler::MeanNormalizationScaler(void)
+RobustScaler::RobustScaler(void)
  {
  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MeanNormalizationScaler::~MeanNormalizationScaler(void)
+RobustScaler::~RobustScaler(void)
  {
  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MeanNormalizationScaler::fit_transform(const matrix &X)
+matrix RobustScaler::fit_transform(const matrix &X)
  {
-  this.min.Resize(X.Cols());
-  this.max.Resize(X.Cols());
-  this.mean.Resize(X.Cols());
+  this.median.Resize(X.Cols());
+  this.quantile_range.Resize(X.Cols());
   
     for (ulong i=0; i<X.Cols(); i++)
-      { 
-         this.min[i] = X.Col(i).Min();
-         this.max[i] = X.Col(i).Max();
-         this.mean[i] = X.Col(i).Mean();
-      }
-   
+     {
+       this.median[i] = X.Col(i).Median();
+       this.quantile_range[i] = X.Col(i).Quantile(1);
+     }
+     
    if (MQLInfoInteger(MQL_DEBUG))
-     Print("Min: ",this.min," Max: ",this.max," Mean: ",this.mean);
+     Print("Median: ",this.median," Quantile: ",this.quantile_range);
+   
    
 //---
    return this.transform(X);
@@ -385,7 +384,7 @@ matrix MeanNormalizationScaler::fit_transform(const matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MeanNormalizationScaler::transform(const matrix &X)
+matrix RobustScaler::transform(const matrix &X)
  {
    matrix X_norm = X;
    
@@ -397,48 +396,42 @@ matrix MeanNormalizationScaler::transform(const matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MeanNormalizationScaler::transform(const vector &X)
+vector RobustScaler::transform(const vector &X)
  {
    vector v(X.Size());
-   if (this.min.Size()==0 || this.max.Size()==0)
+   if (this.median.Size()==0)
      {
        printf("%s Call the fit_transform function fist before attempting to transform the new data",__FUNCTION__);
        return v;
      }
    
-   if (X.Size() != this.min.Size())
+   if (X.Size() != this.median.Size())
      {
-         printf("%s X of size [%d] doesn't match the same number of features in a given X matrix on the fit_transform function call",__FUNCTION__,this.min.Size());
+         printf("%s X of size [%d] doesn't match the same number of features in a given X matrix on the fit_transform function call",__FUNCTION__,this.median.Size());
          return v;
      }
      
     for (ulong i=0; i<X.Size(); i++)
-      v[i] = (X[i] * (this.max[i] - this.min[i]) ) + this.mean[i]; 
+      v[i] = (X[i] - this.median[i]) / (quantile_range[i] + 1e-10); 
     
     return v;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool MeanNormalizationScaler::save(string save_dir,string column_names,bool common_dir=false)
+bool RobustScaler::save(string save_dir,string column_names,bool common_dir=false)
  {
-//---save min
+//--- save median
 
-   matrix m = MatrixExtend::VectorToMatrix(this.min, this.min.Size());
+   matrix m = MatrixExtend::VectorToMatrix(this.median, this.median.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"MeanNormaizationScaler-Min.csv", m, column_names, common_dir,8);
-   
-//--- save max
+   return MatrixExtend::WriteCsv(save_dir+"RobustScaler-Median.csv", m, column_names, common_dir,8);
 
-   m = MatrixExtend::VectorToMatrix(this.max, this.max.Size());
-   
-   return MatrixExtend::WriteCsv(save_dir+"MeanNormaizationScaler-Max.csv", m, column_names, common_dir,8);
+//--- save quantile
 
-//--- save mean
-
-   m = MatrixExtend::VectorToMatrix(this.mean, this.max.Size());
+   m = MatrixExtend::VectorToMatrix(this.quantile_range, this.quantile_range.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"MeanNormaizationScaler-Mean.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"RobustScaler-Median.csv", m, column_names, common_dir,8);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
