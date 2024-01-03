@@ -40,12 +40,12 @@
 English | <a href="docs/README_russian.md">Russian</a> 
 </p>
 
-This repository hosts the development of the MALE 5 library
+## About the Project
 
 MALE5 is a machine-learning repository for creating trading systems in the c++ like, MQL5 programming language.
 It was developed to help build machine learning-based trading robots, effortlessly in the [MetaTrader5](https://www.metatrader5.com/en/automated-trading/metaeditor) platform
 
-This Library is:
+**This Library is:**
 
 -   **Simple to use:** You can literally start building your system once you call the class constructor
 -   **Flexible:** You can use it in any program script, Indicator, EA's
