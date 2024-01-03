@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                 matrix_utils.mqh |
+//|                                                 MatrixExtend::mqh |
 //|                                  Copyright 2022, Omega Joctan  . |
 //|                        https://www.mql5.com/en/users/omegajoctan |
 //+------------------------------------------------------------------+
@@ -9,7 +9,7 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 #include <MALE5\preprocessing.mqh>
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 #include <MALE5\metrics.mqh>
  
 //+------------------------------------------------------------------+
@@ -17,9 +17,6 @@
 //+------------------------------------------------------------------+
 class CLogisticRegression
   {
-CMatrixutils         matrix_utils;
-CMetrics             metrics;
-CPreprocessing       *norm_x;
 private:
                     
                     vector classes;
@@ -51,11 +48,11 @@ public:
                     ~CLogisticRegression(void);
                     
        
-                    void fit(matrix &x, vector &y, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8);        
+                    void fit(matrix &x, vector &y, double alpha=0.01, uint epochs=1000, double tol=1e-8);        
                          
                     int    predict(vector &v);
                     vector predict(matrix &mat);
-                    vector predictProba(vector &v);
+                    vector predict_proba(vector &v);
                     
   };
 //+------------------------------------------------------------------+
@@ -69,7 +66,7 @@ CLogisticRegression::CLogisticRegression(void)
 //+------------------------------------------------------------------+
 //| This is where the logistic model gets trained                    |
 //+------------------------------------------------------------------+
-void CLogisticRegression::fit(matrix &x, vector &y, norm_technique NORM_METHOD, double alpha=0.01, uint epochs=1000, double tol=1e-8)
+void CLogisticRegression::fit(matrix &x, vector &y, double alpha=0.01, uint epochs=1000, double tol=1e-8)
  {
    ulong rows = x.Rows();
    ulong cols = x.Cols();
@@ -79,10 +76,8 @@ void CLogisticRegression::fit(matrix &x, vector &y, norm_technique NORM_METHOD, 
    
 //---
    
-   matrix XMatrix = x;
-   classes = matrix_utils.Unique(y);
+   classes = MatrixExtend::Unique(y);
     
-   norm_x = new CPreprocessing(XMatrix, NORM_METHOD);
     
    ParameterEstimationGrad(x,y, epochs, alpha, tol);
    
@@ -97,8 +92,7 @@ void CLogisticRegression::fit(matrix &x, vector &y, norm_technique NORM_METHOD, 
 //+------------------------------------------------------------------+
 CLogisticRegression::~CLogisticRegression(void)
  {   
-   if (CheckPointer(norm_x) != POINTER_INVALID)  
-      delete (norm_x);
+   
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -118,11 +112,7 @@ vector CLogisticRegression::lnOdss(vector &odds)
 //|                                                                  |
 //+------------------------------------------------------------------+
 double CLogisticRegression::Logit(vector &x)
- {
-  vector temp_x = x;
-  
-  norm_x.Normalization(temp_x);
- 
+ { 
 //---
 
    double sum = 0;
@@ -131,7 +121,7 @@ double CLogisticRegression::Logit(vector &x)
       if (i == 0)
          sum += Betas[i][0];
       else
-         sum += Betas[i][0] * temp_x[i-1]; 
+         sum += Betas[i][0] * x[i-1]; 
    
    return (1.0/(1.0 + exp(-sum))); 
  }
@@ -142,7 +132,7 @@ vector CLogisticRegression::Logit(matrix &x)
  {
    vector v_out(x.Rows());
    
-   vector betas_v = matrix_utils.MatrixToVector(Betas), v;
+   vector betas_v = MatrixExtend::MatrixToVector(Betas), v;
    double sum =0;
    
    for (ulong i=0; i<x.Rows(); i++)
@@ -163,7 +153,7 @@ vector CLogisticRegression::Logit(matrix &x)
 //+------------------------------------------------------------------+
 void CLogisticRegression::ParameterEstimationGrad(matrix &x, vector &y, uint epochs=1000, double alpha=0.01, double tol=1e-8)
  {     
-   matrix XDesignMatrix = matrix_utils.DesignMatrix(x);
+   matrix XDesignMatrix = MatrixExtend::DesignMatrix(x);
    matrix XT = XDesignMatrix.Transpose();
    
    vector P = {}; matrix PA = {}; 
@@ -180,7 +170,7 @@ void CLogisticRegression::ParameterEstimationGrad(matrix &x, vector &y, uint epo
        
        P = Logit(XDesignMatrix);
        
-       PA = matrix_utils.VectorToMatrix(P - y); 
+       PA = MatrixExtend::VectorToMatrix(P - y); 
        
        Betas -= (alpha/(double)x.Rows()) * (XT.MatMul(PA));
        
@@ -210,7 +200,7 @@ int CLogisticRegression::predict(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-vector CLogisticRegression::predictProba(vector &v)
+vector CLogisticRegression::predict_proba(vector &v)
  {
    double p1 = Logit(v);
    vector v_out = {p1, 1-p1};
