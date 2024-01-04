@@ -108,7 +108,7 @@ public:
    template<typename T>
    static void       Randomize(vector<T> &v, int random_state=-1, bool replace=false);
    template<typename T>
-   void              Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false);
+   static void       Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false);
    
    static void       NormalizeVector(vector<double> &v, int digits=3);
    static int        CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
@@ -118,7 +118,7 @@ public:
    static matrix     Get(const matrix &mat, ulong start_index, ulong end_index);
    static vector     Get(const vector &v, ulong start_index, ulong end_index);
    template<typename T>
-   static vector     Sort(vector<T> &v);
+   static vector     Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING);
 
 //--- Others
    
@@ -682,7 +682,7 @@ void MatrixExtend::Randomize(vector<T> &v, int random_state=-1, bool replace=fal
           }
         else
           {
-            v[i] = temp_v[this.MathRandom(0, SIZE)];
+            v[i] = temp_v[MathRandom(0, SIZE)];
           }
       }   
  }
@@ -716,7 +716,7 @@ void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
           }
         else
           {
-            random = this.MathRandom(1, ROWS);  
+            random = MathRandom(1, ROWS);  
             
             temp = temp_m.Row(random-1);                      
             matrix_.Row(temp, i);
@@ -1112,7 +1112,7 @@ vector MatrixExtend::Unique_count(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::Sort(vector<T> &v)
+vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
  {
    T arr[];
    vector temp = v;
@@ -1120,7 +1120,20 @@ vector MatrixExtend::Sort(vector<T> &v)
    
    ArraySort(arr);
    
-   return MatrixExtend::ArrayToVector(arr);
+   switch(sort_mode)
+     {
+      case  SORT_ASCENDING:
+        temp = MatrixExtend::ArrayToVector(arr);  
+        break;
+      case SORT_DESCENDING:
+        temp = MatrixExtend::ArrayToVector(arr);  
+        MatrixExtend::Reverse(temp);
+        break;
+      default:
+        printf("%s Unknown sort model");
+        break;
+     }
+   return temp;   
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
