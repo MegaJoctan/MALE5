@@ -9,16 +9,14 @@
 #include <MALE5\preprocessing.mqh>
 
 //+------------------------------------------------------------------+
-//| defines                                                          |
+//|   A class containing additional matrix manipulation functions    |
 //+------------------------------------------------------------------+
-#ifndef COLS
-   #define  COLS 1
-#endif 
 
 class MatrixExtend
   {
   
 protected:
+
    template<typename T>
    static T          MathRandom(T mini, T maxi);
    static string     CalcTimeElapsed(double seconds);
@@ -36,6 +34,17 @@ public:
                      MatrixExtend(void);
                     ~MatrixExtend(void);
    
+   template<typename T>
+   static int Sign(T var)
+    {
+      if (var<0)
+        return -1;
+      else if (var==0)
+        return 0;
+      else
+        return 1;
+    }
+    
 //--- File Functions
 
    template <typename T>
@@ -62,6 +71,8 @@ public:
    static void       TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    static matrix     DesignMatrix(matrix &x_matrix);              
    static matrix     OneHotEncoding(vector &v);    //ONe hot encoding 
+   static matrix     Sign(matrix &x);
+   static vector     Sign(vector &x);
    
 //--- Detection
 
@@ -110,7 +121,11 @@ public:
    template<typename T>
    static void       Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false);
    
-   static void       NormalizeVector(vector<double> &v, int digits=3);
+   template<typename T>
+   static void       NormalizeDouble_(vector<T> &v, int digits=3);
+   template<typename T>
+   static void       NormalizeDouble_(matrix<T> &mat, int digits=3);
+   
    static int        CopyBufferVector(int handle, int buff_num, int start_pos,int count, vector &v);
    static string     Stringfy(vector &v, int digits = 2);
    static matrix     Zeros(ulong rows, ulong cols) { matrix ret_mat(rows, cols); return(ret_mat.Fill(0.0)); }
@@ -119,6 +134,8 @@ public:
    static vector     Get(const vector &v, ulong start_index, ulong end_index);
    template<typename T>
    static vector     Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING);
+   template<typename T>
+   static vector     ArgSort(vector<T> &v);
 
 //--- Others
    
@@ -1118,7 +1135,8 @@ vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
    vector temp = v;
    temp.Swap(arr);
    
-   ArraySort(arr);
+   if (!ArraySort(arr))
+     printf("%s Failed to sort this vector Err=%d",__FUNCTION__,GetLastError());
    
    switch(sort_mode)
      {
@@ -1130,10 +1148,44 @@ vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
         MatrixExtend::Reverse(temp);
         break;
       default:
-        printf("%s Unknown sort model");
+        printf("%s Unknown sort mode");
         break;
      }
    return temp;   
+ }
+//+------------------------------------------------------------------+
+//| Returns the Sorted Argsuments in either ascending order or       |
+//|  descending order                                                |
+//+------------------------------------------------------------------+
+template<typename T>
+vector MatrixExtend::ArgSort(vector<T> &v)
+ {   
+//---
+
+    ulong size = v.Size();
+    vector args(size);
+    
+    // Initialize args array with sequential values
+    for (ulong i = 0; i < size; i++)
+        args[i] = (int)i;
+
+    // Perform selection sort on args based on array values
+    for (ulong i = 0; i < size - 1; i++)
+    {
+        ulong minIndex = i;
+        for (ulong j = i + 1; j < size; j++)
+        {
+            if (v[(int)args[j]] < v[(int)args[minIndex]])
+                minIndex = j;
+        }
+
+        // Swap args
+        int temp = (int)args[i];
+        args[i] = args[minIndex];
+        args[minIndex] = temp;
+    }
+   
+  return args;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1280,10 +1332,21 @@ matrix MatrixExtend::DBtoMatrix(int db_handle, string table_name,string &column_
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::NormalizeVector(vector<double> &v,int digits=3)
+template<typename T>
+void MatrixExtend::NormalizeDouble_(vector<T> &v,int digits=3)
  {
    for (ulong i=0; i<v.Size(); i++)
-      v[i] = NormalizeDouble(v[i],digits); 
+      v[i] = NormalizeDouble(v[i], digits);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+template<typename T>
+void MatrixExtend::NormalizeDouble_(matrix<T> &mat,int digits=3)
+ {
+   for (ulong i=0; i<mat.Rows(); i++)
+      for (ulong j=0; j<mat.Cols(); j++)
+         mat[i][j] = NormalizeDouble(mat[i][j], digits);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1294,7 +1357,7 @@ void MatrixExtend::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
     for (ulong i=0; i<rows; i++)
      {
         v = matrix_.Row(i);
-        NormalizeVector(v, digits);
+        NormalizeDouble_(v, digits);
         
         Print(v); 
      }
@@ -1427,6 +1490,29 @@ vector MatrixExtend::Get(const vector &v, ulong start_index, ulong end_index)
      ret_vec[count] = v[i];
        
    return ret_vec;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix MatrixExtend::Sign(matrix &x)
+ {
+   matrix ret_matrix = x;
+   
+    for (ulong i=0; i<x.Cols(); i++)
+     ret_matrix.Col(Sign(x.Col(i)) ,i);
+   
+   return ret_matrix;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector MatrixExtend::Sign(vector &x)
+ {
+   vector v(x.Size());
+   for (ulong i=0; i<x.Size(); i++)
+     v[i] = Sign(x[i]);
+     
+  return v;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
