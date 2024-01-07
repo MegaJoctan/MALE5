@@ -8,7 +8,7 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 
 
 #define log2(leaf_value) MathLog(leaf_value) / MathLog(2)
@@ -63,9 +63,7 @@ enum mode {MODE_ENTROPY, MODE_GINI};
 
 class CDecisionTreeClassifier
   {
-protected:
-   
-   CMatrixutils   matrix_utils;   
+protected:  
    
    Node *build_tree(matrix &data, uint curr_depth=0);
    double  calculate_leaf_value(vector &Y);
@@ -152,7 +150,7 @@ void CDecisionTreeClassifier::delete_tree(Node* node)
 //+------------------------------------------------------------------+
 double CDecisionTreeClassifier::gini_index(vector &y)
  {
-   vector unique = matrix_utils.Unique_count(y);
+   vector unique = MatrixExtend::Unique_count(y);
    
    vector probabilities = unique / (double)y.Size();
    
@@ -163,7 +161,7 @@ double CDecisionTreeClassifier::gini_index(vector &y)
 //+------------------------------------------------------------------+
 double CDecisionTreeClassifier::entropy(vector &y)
  {    
-   vector class_labels = matrix_utils.Unique_count(y);
+   vector class_labels = MatrixExtend::Unique_count(y);
      
    vector p_cls = class_labels / double(y.Size());
   
@@ -215,7 +213,7 @@ void CDecisionTreeClassifier::print_tree(Node *tree, string indent=" ",string pa
 //+------------------------------------------------------------------+
 void CDecisionTreeClassifier::fit(matrix &x, vector &y)
  {   
-   matrix data = matrix_utils.concatenate(x, y, 1);
+   matrix data = MatrixExtend::concatenate(x, y, 1);
       
    this.root = this.build_tree(data);
  }
@@ -274,7 +272,7 @@ split_info CDecisionTreeClassifier::get_best_split(const matrix &data, uint num_
    for (int i=0; i<(int)num_features; i++)
      {
        feature_values = data.Col(i);
-       vector possible_thresholds = matrix_utils.Unique(feature_values);
+       vector possible_thresholds = MatrixExtend::Unique(feature_values);
               
         if (possible_thresholds.Size() <= 1)
            continue; // Skip this feature as it won't provide meaningful splits
@@ -321,7 +319,7 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
     matrix X;
     vector Y;
          
-    if (!matrix_utils.XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
+    if (!MatrixExtend::XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
          #ifdef DEBUG_MODE
             printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
@@ -366,8 +364,8 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
 //+------------------------------------------------------------------+
 double CDecisionTreeClassifier::calculate_leaf_value(vector &Y)
  {   
-   vector uniques_count = matrix_utils.Unique_count(Y);
-   vector unique = matrix_utils.Unique(Y);
+   vector uniques_count = MatrixExtend::Unique_count(Y);
+   vector unique = MatrixExtend::Unique(Y);
    
    return unique[uniques_count.ArgMax()];
  }
@@ -498,7 +496,7 @@ split_info CDecisionTreeRegressor::get_best_split(matrix &data, uint num_feature
    for (uint i=0; i<num_features; i++)
      {
        feature_values = data.Col(i);
-       vector possible_thresholds = matrix_utils.Unique(feature_values);
+       vector possible_thresholds = MatrixExtend::Unique(feature_values);
                   
          for (uint j=0; j<possible_thresholds.Size(); j++)
             {              
@@ -540,7 +538,7 @@ Node *CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
     matrix X;
     vector Y;
       
-    if (!matrix_utils.XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
+    if (!MatrixExtend::XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
          #ifdef DEBUG_MODE 
            printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
@@ -582,7 +580,7 @@ Node *CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
 //+------------------------------------------------------------------+
 void CDecisionTreeRegressor::fit(matrix &x, vector &y)
  {
-   matrix data = matrix_utils.concatenate(x, y, 1);
+   matrix data = MatrixExtend::concatenate(x, y, 1);
       
    this.root = this.build_tree(data);
    
