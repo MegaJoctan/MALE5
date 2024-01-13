@@ -336,7 +336,7 @@ bool MinMaxScaler::save(string save_dir,string column_names,bool common_dir=fals
 class RobustScaler
   {
 protected:
-   vector median, quantile_range;
+   vector median, std;
 public:
                      RobustScaler(void);
                     ~RobustScaler(void);
@@ -366,16 +366,16 @@ RobustScaler::~RobustScaler(void)
 matrix RobustScaler::fit_transform(const matrix &X)
  {
   this.median.Resize(X.Cols());
-  this.quantile_range.Resize(X.Cols());
+  this.std.Resize(X.Cols());
   
     for (ulong i=0; i<X.Cols(); i++)
      {
        this.median[i] = X.Col(i).Median();
-       this.quantile_range[i] = X.Col(i).Quantile(1);
+       this.std[i] = MathAbs(X.Col(i) - this.median[i]).Median() * 1.4826;  // 1.4826 is a constant for consistency;
      }
      
    if (MQLInfoInteger(MQL_DEBUG))
-     Print("Median: ",this.median," Quantile: ",this.quantile_range);
+     Print("Median: ",this.median," Quantile: ",this.std);
    
    
 //---
@@ -412,7 +412,7 @@ vector RobustScaler::transform(const vector &X)
      }
      
     for (ulong i=0; i<X.Size(); i++)
-      v[i] = (X[i] - this.median[i]) / (quantile_range[i] + 1e-10); 
+      v[i] = (X[i] - this.median[i]) / (std[i] + 1e-10); 
     
     return v;
  }
@@ -429,7 +429,7 @@ bool RobustScaler::save(string save_dir,string column_names,bool common_dir=fals
 
 //--- save quantile
 
-   m = MatrixExtend::VectorToMatrix(this.quantile_range, this.quantile_range.Size());
+   m = MatrixExtend::VectorToMatrix(this.std, this.std.Size());
    
    return MatrixExtend::WriteCsv(save_dir+"RobustScaler-Median.csv", m, column_names, common_dir,8);
  }
