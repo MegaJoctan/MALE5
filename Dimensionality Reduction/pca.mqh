@@ -28,8 +28,10 @@ CPlots   plt;
 protected:
    uint              m_components;
    criterion         m_criterion;
+   
    matrix            components_matrix;
    vector            mean;   
+   
    uint              n_features;
                      
                      
@@ -42,6 +44,8 @@ public:
                      matrix fit_transform(matrix &X);
                      matrix transform(matrix &X);
                      vector transform(vector &X);
+                     bool save(string dir);
+                     bool load(string dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -63,48 +67,39 @@ CPCA::~CPCA(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 matrix CPCA::fit_transform(matrix &X)
- { 
+ {    
    n_features = (uint)X.Cols();
    
    if (m_components>n_features)
      {
        printf("%s Number of dimensions K[%d] is supposed to be <= number of features %d",__FUNCTION__,m_components,n_features);
        this.m_components = (int)n_features;
+       Print(__LINE__);
      }
 
 //---
-
+   
    this.mean = X.Mean(0);
    
-   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);   
    CDimensionReductionHelpers::ReplaceNaN(X_centered);
    
-   matrix cov_matrix = X_centered.Cov(false);
+   matrix cov_matrix = cova(X_centered, false);
    
    matrix eigen_vectors;
    vector eigen_values;
-   
-   Print("Cov Matrix\n",cov_matrix);
     
    CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
    
    if (!cov_matrix.Eig(eigen_vectors, eigen_values))
      printf("Failed to caculate Eigen matrix and vectors Err=%d",GetLastError());
    
-   Print("Eigenvalues: ",eigen_values);
-   Print("Eigen vectors:\n",eigen_vectors);
-   
 //--- Sort eigenvectors by decreasing eigenvalues
    
    vector args = MatrixExtend::ArgSort(eigen_values); MatrixExtend::Reverse(args);
    
-   Print("sorted indices:\n",args);
-   
    eigen_values = CDimensionReductionHelpers::Sort(eigen_values, args);
    eigen_vectors = CDimensionReductionHelpers::Sort(eigen_vectors, args);
-   
-   Print("Sorted eigen values: ",eigen_values,"\nSorted eigen vectors:\n",eigen_vectors);
-   
 //---
 
    if (MQLInfoInteger(MQL_DEBUG))
@@ -229,6 +224,69 @@ uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
      
    return (k);
  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPCA::save(string dir)
+ { 
+   
+   matrix m = MatrixExtend::VectorToMatrix(this.mean, this.mean.Size());
+   
+   if (!MatrixExtend::WriteCsv(dir+"\\PCA-Mean.csv",m,NULL,false,8))
+     {
+       Print("Failed to Save PCA-Mean information to ",dir);
+       return false;
+     }
+
+//---
+
+   if (!MatrixExtend::WriteCsv(dir+"\\PCA-ComponentsMatrix.csv",this.components_matrix,NULL,false,8))
+     {
+       Print("Failed to Save PCA-ComponentsMatrix information to ",dir);
+       return false;
+     }
+     
+   return true;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CPCA::load(string dir)
+ {
+   string header;
+   matrix m = MatrixExtend::ReadCsv(dir+"\\PCA-Mean.csv",header);
+   
+   if (m.Rows()==0)
+     return false;
+     
+   this.mean = MatrixExtend::MatrixToVector(m);
+   
+//---
+   
+   this.components_matrix = MatrixExtend::ReadCsv(dir+"\\PCA-ComponentsMatrix.csv",header);
+   
+   if (components_matrix.Rows()==0)
+     return false;
+     
+   return true;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+matrix cova(matrix &data, bool row_var=true)
+  {
+    if (row_var)
+        data = data.Transpose();  // Transpose if each row represents a data point
+
+    // Step 1: Center the data
+    matrix centered_data = CDimensionReductionHelpers::subtract(data, data.Mean(0));
+
+    // Step 2: Calculate the covariance matrix
+    matrix covariance_matrix = centered_data.Transpose().MatMul(centered_data) / (data.Rows() - 1);
+
+    return covariance_matrix;
+  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
