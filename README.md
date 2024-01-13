@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-English | <a href="docs/README_russian.md">Russian</a> 
+English | <a href="README_russian.md">Russian</a> 
 </p>
 
 ## About the Project
