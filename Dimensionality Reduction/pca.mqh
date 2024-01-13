@@ -107,6 +107,8 @@ matrix CPCA::fit_transform(matrix &X)
       
    if (m_components==0)
      m_components = this.extract_components(eigen_values);
+   else
+     this.extract_components(eigen_values);
    
    if (MQLInfoInteger(MQL_DEBUG)) 
      printf("%s Selected components %d",__FUNCTION__,m_components);
@@ -201,6 +203,8 @@ uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
           
           //matrix_utils.Sort(vars); //Make sure they are in ascending first order
           //matrix_utils.Reverse(vars);  //Set them to descending order
+          
+          Print(__LINE__);
           
           plt.ScatterCurvePlots("Scree plot",v_cols,vars,"EigenValue","PCA","EigenValue");
 
