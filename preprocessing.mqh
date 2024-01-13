@@ -129,6 +129,7 @@ public:
                     matrix transform(const matrix &X);
                     vector transform(const vector &X);
                     bool save(string save_dir, string column_names, bool common_dir=false);
+                    bool load(string dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -181,7 +182,7 @@ vector StandardizationScaler::transform(const vector &X)
    vector v(X.Size());
    if (this.mean.Size()==0 || this.std.Size()==0)
      {
-       printf("%s Call the fit_transform function fist before attempting to transform the new data",__FUNCTION__);
+       printf("%s Call the fit_transform function fist to fit the scaler or\n the load function to load the pre-fitted scalerbefore attempting to transform the new data",__FUNCTION__);
        return v;
      }
    
@@ -205,15 +206,45 @@ bool StandardizationScaler::save(string save_dir, string column_names, bool comm
 
    matrix m = MatrixExtend::VectorToMatrix(this.mean, this.mean.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"StandardizationScaler-Mean.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Mean.csv", m, column_names, common_dir,8);
    
 //--- save std
 
    m = MatrixExtend::VectorToMatrix(this.std, this.mean.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"StandardizationScaler-Std.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Std.csv", m, column_names, common_dir,8);
  }
- 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool StandardizationScaler::load(string dir)
+ {  
+    Print("Loading StandardizationScaler from ",dir);
+    
+    string headers;
+    matrix m = MatrixExtend::ReadCsv(dir+"\\StandardizationScaler-Mean.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+    
+    mean = MatrixExtend::MatrixToVector(m);
+    
+    m = MatrixExtend::ReadCsv(dir+"\\StandardizationScaler-Std.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+      
+    std = MatrixExtend::MatrixToVector(m);
+    
+    Print("Scaler Loaded for data: ",headers);
+    if (MQLInfoInteger(MQL_DEBUG))
+      {
+         Print("Mean : ",this.mean);
+         Print("Std  : ",this.std);
+      }
+    
+   return true;
+ }
  
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -236,6 +267,7 @@ public:
                     matrix transform(const matrix &X);
                     vector transform(const vector &X);
                     bool save(string save_dir, string column_names, bool common_dir=false);
+                    bool load(string dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -280,7 +312,7 @@ vector MinMaxScaler::transform(const vector &X)
    vector v(X.Size());
    if (this.min.Size()==0 || this.max.Size()==0)
      {
-       printf("%s Call the fit_transform function fist before attempting to transform the new data",__FUNCTION__);
+       printf("%s Call the fit_transform function fist to fit the scaler or\n the load function to load the pre-fitted scalerbefore attempting to transform the new data",__FUNCTION__);
        return v;
      }
    
@@ -316,13 +348,44 @@ bool MinMaxScaler::save(string save_dir,string column_names,bool common_dir=fals
 
    matrix m = MatrixExtend::VectorToMatrix(this.min, this.min.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"MinMaxScaler-Min.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Min.csv", m, column_names, common_dir,8);
    
 //--- save max
 
    m = MatrixExtend::VectorToMatrix(this.max, this.max.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"MinMaxScaler-Max.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Max.csv", m, column_names, common_dir,8);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool MinMaxScaler::load(string dir)
+ {  
+    Print("Loading MinMaxScaler from ",dir);
+    
+    string headers;
+    matrix m = MatrixExtend::ReadCsv(dir+"\\MinMaxScaler-Min.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+    
+    min = MatrixExtend::MatrixToVector(m);
+    
+    m = MatrixExtend::ReadCsv(dir+"\\MinMaxScaler-Max.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+      
+    max = MatrixExtend::MatrixToVector(m);
+    
+    Print("Scaler Loaded for data: ",headers);
+    if (MQLInfoInteger(MQL_DEBUG))
+      {
+         Print("min : ",this.min);
+         Print("max : ",this.max);
+      }
+    
+   return true;
  }
  
 //+------------------------------------------------------------------+
@@ -345,6 +408,7 @@ public:
                     matrix transform(const matrix &X);
                     vector transform(const vector &X);
                     bool save(string save_dir, string column_names, bool common_dir=false);
+                    bool load(string dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -401,7 +465,7 @@ vector RobustScaler::transform(const vector &X)
    vector v(X.Size());
    if (this.median.Size()==0)
      {
-       printf("%s Call the fit_transform function fist before attempting to transform the new data",__FUNCTION__);
+       printf("%s Call the fit_transform function fist to fit the scaler or\n the load function to load the pre-fitted scalerbefore attempting to transform the new data",__FUNCTION__);
        return v;
      }
    
@@ -425,13 +489,44 @@ bool RobustScaler::save(string save_dir,string column_names,bool common_dir=fals
 
    matrix m = MatrixExtend::VectorToMatrix(this.median, this.median.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"RobustScaler-Median.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-Median.csv", m, column_names, common_dir,8);
 
 //--- save quantile
 
    m = MatrixExtend::VectorToMatrix(this.std, this.std.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"RobustScaler-Median.csv", m, column_names, common_dir,8);
+   return MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-std.csv", m, column_names, common_dir,8);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool RobustScaler::load(string dir)
+ {  
+    Print("Loading RobustScaler from ",dir);
+    
+    string headers;
+    matrix m = MatrixExtend::ReadCsv(dir+"\\RobustScaler-Median.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+    
+    median = MatrixExtend::MatrixToVector(m);
+    
+    m = MatrixExtend::ReadCsv(dir+"\\RobustScaler-Std.csv", headers); 
+    
+    if (m.Rows()==0)
+      return false;
+      
+    std = MatrixExtend::MatrixToVector(m);
+    
+    Print("Scaler Loaded for data: ",headers);
+    if (MQLInfoInteger(MQL_DEBUG))
+      {
+         Print("Median: ",this.median);
+         Print("S t d : ",this.std);
+      }
+    
+   return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
