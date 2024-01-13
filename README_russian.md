@@ -10,11 +10,11 @@
 
 <p align="center">
   <a href="https://github.com/MegaJoctan/MALE5/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/MegaJoctan/MALE5?color=%2334D058&label=Версия" alt="Version">
+    <img src="https://img.shields.io/github/v/release/MegaJoctan/MALE5?color=%2334D058&label=Version" alt="Version">
   </a>
 
   <a href="https://github.com/MegaJoctan/MALE5/stargazers">
-    <img src="https://img.shields.io/github/stars/MegaJoctan/MALE5?color=brightgreen&label=Звезды" alt="Stars"/>
+    <img src="https://img.shields.io/github/stars/MegaJoctan/MALE5?color=brightgreen&label=Stars" alt="Stars"/>
   </a>
 
   <a href="https://github.com/MegaJoctan/MALE5/blob/main/LICENSE">
