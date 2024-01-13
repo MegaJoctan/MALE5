@@ -363,9 +363,9 @@ template <typename T>
 bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="", bool common=false, int digits=5)
   {
    FileDelete(csv_name);
-   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8);
+   int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_IS_WRITABLE),",",CP_UTF8);
    
-   if (header_string == "")
+   if (header_string == "" || header_string == NULL)
      for (ulong i=0; i<matrix_.Cols(); i++)
        header_string += "None"+ (i==matrix_.Cols()-1?"":","); 
 
