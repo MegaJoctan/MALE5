@@ -41,6 +41,7 @@ public:
                     
                      matrix fit_transform(matrix &X);
                      matrix transform(matrix &X);
+                     vector transform(vector &X);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -75,10 +76,10 @@ matrix CPCA::fit_transform(matrix &X)
 
    this.mean = X.Mean(0);
    
-   matrix standardized_data = CDimensionReductionHelpers::subtract(X, this.mean);
-   CDimensionReductionHelpers::ReplaceNaN(standardized_data);
+   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+   CDimensionReductionHelpers::ReplaceNaN(X_centered);
    
-   matrix cov_matrix = standardized_data.Cov(false);
+   matrix cov_matrix = X_centered.Cov(false);
    
    matrix eigen_vectors;
    vector eigen_values;
@@ -90,10 +91,24 @@ matrix CPCA::fit_transform(matrix &X)
    if (!cov_matrix.Eig(eigen_vectors, eigen_values))
      printf("Failed to caculate Eigen matrix and vectors Err=%d",GetLastError());
    
+   Print("Eigenvalues: ",eigen_values);
+   Print("Eigen vectors:\n",eigen_vectors);
+   
 //--- Sort eigenvectors by decreasing eigenvalues
    
-   eigen_values = MatrixExtend::Sort(eigen_values); //Sort ascending
-   MatrixExtend::Reverse(eigen_values); //Reverse the order
+   vector args = MatrixExtend::ArgSort(eigen_values); MatrixExtend::Reverse(args);
+   
+   Print("sorted indices:\n",args);
+   
+   eigen_values = CDimensionReductionHelpers::Sort(eigen_values, args);
+   eigen_vectors = CDimensionReductionHelpers::Sort(eigen_vectors, args);
+   
+   Print("Sorted eigen values: ",eigen_values,"\nSorted eigen vectors:\n",eigen_vectors);
+   
+//---
+
+   if (MQLInfoInteger(MQL_DEBUG))
+      Print("Eigen values: ",eigen_values);
       
    if (m_components==0)
      m_components = this.extract_components(eigen_values);
@@ -102,13 +117,17 @@ matrix CPCA::fit_transform(matrix &X)
      printf("%s Selected components %d",__FUNCTION__,m_components);
    
    this.components_matrix = CDimensionReductionHelpers::Slice(eigen_vectors, m_components, 1); //Get the components matrix
+   //MatrixExtend::NormalizeDouble_(this.components_matrix, 5);
+   //this.components_matrix = scaler.fit_transform(this.components_matrix.Transpose()); //Normalize components matrix
+   
+   this.components_matrix = this.components_matrix.Transpose();
    
    if (MQLInfoInteger(MQL_DEBUG))
      Print("components_matrix\n",components_matrix);
    
 //---
       
-   return standardized_data.MatMul(components_matrix); //return the pca scores
+   return X_centered.MatMul(components_matrix.Transpose()); //return the pca scores
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -121,9 +140,19 @@ matrix CPCA::transform(matrix &X)
        this.m_components = n_features;
      }
      
-   matrix standardized_data = CDimensionReductionHelpers::subtract(X, this.mean);
-  
-   return standardized_data.MatMul(this.components_matrix); //return the pca scores
+   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+
+   return X_centered.MatMul(this.components_matrix.Transpose()); //return the pca scores
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CPCA::transform(vector &X)
+ {
+   matrix INPUT_MAT = MatrixExtend::VectorToMatrix(X, X.Size());
+   matrix OUTPUT_MAT = transform(INPUT_MAT);
+      
+   return MatrixExtend::MatrixToVector(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|   Select the number of components based on some criterion        |
@@ -131,9 +160,6 @@ matrix CPCA::transform(matrix &X)
 uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
  {
   uint k = 0;
-  
-  if (MQLInfoInteger(MQL_DEBUG))
-    Print("EigenValues: ",eigen_values);
   
    vector eigen_pow = MathPow(eigen_values, 2);
    vector cum_sum = eigen_pow.CumSum();
@@ -188,17 +214,14 @@ uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
              warn += "\nTo apply the same number of k components to the PCA from the scree plot\nCall the PCA model again with that value applied from the plot\n";
       
          Print(warn);
+        
+        //--- Kaiser
+        
+           vector v(eigen_values.Size()); v.Fill(0.0);
+            for (ulong i=0; i<eigen_values.Size(); i++)
+              v[i] = (eigen_values[i] >= 1);
             
-          vector cumulative_variance = cum_sum / sum;
-         
-          if (MQLInfoInteger(MQL_DEBUG))
-            Print("Cummulative variance: ",cumulative_variance);
-             
-            vector v(cumulative_variance.Size());  v.Fill(0.0);
-            for (ulong i=0; i<v.Size(); i++)
-              v[i] = (cumulative_variance[i] >= threshold);
-            
-            k = (uint)v.ArgMax() + 1;
+            k = uint(v.Sum());
         }          
            
         break;
