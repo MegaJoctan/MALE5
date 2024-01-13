@@ -59,22 +59,23 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
        printf("%s Number of dimensions K[%d] is supposed to be <= number of features %d",__FUNCTION__,m_components,n_features);
        this.m_components = (uint)n_features;
      }
-   
+     
+//--- Center the data (subtract mean)
+
     this.mean = X.Mean(0);
-    
-    // Center the data (subtract mean)
     matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
     
-    // Compute the covariance matrix
+//--- Compute the covariance matrix
    
     CDimensionReductionHelpers::ReplaceNaN(X_centered);
     matrix cov_matrix = X_centered.Cov(false);
     
-    CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
-    
-   // Perform SVD on the covariance matrix
+//---  Perform SVD on the covariance matrix
+
     matrix U={}, Vt={};
     vector Sigma={};
+    
+    CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
     
     if (!cov_matrix.SVD(U,Vt,Sigma))
        Print(__FUNCTION__," Line ",__LINE__," Failed to calculate SVD Err=",GetLastError());    
@@ -115,10 +116,10 @@ matrix CTruncatedSVD::transform(matrix &X)
 //+------------------------------------------------------------------+
 vector CTruncatedSVD::transform(vector &X)
  {
-   matrix INPUT_MAT = CMatrixutils::VectorToMatrix(X, X.Size());
+   matrix INPUT_MAT = MatrixExtend::VectorToMatrix(X, X.Size());
    matrix OUTPUT_MAT = transform(INPUT_MAT);
       
-   return CMatrixutils::MatrixToVector(OUTPUT_MAT);
+   return MatrixExtend::MatrixToVector(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
