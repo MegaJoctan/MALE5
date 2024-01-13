@@ -8,7 +8,7 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 
 class CNMF
   {
@@ -17,8 +17,8 @@ protected:
    uint m_max_iter;
    int m_randseed;
    ulong n_features;
-   matrix W_;
-   matrix H_;
+   matrix W; //Basic matrix
+   matrix H; //coefficient matrix
    double m_tol; //loss tolerance
    
 public:
@@ -27,6 +27,7 @@ public:
                     
                     matrix fit_transform(matrix &X, uint k=2);
                     matrix transform(matrix &X);
+                    vector transform(vector &X);
                     uint select_best_components(matrix &X);
                     
   };
@@ -59,14 +60,24 @@ matrix CNMF::transform(matrix &X)
        this.m_components = (uint)n_features;
      }
      
-  if (this.W_.Rows()==0 || this.H_.Rows()==0)
+  if (this.W.Rows()==0 || this.H.Rows()==0)
     {
       Print(__FUNCTION__," Model not fitted. Call fit method first.");
       matrix mat={};
       return mat;
     }
   
-  return X.MatMul(this.H_.Transpose());
+  return X.MatMul(this.H.Transpose());
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CNMF::transform(vector &X)
+ {
+   matrix INPUT_MAT = MatrixExtend::VectorToMatrix(X, X.Size());
+   matrix OUTPUT_MAT = transform(INPUT_MAT);
+   
+   return MatrixExtend::MatrixToVector(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -78,8 +89,10 @@ matrix CNMF::fit_transform(matrix &X, uint k=2)
   
    m_components = m_components == 0 ? (uint)n : k;      
    
-   this.W_ = CMatrixutils::Random(0,1, m, this.m_components, this.m_randseed);
-   this.H_ = CMatrixutils::Random(0,1,this.m_components, n, this.m_randseed);
+//--- Initialize Random values 
+
+   this.W = MatrixExtend::Random(0,1, m, this.m_components, this.m_randseed);  
+   this.H = MatrixExtend::Random(0,1,this.m_components, n, this.m_randseed);
    
 //--- Update factors
       
@@ -87,26 +100,25 @@ matrix CNMF::fit_transform(matrix &X, uint k=2)
     for (uint i=0; i<this.m_max_iter; i++)
       {
         // Update W
-         this.W_ *= MathAbs((X.MatMul(this.H_.Transpose())) / (this.W_.MatMul(this.H_.MatMul(this.H_.Transpose()))+ 1e-10));
+         this.W *= MathAbs((X.MatMul(this.H.Transpose())) / (this.W.MatMul(this.H.MatMul(this.H.Transpose()))+ 1e-10));
          
         // Update H
-         this.H_ *= MathAbs((this.W_.Transpose().MatMul(X)) / (this.W_.Transpose().MatMul(this.W_.MatMul(this.H_))+ 1e-10));
+         this.H *= MathAbs((this.W.Transpose().MatMul(X)) / (this.W.Transpose().MatMul(this.W.MatMul(this.H))+ 1e-10));
          
-         loss[i] = MathPow((X - W_.MatMul(H_)).Flat(1), 2);
+         loss[i] = MathPow((X - W.MatMul(H)).Flat(1), 2);
                     
          // Calculate Frobenius norm of the difference
-         
-          double frobenius_norm = (X - W_.MatMul(H_)).Norm(MATRIX_NORM_FROBENIUS);
+        double frobenius_norm = (X - W.MatMul(H)).Norm(MATRIX_NORM_FROBENIUS);
 
-         //if (MQLInfoInteger(MQL_DEBUG))
-         //  printf("%s [%d/%d] Loss = %.5f frobenius norm %.5f",__FUNCTION__,i+1,m_max_iter,loss[i],frobenius_norm);
+         if (MQLInfoInteger(MQL_DEBUG))
+           printf("%s [%d/%d] Loss = %.5f frobenius norm %.5f",__FUNCTION__,i+1,m_max_iter,loss[i],frobenius_norm);
          
-          // heck convergence
+          // Check convergence
           if (frobenius_norm < this.m_tol)
               break;
       }
   
-  return this.W_.MatMul(this.H_); 
+  return this.W.MatMul(this.H); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
