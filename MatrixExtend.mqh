@@ -880,38 +880,30 @@ void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
 //+------------------------------------------------------------------+
 vector MatrixExtend::Unique(vector &v)
  {
-   vector temp_t = v, v_classes = {v[0]};
+   vector v_classes(1);
 
-   for(ulong i=0, count =1; i<v.Size(); i++)  //counting the different neighbors
-     {
-      for(ulong j=0; j<v.Size(); j++)
-        {
-         if(v[i] == temp_t[j] && temp_t[j] != -DBL_MAX)
+   for (ulong i = 0, count=0; i < v.Size(); i++) 
+    {
+      bool alreadyCounted = false;
+
+      for (ulong j = 0; j < v_classes.Size(); j++) 
+       {
+         if (v[i] == v_classes[j] && v[i] != -DBL_MAX) 
            {
-            bool count_ready = false;
-
-            for(ulong n=0; n<v_classes.Size(); n++)
-               if(v[i] == v_classes[n])
-                    count_ready = true;
-
-            if(!count_ready)
-              {
-               count++;
-               v_classes.Resize(count);
-
-               v_classes[count-1] = v[i];
-               //Print("v_classes ",v_classes);
-
-               temp_t[j] = -DBL_MAX; //modify so that it can no more be counted
-              }
-            else
-               break;
-            //Print("t vectors vector ",v);
+             alreadyCounted = true;
+             v[i] = -DBL_MAX;
            }
-         else
-            continue;
-        }
-     } 
+      }
+
+     if (!alreadyCounted) 
+       {
+         count++;
+         v_classes.Resize(count);
+         
+         v_classes[count-1] = v[i];
+       }
+    }
+ 
    return MatrixExtend::Sort(v_classes); //Sort the unique values in ascending order
  }
 //+------------------------------------------------------------------+
