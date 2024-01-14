@@ -262,6 +262,7 @@ bool CPCA::load(string dir)
      return false;
      
    this.mean = MatrixExtend::MatrixToVector(m);
+   this.n_features = (uint)this.mean.Size();
    
 //---
    
