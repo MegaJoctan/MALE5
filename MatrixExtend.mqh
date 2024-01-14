@@ -880,7 +880,7 @@ void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
 //+------------------------------------------------------------------+
 vector MatrixExtend::Unique(vector &v)
  {
-   vector v_classes(1);
+   vector v_classes={v[0]};
 
    for (ulong i = 0, count=0; i < v.Size(); i++) 
     {
@@ -888,7 +888,7 @@ vector MatrixExtend::Unique(vector &v)
 
       for (ulong j = 0; j < v_classes.Size(); j++) 
        {
-         if (v[i] == v_classes[j] && v[i] != -DBL_MAX) 
+         if (v[i] == v_classes[j] && v[i] != -DBL_MAX && i!=0) 
            {
              alreadyCounted = true;
              v[i] = -DBL_MAX;
