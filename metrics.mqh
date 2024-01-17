@@ -220,7 +220,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
 
    for(ulong i = 0; i < classes.Size(); i++)
      {
-      confusion_mat.f1_score[i] = 2 * ((confusion_mat.precision[i] * confusion_mat.recall[i]) / (confusion_mat.precision[i] + confusion_mat.recall[i]));
+      confusion_mat.f1_score[i] = 2 * ((confusion_mat.precision[i] * confusion_mat.recall[i]) / (confusion_mat.precision[i] + confusion_mat.recall[i]+ 1e-10));
 
       value = confusion_mat.f1_score[i];
 
