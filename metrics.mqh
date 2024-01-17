@@ -166,7 +166,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
       TP = (ulong)diag[i];
       FP = (ulong)col_v.Sum();
 
-      value = TP / double(TP + FP);
+      value = TP / double(TP + FP + 1e-10);
 
       confusion_mat.precision[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
      }
@@ -184,7 +184,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
       TP = (ulong)diag[i];
       FN = (ulong)row_v.Sum();
 
-      value = TP / double(TP + FN);
+      value = TP / double(TP + FN + 1e-10);
 
       confusion_mat.recall[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
      }
@@ -209,7 +209,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
       FP = (ulong)col_v.Sum();
       TN = (ulong)temp_mat.Sum();
 
-      value = TN / double(TN + FP);
+      value = TN / double(TN + FP + 1e-10);
 
       confusion_mat.specificity[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
      }
