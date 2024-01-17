@@ -52,7 +52,7 @@ public:
 
    //--- Classification metrics
 
-   double accuracy_score(vector &True, vector &Pred);
+   static double accuracy_score(vector &True, vector &Pred);
    static confusion_matrix_struct confusion_matrix(vector &True, vector &Pred, bool report_show = true);
   };
 //+------------------------------------------------------------------+
@@ -322,7 +322,7 @@ double Metrics::mse(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 double Metrics::accuracy_score(vector &True, vector &Pred)
   {
-   return this.confusion_matrix(True, Pred, false).accuracy;
+   return confusion_matrix(True, Pred, false).accuracy;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
