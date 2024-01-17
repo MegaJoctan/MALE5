@@ -20,7 +20,6 @@ enum errors_classifier
   
 class CRandomForestClassifier
   {
-CMetrics metrics;
 
 protected:
    uint  m_ntrees;
@@ -28,7 +27,6 @@ protected:
    uint  m_minsplit;
    int   m_random_state;
    
-   CMatrixutils matrix_utils;
    CDecisionTreeClassifier *forest[];
    string ConvertTime(double seconds);
    double err_metric(errors_classifier err, vector &actual, vector &preds);
@@ -69,7 +67,7 @@ void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true, error
  {
   matrix x_subset;
   vector y_subset;
-  matrix data = this.matrix_utils.concatenate(x, y, 1);
+  matrix data = MatrixExtend::concatenate(x, y, 1);
   matrix temp_data = data;
   vector preds;
   
@@ -82,9 +80,9 @@ void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true, error
        time_start = GetTickCount();
        
        temp_data = data;
-       matrix_utils.Randomize(temp_data, m_random_state, replace); //Get randomized subsets
+       MatrixExtend::Randomize(temp_data, m_random_state, replace); //Get randomized subsets
        
-       if (!this.matrix_utils.XandYSplitMatrices(temp_data, x_subset, y_subset)) //split the random subset into x and y subsets
+       if (!MatrixExtend::XandYSplitMatrices(temp_data, x_subset, y_subset)) //split the random subset into x and y subsets
          {
             ArrayRemove(forest,i,1); //Delete the invalid tree in a forest
             printf("%s %d Failed to split data for a tree ",__FUNCTION__,__LINE__);
@@ -114,9 +112,9 @@ double CRandomForestClassifier::predict(vector &x)
     for (uint i=0; i<this.m_ntrees; i++) //all trees make the predictions
       predictions[i] = forest[i].predict(x);
       
-   vector uniques = matrix_utils.Unique(predictions);   
+   vector uniques = MatrixExtend::Unique(predictions);   
    
-   return uniques[matrix_utils.Unique_count(predictions).ArgMax()]; //select the majority decision
+   return uniques[MatrixExtend::Unique_count(predictions).ArgMax()]; //select the majority decision
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -164,7 +162,7 @@ string CRandomForestClassifier::ConvertTime(double seconds)
 //+------------------------------------------------------------------+
 double CRandomForestClassifier::err_metric(errors_classifier err, vector &actual, vector &preds)
  {
-   return metrics.accuracy_score(actual, preds);
+   return Metrics::accuracy_score(actual, preds);
  }
 
 //+------------------------------------------------------------------+
@@ -187,15 +185,12 @@ enum errors_regressor
   
 class CRandomForestRegressor
   {
-CMetrics metrics;
-
 private:
    uint  m_ntrees;
    uint  m_maxdepth;
    uint  m_minsplit;
    int   m_random_state;
    
-   CMatrixutils matrix_utils;
    CDecisionTreeRegressor *forest[];
    
    string ConvertTime(double seconds);
@@ -266,7 +261,7 @@ void CRandomForestRegressor::fit(matrix &x, vector &y, bool replace=true, errors
  {
   matrix x_subset;
   vector y_subset;
-  matrix data = this.matrix_utils.concatenate(x, y, 1);
+  matrix data = MatrixExtend::concatenate(x, y, 1);
   matrix temp_data = data;
   
   vector preds;
@@ -279,9 +274,9 @@ void CRandomForestRegressor::fit(matrix &x, vector &y, bool replace=true, errors
        time_start = GetTickCount();
        
        temp_data = data;
-       matrix_utils.Randomize(temp_data, m_random_state, replace);
+       MatrixExtend::Randomize(temp_data, m_random_state, replace);
        
-       if (!this.matrix_utils.XandYSplitMatrices(temp_data, x_subset, y_subset)) //Get randomized subsets
+       if (!MatrixExtend::XandYSplitMatrices(temp_data, x_subset, y_subset)) //Get randomized subsets
          {  
             ArrayRemove(forest,i,1); //Delete the invalid tree in a forest
             printf("%s %d Failed to split data for a tree ",__FUNCTION__,__LINE__);
@@ -332,10 +327,10 @@ double CRandomForestRegressor::err_metric(errors_regressor err,vector &actual,ve
    switch(err)
      {
       case ERR_R2_SCORE:
-        acc = metrics.r_squared(actual, preds);
+        acc = Metrics::r_squared(actual, preds);
         break;
       case ERR_ADJUSTED_R:
-        acc = metrics.adjusted_r(actual, preds);
+        acc = Metrics::adjusted_r(actual, preds);
         break; 
      }
      
