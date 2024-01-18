@@ -80,9 +80,6 @@ void CLogisticRegression::fit(matrix &x, vector &y)
    
    istrained = true;
    
-   if (MQLInfoInteger(MQL_DEBUG))
-      printf("x[%dx%d] w[%dx%d]",x.Rows(),x.Cols(),weights.Rows(),weights.Cols());
-   
    double prev_cost = -DBL_MAX, cost =0;
    for (ulong i=0; i<m_epochs; i++)
      { 
@@ -97,7 +94,7 @@ void CLogisticRegression::fit(matrix &x, vector &y)
        
        cost = Metrics::mse(y, preds);
        
-       printf("[%d/%d] mse %.5f",i+1,m_epochs, cost);
+       printf("---> Logistic regression build [%d/%d] mse %.5f",i+1,m_epochs, cost);
        
        this.weights -= this.m_alpha * dw;
        this.bias -= this.bias * db;
