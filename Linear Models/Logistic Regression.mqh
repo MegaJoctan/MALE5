@@ -94,7 +94,7 @@ void CLogisticRegression::fit(matrix &x, vector &y)
        
        cost = Metrics::mse(y, preds);
        
-       printf("---> Logistic regression build [%d/%d] mse %.5f",i+1,m_epochs, cost);
+       printf("---> Logistic regression build epoch [%d/%d] mse %.5f",i+1,m_epochs, cost);
        
        this.weights -= this.m_alpha * dw;
        this.bias -= this.bias * db;
