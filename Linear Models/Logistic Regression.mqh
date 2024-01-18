@@ -19,7 +19,7 @@ class CLogisticRegression
   {
 private:
                     
-                    vector classes;
+                    vector classes_in_data;
                     
                      bool istrained;          
                      bool checkIsTrained(string func)
@@ -32,60 +32,84 @@ private:
                          return (true);
                        }
                     
-                    double Logit(vector &x);
-                    vector Logit(matrix &x); //Logitstic loss function for training 
-
-                    void ParameterEstimationGrad(matrix &x, vector &y, uint epochs=1000, double alpha=0.01, double tol=1e-8);
+                    matrix weights;
+                    double bias;
                     
-                    matrix Betas;
-                                        
-                    vector Odds(vector &proba);
-                    vector lnOdss(vector &odds);
-
+                  //---
+                    
+                    uint m_epochs;
+                    double m_alpha;
+                    double m_tol;
                     
 public:
-                     CLogisticRegression(void);
+                     CLogisticRegression(uint epochs=10, double alpha=0.01, double tol=1e-8);
                     ~CLogisticRegression(void);
                     
        
-                    void fit(matrix &x, vector &y, double alpha=0.01, uint epochs=1000, double tol=1e-8);        
+                    void fit(matrix &x, vector &y);        
                          
-                    int    predict(vector &v);
-                    vector predict(matrix &mat);
-                    vector predict_proba(vector &v);
+                    int    predict(vector &x);
+                    vector predict(matrix &x);
+                    double predict_proba(vector &x);
+                    vector predict_proba(matrix &x);
                     
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLogisticRegression::CLogisticRegression(void)
- :istrained(false)
+CLogisticRegression::CLogisticRegression(uint epochs=10, double alpha=0.01, double tol=1e-8)
+ :istrained(false),
+  m_epochs(epochs),
+  m_alpha(alpha),
+  m_tol(tol)
  {
  
  }
 //+------------------------------------------------------------------+
 //| This is where the logistic model gets trained                    |
 //+------------------------------------------------------------------+
-void CLogisticRegression::fit(matrix &x, vector &y, double alpha=0.01, uint epochs=1000, double tol=1e-8)
+void CLogisticRegression::fit(matrix &x, vector &y)
  {
-   ulong rows = x.Rows();
-   ulong cols = x.Cols();
-
-   Betas.Resize(cols+1, 1);
-   Betas.Fill(0);
+   ulong m = x.Rows(), n = x.Cols();
    
-//---
+   this.weights = MatrixExtend::Random(-1,1,n,1,42);
    
-   classes = MatrixExtend::Unique(y);
-    
-    
-   ParameterEstimationGrad(x,y, epochs, alpha, tol);
+   matrix dw; //derivative wrt weights & 
+   double db; //bias respectively
+   vector preds;
    
-//---
-      
-   #ifdef DEBUG_MODE
-      Print("Betas\n",Betas);
-   #endif 
+   istrained = true;
+   
+   if (MQLInfoInteger(MQL_DEBUG))
+      printf("x[%dx%d] w[%dx%d]",x.Rows(),x.Cols(),weights.Rows(),weights.Cols());
+   
+   double prev_cost = -DBL_MAX, cost =0;
+   for (ulong i=0; i<m_epochs; i++)
+     { 
+       preds = this.predict_proba(x);    
+       
+       //-- Computing gradient(s)
+       
+       matrix error = MatrixExtend::VectorToMatrix(preds - y);
+       
+       dw = (1/(double)m) * x.Transpose().MatMul(error);
+       db = (1/(double)m) * (preds - y).Sum();
+       
+       cost = Metrics::mse(y, preds);
+       
+       printf("[%d/%d] mse %.5f",i+1,m_epochs, cost);
+       
+       this.weights -= this.m_alpha * dw;
+       this.bias -= this.bias * db;
+       
+       if (MathAbs(prev_cost - cost) < this.m_tol)
+        {
+          Print("Converged!!!");
+          break;
+        }
+       
+       prev_cost = cost;
+     }
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -97,130 +121,66 @@ CLogisticRegression::~CLogisticRegression(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CLogisticRegression::Odds(vector &proba)
+int CLogisticRegression::predict(vector &x)
  {
-   return (proba/(1-proba)); 
+   if (!checkIsTrained(__FUNCTION__))
+    return 0;
+   
+   matrix x_mat = MatrixExtend::VectorToMatrix(x, x.Size());
+   
+   matrix preds = (x_mat.MatMul(this.weights) + this.bias);
+   
+   preds.Activation(preds, AF_HARD_SIGMOID);
+   
+   if (preds.Rows()>1)
+    {
+      printf("%s The outcome from a sigmoid must be a scalar value",__FUNCTION__);
+      return 0;
+    }
+   return (int)(preds[0][0]>=0.5);   
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CLogisticRegression::lnOdss(vector &odds)
+vector CLogisticRegression::predict(matrix &x)
  {
-   return (log(odds)); 
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-double CLogisticRegression::Logit(vector &x)
- { 
-//---
-
-   double sum = 0;
-   
-   for (ulong i=0; i<Betas.Rows(); i++)
-      if (i == 0)
-         sum += Betas[i][0];
-      else
-         sum += Betas[i][0] * x[i-1]; 
-   
-   return (1.0/(1.0 + exp(-sum))); 
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-vector CLogisticRegression::Logit(matrix &x)
- {
-   vector v_out(x.Rows());
-   
-   vector betas_v = MatrixExtend::MatrixToVector(Betas), v;
-   double sum =0;
-   
+   vector v(x.Rows());
    for (ulong i=0; i<x.Rows(); i++)
-     {
-        v = x.Row(i);
-        
-        sum = 0;
-        for (ulong j=0; j<betas_v.Size(); j++)
-           sum += betas_v[j] * v[j];
-                
-        v_out[i] = 1.0/(1.0 + exp(-sum));
-     }
-     
-   return (v_out);
+      v[i] = this.predict(x.Row(i));
+      
+   return v;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CLogisticRegression::ParameterEstimationGrad(matrix &x, vector &y, uint epochs=1000, double alpha=0.01, double tol=1e-8)
- {     
-   matrix XDesignMatrix = MatrixExtend::DesignMatrix(x);
-   matrix XT = XDesignMatrix.Transpose();
-   
-   vector P = {}; matrix PA = {}; 
-   
-   #ifdef DEBUG_MODE
-      Print("classes ",classes);
-   #endif 
-   
-   double prev_cost=0, curr_cost=0;
-   
-    for (ulong i=0; i<epochs; i++)
-     {
-       prev_cost = P.Loss(y,LOSS_BCE);;
-       
-       P = Logit(XDesignMatrix);
-       
-       PA = MatrixExtend::VectorToMatrix(P - y); 
-       
-       Betas -= (alpha/(double)x.Rows()) * (XT.MatMul(PA));
-       
-       curr_cost = P.Loss(y,LOSS_BCE);
-
-       if (MathAbs(prev_cost - curr_cost) < tol)
-        {
-           printf("Finished convergence prev cost %.5f curr cost %.5f | tol =%.8f | given tolerance %.7f ",prev_cost,curr_cost,MathAbs(curr_cost-prev_cost),tol);
-           break;
-        }
-
-       //printf("Epoch [%d/%d] Loss %.8f Accuracy %.3f tol %.8f", i+1, epochs, curr_cost, metrics.confusion_matrix(y, P, false),MathAbs(curr_cost-prev_cost));
-     }
-   istrained = true;
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-int CLogisticRegression::predict(vector &v)
- { 
-   double p1 = Logit(v);
-   vector v_out = {p1, 1-p1};
-     
-  return ((int)classes[v_out.ArgMax()]);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-vector CLogisticRegression::predict_proba(vector &v)
+double CLogisticRegression::predict_proba(vector &x)
  {
-   double p1 = Logit(v);
-   vector v_out = {p1, 1-p1};
+   if (!checkIsTrained(__FUNCTION__))
+    return 0;
    
-   return(v_out);
+   matrix x_mat = MatrixExtend::VectorToMatrix(x, x.Size());
+   
+   matrix preds = (x_mat.MatMul(this.weights) + this.bias);
+   
+   preds.Activation(preds, AF_HARD_SIGMOID);
+   
+   if (preds.Rows()>1)
+    {
+      printf("%s The outcome from a sigmoid must be a scalar value",__FUNCTION__);
+      return 0;
+    }
+   return preds[0][0];   
  }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CLogisticRegression::predict(matrix &mat)
+vector CLogisticRegression::predict_proba(matrix &x)
  {
-  ulong size = mat.Rows();
-  
-  vector v(size);
-  
-   for (ulong i=0; i<size; i++)
-      v[i] = predict(mat.Row(i));
-   
-   return (v);
+   vector v(x.Rows());
+   for (ulong i=0; i<x.Rows(); i++)
+      v[i] = this.predict_proba(x.Row(i));
+      
+   return v;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
