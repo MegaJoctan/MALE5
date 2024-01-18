@@ -149,7 +149,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
 //--- METRICS
 
    vector diag = conf_m.Diag();
-   confusion_mat.accuracy = NormalizeDouble(diag.Sum() / conf_m.Sum(), 3);
+   confusion_mat.accuracy = NormalizeDouble(diag.Sum() / (conf_m.Sum() + 1e-10), 3);
 
 //--- precision
 
@@ -255,7 +255,7 @@ confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, b
 
 //--- w avg
 
-   vector support_prop = confusion_mat.support / (double)total_size;
+   vector support_prop = confusion_mat.support / double(total_size + 1e-10);
 
    vector c = confusion_mat.precision * support_prop;
    confusion_mat.w_avg[0] = c.Sum();
