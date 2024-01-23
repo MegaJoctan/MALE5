@@ -8,9 +8,8 @@
 //+------------------------------------------------------------------+
 //|         Principle Component Analysis Library                     |
 //+------------------------------------------------------------------+
+#include "base.mqh"
 #include <MALE5\MqPlotLib\plots.mqh>
-#include <MALE5\MatrixExtend.mqh>
-#include "helpers.mqh"
 
 enum criterion
   {
@@ -81,15 +80,15 @@ matrix CPCA::fit_transform(matrix &X)
    
    this.mean = X.Mean(0);
    
-   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);   
-   CDimensionReductionHelpers::ReplaceNaN(X_centered);
+   matrix X_centered = Base::subtract(X, this.mean);   
+   Base::ReplaceNaN(X_centered);
    
    matrix cov_matrix = cova(X_centered, false);
    
    matrix eigen_vectors;
    vector eigen_values;
     
-   CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
+   Base::ReplaceNaN(cov_matrix);
    
    if (!cov_matrix.Eig(eigen_vectors, eigen_values))
      printf("Failed to caculate Eigen matrix and vectors Err=%d",GetLastError());
@@ -98,8 +97,8 @@ matrix CPCA::fit_transform(matrix &X)
    
    vector args = MatrixExtend::ArgSort(eigen_values); MatrixExtend::Reverse(args);
    
-   eigen_values = CDimensionReductionHelpers::Sort(eigen_values, args);
-   eigen_vectors = CDimensionReductionHelpers::Sort(eigen_vectors, args);
+   eigen_values = Base::Sort(eigen_values, args);
+   eigen_vectors = Base::Sort(eigen_vectors, args);
 //---
 
    if (MQLInfoInteger(MQL_DEBUG))
@@ -113,7 +112,7 @@ matrix CPCA::fit_transform(matrix &X)
    if (MQLInfoInteger(MQL_DEBUG)) 
      printf("%s Selected components %d",__FUNCTION__,m_components);
    
-   this.components_matrix = CDimensionReductionHelpers::Slice(eigen_vectors, m_components, 1); //Get the components matrix
+   this.components_matrix = Base::Slice(eigen_vectors, m_components, 1); //Get the components matrix
    //MatrixExtend::NormalizeDouble_(this.components_matrix, 5);
    //this.components_matrix = scaler.fit_transform(this.components_matrix.Transpose()); //Normalize components matrix
    
@@ -137,7 +136,7 @@ matrix CPCA::transform(matrix &X)
        this.m_components = n_features;
      }
      
-   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+   matrix X_centered = Base::subtract(X, this.mean);
 
    return X_centered.MatMul(this.components_matrix.Transpose()); //return the pca scores
  }
@@ -268,6 +267,8 @@ bool CPCA::load(string dir)
    
    this.components_matrix = MatrixExtend::ReadCsv(dir+"\\PCA-ComponentsMatrix.csv",header);
    
+   //printf("Components Matrix[%dx%d]",components_matrix.Rows(),components_matrix.Cols());
+   
    if (components_matrix.Rows()==0)
      return false;
      
@@ -283,7 +284,7 @@ matrix cova(matrix &data, bool row_var=true)
         data = data.Transpose();  // Transpose if each row represents a data point
 
     // Step 1: Center the data
-    matrix centered_data = CDimensionReductionHelpers::subtract(data, data.Mean(0));
+    matrix centered_data = Base::subtract(data, data.Mean(0));
 
     // Step 2: Calculate the covariance matrix
     matrix covariance_matrix = centered_data.Transpose().MatMul(centered_data) / (data.Rows() - 1);
