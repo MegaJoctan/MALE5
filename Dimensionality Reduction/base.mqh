@@ -6,13 +6,14 @@
 #property copyright "Copyright 2023, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 //+------------------------------------------------------------------+
-//| defines                                                          |
+//| Base class for dimension reduction, containing most useful       |
+//| that are necessary for the algorithms in this folder             |
 //+------------------------------------------------------------------+
-class CDimensionReductionHelpers
+class Base
   {
 public:
-                     CDimensionReductionHelpers(void);
-                    ~CDimensionReductionHelpers(void);
+                     Base(void);
+                    ~Base(void);
                     
                     static matrix Slice(const matrix &mat, uint from_0_to, int axis=0);
                     static vector Slice(const vector &v, uint from_0_to);
@@ -24,7 +25,7 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CDimensionReductionHelpers::Slice(const matrix &mat, uint from_0_to, int axis=0)
+matrix Base::Slice(const matrix &mat, uint from_0_to, int axis=0)
  {
   matrix ret = {};
   
@@ -54,7 +55,7 @@ matrix CDimensionReductionHelpers::Slice(const matrix &mat, uint from_0_to, int 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDimensionReductionHelpers::Slice(const vector &v, uint from_0_to)
+vector Base::Slice(const vector &v, uint from_0_to)
  {
    vector ret(from_0_to);
    
@@ -66,7 +67,7 @@ vector CDimensionReductionHelpers::Slice(const vector &v, uint from_0_to)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CDimensionReductionHelpers::subtract(const matrix&mat, const vector &v)
+matrix Base::subtract(const matrix&mat, const vector &v)
  {
    matrix ret = mat;
    
@@ -78,7 +79,7 @@ matrix CDimensionReductionHelpers::subtract(const matrix&mat, const vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDimensionReductionHelpers::ReplaceNaN(matrix &mat)
+void Base::ReplaceNaN(matrix &mat)
  {
    for (ulong i = 0; i < mat.Rows(); i++) 
      for (ulong j = 0; j < mat.Cols(); j++) 
@@ -88,7 +89,7 @@ void CDimensionReductionHelpers::ReplaceNaN(matrix &mat)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CDimensionReductionHelpers::Sort(matrix &mat, vector &args)
+matrix Base::Sort(matrix &mat, vector &args)
  {
    matrix m = mat;
    
@@ -106,7 +107,7 @@ matrix CDimensionReductionHelpers::Sort(matrix &mat, vector &args)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDimensionReductionHelpers::Sort(vector &v, vector &args)
+vector Base::Sort(vector &v, vector &args)
  {
    vector vec = v;
    
