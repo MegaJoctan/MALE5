@@ -8,7 +8,7 @@
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
-#include "helpers.mqh"
+#include "base.mqh"
 #include <MALE5\MqPlotLib\plots.mqh>
 
 class CTruncatedSVD
@@ -63,11 +63,11 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
 //--- Center the data (subtract mean)
 
     this.mean = X.Mean(0);
-    matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+    matrix X_centered = Base::subtract(X, this.mean);
     
 //--- Compute the covariance matrix
    
-    CDimensionReductionHelpers::ReplaceNaN(X_centered);
+    Base::ReplaceNaN(X_centered);
     matrix cov_matrix = X_centered.Cov(false);
     
 //---  Perform SVD on the covariance matrix
@@ -75,7 +75,7 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
     matrix U={}, Vt={};
     vector Sigma={};
     
-    CDimensionReductionHelpers::ReplaceNaN(cov_matrix);
+    Base::ReplaceNaN(cov_matrix);
     
     if (!cov_matrix.SVD(U,Vt,Sigma))
        Print(__FUNCTION__," Line ",__LINE__," Failed to calculate SVD Err=",GetLastError());    
@@ -86,13 +86,13 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
          Print(__FUNCTION__," Best value of K = ",m_components);
        }
                  
-    this.components_ = CDimensionReductionHelpers::Slice(Vt, this.m_components).Transpose();
-    CDimensionReductionHelpers::ReplaceNaN(this.components_);
+    this.components_ = Base::Slice(Vt, this.m_components).Transpose();
+    Base::ReplaceNaN(this.components_);
         
     if (MQLInfoInteger(MQL_DEBUG))
       Print("components_T[",components_.Rows(),"X",components_.Cols(),"]\n",this.components_);
     
-    this.explained_variance_ = MathPow(CDimensionReductionHelpers::Slice(Sigma, this.m_components), 2) / (X.Rows() - 1);
+    this.explained_variance_ = MathPow(Base::Slice(Sigma, this.m_components), 2) / (X.Rows() - 1);
     
     return X_centered.MatMul(components_);
  }
@@ -101,7 +101,7 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
 //+------------------------------------------------------------------+
 matrix CTruncatedSVD::transform(matrix &X)
  {
-   matrix X_centered = CDimensionReductionHelpers::subtract(X, this.mean);
+   matrix X_centered = Base::subtract(X, this.mean);
    
    if (X.Cols()!=this.n_features)
      {
