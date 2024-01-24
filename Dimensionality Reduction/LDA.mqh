@@ -96,9 +96,24 @@ matrix  CLDA::fit_transform(matrix &x,vector &y)
   vector eigen_values;
   
   matrix SBSW = SW.Inv().MatMul(SB);
-  SBSW.Eig(eigen_vectors, eigen_values);
-  
-
+  if (!SBSW.Eig(eigen_vectors, eigen_values))
+    {
+      Print("%s Failed to calculate eigen values and vectors Err=%d",__FUNCTION__,GetLastError());
+      DebugBreak();
+      
+      matrix empty = {};
+      return empty;
+    }
+   
+   if (eigen_vectors.Rows()==0 || eigen_values.Size()==0)
+    {
+      printf("%s Zero eigen values or eigen vectors, check your data",__FUNCTION__);
+      DebugBreak();
+      
+      matrix empty = {};
+      return empty;
+    }
+    
 //--- Sort eigenvectors by decreasing eigenvalues
    
    vector args = MatrixExtend::ArgSort(eigen_values);
@@ -124,8 +139,8 @@ matrix CLDA::transform(matrix &x)
    if (this.projection_matrix.Rows() == 0)
     {
       printf("%s fit_transform method must be called befor transform",__FUNCTION__);
-      matrix mat = {};
-      return mat; 
+      matrix empty = {};
+      return empty; 
     }
     
   return x.MatMul(this.projection_matrix);  
@@ -139,8 +154,8 @@ vector CLDA::transform(vector &x)
    
    if (m.Rows()==0)
     {
-      vector v={};
-      return v; //return nothing since there is a failure in converting vector to matrix
+      vector empty={};
+      return empty; //return nothing since there is a failure in converting vector to matrix
     }
    
    m = transform(m);
