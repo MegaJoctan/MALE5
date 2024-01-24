@@ -143,7 +143,7 @@ matrix CLDA::transform(matrix &x)
       return empty; 
     }
     
-  return x.MatMul(this.projection_matrix);  
+  return x.MatMul(this.projection_matrix.Transpose());  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
