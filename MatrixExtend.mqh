@@ -77,7 +77,7 @@ public:
 //--- Detection
 
    static void       Unique(const string &Array[], string &classes_arr[]);
-   static vector     Unique(vector &v);           //Identifies classes available in a vector
+   static vector     Unique(const vector &v);           //Identifies classes available in a vector
    static vector     Unique_count(vector &v);
    
    template<typename T> 
@@ -352,7 +352,7 @@ bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[
   {
    string header_str = "";
    for (int i=0; i<ArraySize(header); i++)
-      header_str += header[i] + (i+1 == ArraySize(header)) ? "" : ",";
+      header_str += header[i] + ((i+1 == ArraySize(header)) ? "" : ",");
       
    return WriteCsv(csv_name, matrix_, header_str, common, digits);
   }
@@ -878,8 +878,9 @@ void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Unique(vector &v)
+vector MatrixExtend::Unique(const vector &v)
  {
+   vector temp_v = v; 
    vector v_classes={v[0]};
 
    for (ulong i = 0, count=0; i < v.Size(); i++) 
@@ -888,10 +889,10 @@ vector MatrixExtend::Unique(vector &v)
 
       for (ulong j = 0; j < v_classes.Size(); j++) 
        {
-         if (v[i] == v_classes[j] && v[i] != -DBL_MAX && i!=0) 
+         if (temp_v[i] == v_classes[j] && temp_v[i] != -DBL_MAX && i!=0) 
            {
              alreadyCounted = true;
-             v[i] = -DBL_MAX;
+             temp_v[i] = -DBL_MAX;
            }
       }
 
@@ -900,7 +901,7 @@ vector MatrixExtend::Unique(vector &v)
          count++;
          v_classes.Resize(count);
          
-         v_classes[count-1] = v[i];
+         v_classes[count-1] = temp_v[i];
        }
     }
  
