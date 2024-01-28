@@ -10,22 +10,13 @@
 //| to predict discrete data target variables. They are widely known |
 //| as classification Neural Networks                                |
 //+------------------------------------------------------------------+
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 #include <MALE5\preprocessing.mqh>
 
 #ifndef RANDOM_STATE 
  #define  RANDOM_STATE 42
 #endif 
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-enum scaler
- {
-   MIN_MAX_SCALER,
-   MEAN_NORM,
-   STANDARDIZATION
- };
+ 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -43,14 +34,11 @@ enum activation
 class CPatternNets
   {
 private:
-   CMatrixutils      matrix_utils;
-   CPreprocessing    pre_processing;
    
    vector W_CONFIG;
    vector W; //Weights vector
    vector B; //Bias vector 
    activation  A_FX;
-   scaler      NORM_ENUM;
    
 protected:
    ulong    inputs;
@@ -62,7 +50,7 @@ protected:
    void     SoftMaxLayerFX(matrix<double> &mat);
    
 public:
-                     CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, activation ActivationFx, scaler SCALER, bool SoftMaxLyr=false);
+                     CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, activation ActivationFx, bool SoftMaxLyr=false);
                     ~CPatternNets(void);
                     
                      int  PatternNetFF(vector &in_vector);
@@ -72,7 +60,7 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CPatternNets::CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, activation ActivationFx, scaler SCALER, bool SoftMaxLyr=false)
+CPatternNets::CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, activation ActivationFx, bool SoftMaxLyr=false)
   {
       A_FX = ActivationFx;
       inputs = xmatrix.Cols();
@@ -80,23 +68,6 @@ CPatternNets::CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, ac
       SoftMaxLayer = SoftMaxLyr;
       
 //--- Normalize data
-      
-     NORM_ENUM = SCALER;
-      
-     switch(NORM_ENUM)
-      {
-       case MIN_MAX_SCALER:
-            pre_processing.MinMaxScaler(xmatrix);
-         break;
-       case MEAN_NORM:
-            pre_processing.MeanNormalization(xmatrix);
-          break;
-       case STANDARDIZATION:
-            pre_processing.Standardization(xmatrix);
-          break;
-      }  
-
-//---
 
       if (rows != yvector.Size())
         {
@@ -104,7 +75,7 @@ CPatternNets::CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, ac
           return;
         }
      
-     classes = matrix_utils.Classes(yvector);
+     classes = MatrixExtend::Unique(yvector);
      outputs = classes.Size();
      
      HL_CONFIG.Copy(HL_NODES);
@@ -127,8 +98,8 @@ CPatternNets::CPatternNets(matrix &xmatrix, vector &yvector,vector &HL_NODES, ac
      
      W.Resize((ulong)W_CONFIG.Sum());
      
-     W = matrix_utils.Random(0.0, 1.0, (int)W.Size(),RANDOM_STATE); //Gen weights
-     B = matrix_utils.Random(0.0,1.0,(int)B.Size(),RANDOM_STATE); //Gen bias
+     W = MatrixExtend::Random(0.0, 1.0, (int)W.Size(),RANDOM_STATE); //Gen weights
+     B = MatrixExtend::Random(0.0,1.0,(int)B.Size(),RANDOM_STATE); //Gen bias
       
 //---
      
@@ -162,7 +133,7 @@ int CPatternNets::PatternNetFF(vector &in_vector)
    
    ulong w_start = 0;             
    
-   L_INPUT = matrix_utils.VectorToMatrix(in_vector); 
+   L_INPUT = MatrixExtend::VectorToMatrix(in_vector); 
    
    vector L_BIAS_VECTOR = {};
    matrix L_BIAS_MATRIX = {};
@@ -171,12 +142,12 @@ int CPatternNets::PatternNetFF(vector &in_vector)
    
    for (ulong i=0; i<W_CONFIG.Size(); i++)
       {         
-         matrix_utils.Copy(W,v_weights,w_start,ulong(W_CONFIG[i]));
+         MatrixExtend::Copy(W,v_weights,w_start,ulong(W_CONFIG[i]));
          
-         L_WEIGHTS = matrix_utils.VectorToMatrix(v_weights,L_INPUT.Rows());
+         L_WEIGHTS = MatrixExtend::VectorToMatrix(v_weights,L_INPUT.Rows());
          
-         matrix_utils.Copy(B,L_BIAS_VECTOR,b_start,(ulong)HL_CONFIG[i]);
-         L_BIAS_MATRIX = matrix_utils.VectorToMatrix(L_BIAS_VECTOR);
+         MatrixExtend::Copy(B,L_BIAS_VECTOR,b_start,(ulong)HL_CONFIG[i]);
+         L_BIAS_MATRIX = MatrixExtend::VectorToMatrix(L_BIAS_VECTOR);
          
          #ifdef DEBUG_MODE
            Print("--> ",i);
@@ -215,7 +186,7 @@ int CPatternNets::PatternNetFF(vector &in_vector)
      Print("--> outputs\n ",L_OUTPUT);
    #endif 
    
-   vector v_out = matrix_utils.MatrixToVector(L_OUTPUT);
+   vector v_out = MatrixExtend::MatrixToVector(L_OUTPUT);
    
    return((int)classes[v_out.ArgMax()]);
  }
@@ -225,11 +196,11 @@ int CPatternNets::PatternNetFF(vector &in_vector)
 
 void CPatternNets::SoftMaxLayerFX(matrix<double> &mat)
  {
-   vector<double> ret = matrix_utils.MatrixToVector(mat);
+   vector<double> ret = MatrixExtend::MatrixToVector(mat);
    
    ret.Activation(ret, AF_SOFTMAX);
    
-   mat = matrix_utils.VectorToMatrix(ret, mat.Cols());
+   mat = MatrixExtend::VectorToMatrix(ret, mat.Cols());
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
