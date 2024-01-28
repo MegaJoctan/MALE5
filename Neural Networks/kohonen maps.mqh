@@ -8,7 +8,7 @@
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 #include <MALE5\Tensors.mqh>
 #include <MALE5\preprocessing.mqh>
 #include <MALE5\MqPlotLib\plots.mqh>
@@ -22,9 +22,7 @@
 class CKohonenMaps
   {
    protected:
-     CMatrixutils matrix_utils; 
      CTensors *cluster_tensor;
-     CPreprocessing *pre_processing;
      
      CPlots   plt;
      
@@ -43,7 +41,7 @@ class CKohonenMaps
       matrix     o_matrix; //Output layer matrix
    
    public:
-                  CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100,norm_technique NORM_TECHNIQUE=NORM_MIN_MAX_SCALER);
+                  CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100);
                  ~CKohonenMaps(void);
                  
                   uint KOMPredCluster(vector &v);
@@ -52,7 +50,7 @@ class CKohonenMaps
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100, norm_technique NORM_TECHNIQUE=NORM_MIN_MAX_SCALER)
+CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100)
  {
    Matrix = matrix_;
    
@@ -60,10 +58,9 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
    rows = matrix_.Rows();
    m = clusters; 
    
-   pre_processing = new CPreprocessing(Matrix, NORM_TECHNIQUE);
    cluster_tensor = new CTensors(m);
    
-   w_matrix =matrix_utils.Random(0.0, 1.0, n, m, RANDOM_STATE); 
+   w_matrix =MatrixExtend::Random(0.0, 1.0, n, m, RANDOM_STATE); 
    
    #ifdef DEBUG_MODE
       Print("w Matrix\n",w_matrix,"\nMatrix\n",Matrix);
@@ -93,7 +90,7 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
          ulong min = D.ArgMin();
          
          if (epoch == epochs-1) //last iteration
-            cluster_tensor.TensorAppend(Matrix.Row(i), min); 
+            cluster_tensor.Append(Matrix.Row(i), min); 
 
           
          vector w_new =  w_matrix.Col(min) + (alpha * (Matrix.Row(i) - w_matrix.Col(min)));
@@ -120,11 +117,11 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
    vector v;  
    matrix plotmatrix(rows, m); 
    
-     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
+     for (uint i=0; i<this.cluster_tensor.SIZE; i++)
        {
-          mat = this.cluster_tensor.Tensor(i);
+          mat = this.cluster_tensor.Get(i);
           
-          v  = this.matrix_utils.MatrixToVector(mat);
+          v  = MatrixExtend::MatrixToVector(mat);
           
           plotmatrix.Col(v, i);
        }   
@@ -135,25 +132,24 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
 
   
   if (save_clusters)
-     for (uint i=0; i<this.cluster_tensor.TENSOR_DIMENSION; i++)
+     for (uint i=0; i<this.cluster_tensor.SIZE; i++)
        {
-         mat = this.cluster_tensor.Tensor(i);
-         pre_processing.ReverseNormalization(mat);
-         cluster_tensor.TensorAdd(mat, i);
+         mat = this.cluster_tensor.Get(i);
+         cluster_tensor.Add(mat, i);
          
          string header[]; ArrayResize(header, (int)mat.Cols());
          
          for (int k=0; k<ArraySize(header); k++) 
            header[k] = "col"+string(k);
          
-         if (this.matrix_utils.WriteCsv("SOM\\Cluster"+string(i+1)+".csv",mat,header))
+         if (MatrixExtend::WriteCsv("SOM\\Cluster"+string(i+1)+".csv",mat,header))
             Print("Clusters CSV files saved under the directory Files\\SOM");
        }
 
 //---
 
    Print("\nclusters");
-   cluster_tensor.TensorPrint();
+   cluster_tensor.Print_();
 
  }
 //+------------------------------------------------------------------+
@@ -167,7 +163,6 @@ CKohonenMaps::~CKohonenMaps(void)
    ZeroMemory(w_vector); 
    ZeroMemory(o_matrix); 
    delete (cluster_tensor);
-   delete (pre_processing);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -196,7 +191,6 @@ double CKohonenMaps:: Euclidean_distance(const vector &v1, const vector &v2)
 uint CKohonenMaps::KOMPredCluster(vector &v)
  {
   vector temp_v = v;
-  pre_processing.Normalization(v);
   
   if (n != v.Size())
    {
