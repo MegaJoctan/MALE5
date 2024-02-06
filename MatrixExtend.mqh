@@ -73,6 +73,7 @@ public:
    static matrix     OneHotEncoding(vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
    static vector     Sign(vector &x);
+   static matrix     eye(uint num_features);
    
 //--- Detection
 
@@ -1506,6 +1507,20 @@ vector MatrixExtend::Sign(vector &x)
      v[i] = Sign(x[i]);
      
   return v;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix MatrixExtend::eye(uint num_features)
+ {
+   matrix ret_matrix(num_features, num_features);
+   ret_matrix.Fill(0.0);
+   vector diag;
+   diag.Fill(1.0);
+   
+   ret_matrix.Diag(diag, 0);
+   
+   return ret_matrix;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
