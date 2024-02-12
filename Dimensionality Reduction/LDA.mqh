@@ -10,27 +10,45 @@
 //+------------------------------------------------------------------+
 
 #include "base.mqh";
+#include <MALE5\MqPlotLib\plots.mqh>
+
+enum lda_criterion
+  {
+    CRITERION_VARIANCE,
+    CRITERION_KAISER,
+    CRITERION_SCREE_PLOT
+  };
 
 class CLDA
-  {
+  {  
+CPlots   plt;
+
 protected:
-   uint m_num_components;
+   uint m_components;
+   lda_criterion m_criterion;
+   
    matrix projection_matrix;
    ulong num_features;
+   double m_regparam;
+   vector mean;
+   
+   uint CLDA::extract_components(vector &eigen_values, double threshold=0.95);
    
 public:
-                     CLDA(uint num_components=NULL);
+                     CLDA(uint k=NULL, lda_criterion CRITERION_=CRITERION_SCREE_PLOT, double reg_param =1e-6);
                     ~CLDA(void);
                     
-                     matrix fit_transform(matrix &x, vector &y);
-                     matrix transform(matrix &x);
-                     vector transform(vector &x);
+                     matrix fit_transform(const matrix &x, const vector &y);
+                     matrix transform(const matrix &x);
+                     vector transform(const vector &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CLDA::CLDA(uint num_components=NULL)
-:m_num_components(num_components)
+CLDA::CLDA(uint k=NULL, lda_criterion CRITERION_=CRITERION_SCREE_PLOT, double reg_param=1e-6)
+:m_components(k),
+ m_criterion(CRITERION_),
+ m_regparam(reg_param)
  {
  
  }
@@ -44,13 +62,18 @@ CLDA::~CLDA(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix  CLDA::fit_transform(matrix &x,vector &y)
+matrix  CLDA::fit_transform(const matrix &x, const vector &y)
  {
    vector classes = MatrixExtend::Unique(y);
    ulong num_classes = classes.Size();
    num_features = x.Cols();
    
-   matrix class_means(x.Cols(), classes.Size());
+   this.mean = x.Mean(0);
+   
+   matrix x_centered = Base::subtract(x, this.mean);
+   
+   matrix class_means(classes.Size(), x.Cols());
+   class_means.Fill(0.0);
    
    for (ulong i=0; i<num_classes; i++)
     {
@@ -58,17 +81,18 @@ matrix  CLDA::fit_transform(matrix &x,vector &y)
       for (ulong j=0, count=0; j<x.Rows(); j++)
          {
            if (y[j] == classes[i])
-            {
+            {  
                count++;
-               class_samples.Resize(count, x.Cols());
+               class_samples.Resize(count, num_features);
                class_samples.Row(x.Row(j), count-1);
             }
          }
-      
-      class_means.Col(class_samples.Mean(0), i);
+         
+      class_means.Row(class_samples.Mean(0), i);
     }
-  
-  matrix SW, SB;
+    
+    
+  matrix SW, SB; //within and between scatter matrices 
   SW.Init(num_features, num_features);
   SB.Init(num_features, num_features);
   
@@ -77,37 +101,45 @@ matrix  CLDA::fit_transform(matrix &x,vector &y)
      matrix class_samples = {};
       for (ulong j=0, count=0; j<x.Rows(); j++)
          {
-           if (y[j] == classes[i])
+           if (y[j] == classes[i]) //Collect a matrix for samples belonging to a particular class
             {
                count++;
-               class_samples.Resize(count, x.Cols());
+               class_samples.Resize(count, num_features);
                class_samples.Row(x.Row(j), count-1);
             }
          }
+
          
-     matrix diff = Base::subtract(class_samples, class_means.Col(i)); 
-     SW += diff.Transpose().MatMul(diff);
+     matrix diff = Base::subtract(class_samples, class_means.Row(i)); //Each row subtracted to the mean
+     if (diff.Rows()==0 && diff.Cols()==0) //if the subtracted matrix is zero stop the program for possible bugs or errors
+      {
+        DebugBreak();
+        return x_centered;
+      }
      
-     vector mean_diff = class_means.Col(i) - x.Mean(0);
-     SB += class_samples.Rows() * mean_diff.Outer(mean_diff);
+     SW += diff.Transpose().MatMul(diff); //Find within scatter matrix 
+     
+     vector mean_diff = class_means.Row(i) - x_centered.Mean(0);
+     SB += class_samples.Rows() * mean_diff.Outer(mean_diff); //compute between scatter matrix 
    }
   
+//--- Regularization to avoid errors while calculating Eigen values and vectors
+   
+   SW += this.m_regparam * MatrixExtend::eye((uint)num_features);
+   SB += this.m_regparam * MatrixExtend::eye((uint)num_features);
+
+//---
+
   matrix eigen_vectors;
   vector eigen_values;
   
   matrix SBSW = SW.Inv().MatMul(SB);
+  
+  SBSW += this.m_regparam * MatrixExtend::eye((uint)SBSW.Rows());
+  
   if (!SBSW.Eig(eigen_vectors, eigen_values))
     {
       Print("%s Failed to calculate eigen values and vectors Err=%d",__FUNCTION__,GetLastError());
-      DebugBreak();
-      
-      matrix empty = {};
-      return empty;
-    }
-   
-   if (eigen_vectors.Rows()==0 || eigen_values.Size()==0)
-    {
-      printf("%s Zero eigen values or eigen vectors, check your data",__FUNCTION__);
       DebugBreak();
       
       matrix empty = {};
@@ -124,17 +156,19 @@ matrix  CLDA::fit_transform(matrix &x,vector &y)
    
 //---
    
-  if (this.m_num_components == NULL)
-    this.projection_matrix = eigen_vectors;
-  else
-    this.projection_matrix = Base::Slice(eigen_vectors, this.m_num_components);
+  if (this.m_components == NULL)
+    this.m_components = extract_components(eigen_values);
+  else //plot the scree plot 
+    extract_components(eigen_values);
     
-   return transform(x);
+  this.projection_matrix = Base::Slice(eigen_vectors, this.m_components);
+    
+  return x_centered.MatMul(projection_matrix.Transpose());
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CLDA::transform(matrix &x)
+matrix CLDA::transform(const matrix &x)
  {
    if (this.projection_matrix.Rows() == 0)
     {
@@ -142,13 +176,14 @@ matrix CLDA::transform(matrix &x)
       matrix empty = {};
       return empty; 
     }
-    
-  return x.MatMul(this.projection_matrix.Transpose());  
+  matrix x_centered = Base::subtract(x, this.mean);
+  
+  return x_centered.MatMul(this.projection_matrix.Transpose());  
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CLDA::transform(vector &x)
+vector CLDA::transform(const vector &x)
  {
    matrix m = MatrixExtend::VectorToMatrix(x, this.num_features); 
    
@@ -160,6 +195,78 @@ vector CLDA::transform(vector &x)
    
    m = transform(m);
    return MatrixExtend::MatrixToVector(m);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+uint CLDA::extract_components(vector &eigen_values, double threshold=0.95)
+ {
+  uint k = 0;
+  
+   vector eigen_pow = MathPow(eigen_values, 2);
+   vector cum_sum = eigen_pow.CumSum();
+   double sum = eigen_pow.Sum();
+   
+   switch(m_criterion)
+     {
+      case  CRITERION_VARIANCE: 
+         {              
+            
+            vector cumulative_variance =  cum_sum / sum;
+            
+            if (MQLInfoInteger(MQL_DEBUG))
+              Print("Cummulative variance: ",cumulative_variance);
+            
+            vector v(cumulative_variance.Size());  v.Fill(0.0);
+            for (ulong i=0; i<v.Size(); i++)
+              v[i] = (cumulative_variance[i] >= threshold);
+               
+            k = (uint)v.ArgMax() + 1;
+         }  
+         
+        break;
+        
+      case  CRITERION_KAISER:
+         {
+           vector v(eigen_values.Size()); v.Fill(0.0);
+            for (ulong i=0; i<eigen_values.Size(); i++)
+              v[i] = (eigen_values[i] >= 1);
+            
+            k = uint(v.Sum());
+         } 
+        
+        break;
+        
+      case  CRITERION_SCREE_PLOT:
+       {  
+         vector v_cols(eigen_values.Size());
+         
+         for (ulong i=0; i<v_cols.Size(); i++)
+             v_cols[i] = (int)i+1;
+             
+          vector vars = eigen_values;
+          
+          plt.ScatterCurvePlots("Scree plot",v_cols,vars,"EigenValue","LDA","EigenValue");
+
+//---
+      string warn = "\n<<<< WARNING >>>>\nThe Scree plot doesn't return the determined number of k m_components\nThe cummulative variance will return the number of k m_components instead\nThe k returned might be different from what you see on the scree plot";
+             warn += "\nTo apply the same number of k m_components to the LDA from the scree plot\nCall the LDA model again with that value applied from the plot\n";
+      
+         Print(warn);
+        
+        //--- Kaiser
+        
+           vector v(eigen_values.Size()); v.Fill(0.0);
+            for (ulong i=0; i<eigen_values.Size(); i++)
+              v[i] = (eigen_values[i] >= 1);
+            
+            k = uint(v.Sum());
+        }          
+           
+        break;
+     } 
+     
+   return (k);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
