@@ -92,7 +92,7 @@ protected:
    split_info  get_best_split(const matrix &data, uint num_features);
    split_info  split_data(const matrix &data, uint feature_index, double threshold=0.5);
    
-   double make_predictions(vector &x, const Node &tree);
+   double make_predictions(const vector &x, const Node &tree);
    
    void delete_tree(Node* node);
    
@@ -104,10 +104,10 @@ public:
                      CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
                     ~CDecisionTreeClassifier(void);
                     
-                     void fit(matrix &x, vector &y);
+                     void fit(const matrix &x, const vector &y);
                      void print_tree(Node *tree, string indent=" ",string padl="");
-                     double predict(vector &x);
-                     vector predict(matrix &x);
+                     double predict(const vector &x);
+                     vector predict(const matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -211,10 +211,10 @@ void CDecisionTreeClassifier::print_tree(Node *tree, string indent=" ",string pa
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDecisionTreeClassifier::fit(matrix &x, vector &y)
+void CDecisionTreeClassifier::fit(const matrix &x, const vector &y)
  {   
    matrix data = MatrixExtend::concatenate(x, y, 1);
-      
+   
    this.root = this.build_tree(data);
  }
 //+------------------------------------------------------------------+
@@ -318,6 +318,7 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
  {
     matrix X;
     vector Y;
+    
          
     if (!MatrixExtend::XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
@@ -328,6 +329,8 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
          return NULL; //return null pointer
       }
     
+    is_fitted = true;
+     
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
         
     ArrayResize(nodes, nodes.Size()+1); //Append the nodes to memory
@@ -354,8 +357,6 @@ Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
      nodes[nodes.Size()-1] = new Node();
      nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
      
-     is_fitted = true;
-     
      return nodes[nodes.Size()-1];
  }
 //+------------------------------------------------------------------+
@@ -372,7 +373,7 @@ double CDecisionTreeClassifier::calculate_leaf_value(vector &Y)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDecisionTreeClassifier::make_predictions(vector &x, const Node &tree)
+double CDecisionTreeClassifier::make_predictions(const vector &x, const Node &tree)
  {   
    if (!check_is_fitted(__FUNCTION__))
      return 0;
@@ -408,7 +409,7 @@ double CDecisionTreeClassifier::make_predictions(vector &x, const Node &tree)
 //+------------------------------------------------------------------+
 //|      Commonly used for making predictions in REAL-TIME           |
 //+------------------------------------------------------------------+
-double CDecisionTreeClassifier::predict(vector &x)
+double CDecisionTreeClassifier::predict(const vector &x)
  {
    if (!check_is_fitted(__FUNCTION__))
      return 0;
@@ -418,7 +419,7 @@ double CDecisionTreeClassifier::predict(vector &x)
 //+------------------------------------------------------------------+
 //|   Commonly used for making predictions in TRAIN-TEST             |
 //+------------------------------------------------------------------+
-vector CDecisionTreeClassifier::predict(matrix &x)
+vector CDecisionTreeClassifier::predict(const matrix &x)
  {
     vector ret(x.Rows());
  
