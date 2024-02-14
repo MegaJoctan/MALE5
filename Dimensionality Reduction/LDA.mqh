@@ -12,7 +12,7 @@
 #include "base.mqh";
 #include <MALE5\MqPlotLib\plots.mqh>
 
-enum lda_criterion
+enum lda_criterion //selecting best components criteria selection
   {
     CRITERION_VARIANCE,
     CRITERION_KAISER,
@@ -31,6 +31,9 @@ protected:
    ulong num_features;
    double m_regparam;
    vector mean;
+   
+   uint calculate_variance(vector &eigen_values, double threshold=0.95);
+   uint calculate_kaiser(vector &eigen_values);
    
    uint CLDA::extract_components(vector &eigen_values, double threshold=0.95);
    
@@ -130,12 +133,12 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
 
 //---
 
-  matrix eigen_vectors;
-  vector eigen_values;
+  matrix eigen_vectors(x.Cols(), x.Cols());  eigen_vectors.Fill(0.0);
+  vector eigen_values(x.Cols()); eigen_values.Fill(0.0);
   
   matrix SBSW = SW.Inv().MatMul(SB);
   
-  SBSW += this.m_regparam * MatrixExtend::eye((uint)SBSW.Rows());
+  Base::ReplaceNaN(SBSW);
   
   if (!SBSW.Eig(eigen_vectors, eigen_values))
     {
@@ -157,7 +160,14 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
 //---
    
   if (this.m_components == NULL)
-    this.m_components = extract_components(eigen_values);
+   {
+     this.m_components = extract_components(eigen_values);
+     if (this.m_components==0)
+      {
+        printf("%s Failed to auto detect the best components\n You need to select the value of k yourself by looking at the scree plot",__FUNCTION__);
+        this.m_components = (uint)x.Cols();
+      }
+   }
   else //plot the scree plot 
     extract_components(eigen_values);
     
@@ -199,41 +209,54 @@ vector CLDA::transform(const vector &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-uint CLDA::extract_components(vector &eigen_values, double threshold=0.95)
+uint CLDA::calculate_variance(vector &eigen_values, double threshold=0.95)
  {
-  uint k = 0;
+  uint k=0; 
   
    vector eigen_pow = MathPow(eigen_values, 2);
    vector cum_sum = eigen_pow.CumSum();
    double sum = eigen_pow.Sum();
    
+   vector cumulative_variance =  cum_sum / sum;
+   
+   if (MQLInfoInteger(MQL_DEBUG))
+     Print("Cummulative variance: ",cumulative_variance);
+   
+   vector v(cumulative_variance.Size());  v.Fill(0.0);
+   for (ulong i=0; i<v.Size(); i++)
+     v[i] = (cumulative_variance[i] >= threshold);
+      
+   k = (uint)v.ArgMax() + 1;
+   
+   return k;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+uint CLDA::calculate_kaiser(vector &eigen_values)
+ {
+  vector v(eigen_values.Size()); v.Fill(0.0);
+   for (ulong i=0; i<eigen_values.Size(); i++)
+     v[i] = (eigen_values[i] >= 1);
+   
+   return uint(v.Sum());
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+uint CLDA::extract_components(vector &eigen_values, double threshold=0.95)
+ {
+  uint k = 0;
+  
    switch(m_criterion)
      {
       case  CRITERION_VARIANCE: 
-         {              
-            
-            vector cumulative_variance =  cum_sum / sum;
-            
-            if (MQLInfoInteger(MQL_DEBUG))
-              Print("Cummulative variance: ",cumulative_variance);
-            
-            vector v(cumulative_variance.Size());  v.Fill(0.0);
-            for (ulong i=0; i<v.Size(); i++)
-              v[i] = (cumulative_variance[i] >= threshold);
-               
-            k = (uint)v.ArgMax() + 1;
-         }  
+         k = calculate_variance(eigen_values, threshold);
          
         break;
         
       case  CRITERION_KAISER:
-         {
-           vector v(eigen_values.Size()); v.Fill(0.0);
-            for (ulong i=0; i<eigen_values.Size(); i++)
-              v[i] = (eigen_values[i] >= 1);
-            
-            k = uint(v.Sum());
-         } 
+         k = calculate_kaiser(eigen_values);
         
         break;
         
@@ -249,18 +272,17 @@ uint CLDA::extract_components(vector &eigen_values, double threshold=0.95)
           plt.ScatterCurvePlots("Scree plot",v_cols,vars,"EigenValue","LDA","EigenValue");
 
 //---
-      string warn = "\n<<<< WARNING >>>>\nThe Scree plot doesn't return the determined number of k m_components\nThe cummulative variance will return the number of k m_components instead\nThe k returned might be different from what you see on the scree plot";
+      string warn = "\n<<<< WARNING >>>>\nThe Scree plot doesn't return the determined number of k m_components\nThe cummulative variance Or kaiser will return the number of k m_components instead\nThe k returned might be different from what you see on the scree plot";
              warn += "\nTo apply the same number of k m_components to the LDA from the scree plot\nCall the LDA model again with that value applied from the plot\n";
       
          Print(warn);
         
         //--- Kaiser
-        
-           vector v(eigen_values.Size()); v.Fill(0.0);
-            for (ulong i=0; i<eigen_values.Size(); i++)
-              v[i] = (eigen_values[i] >= 1);
+           
+           k = calculate_kaiser(eigen_values);
             
-            k = uint(v.Sum());
+            if (k==0) //kaiser wasn't suitable in this particular task
+              k = calculate_variance(eigen_values, threshold);
         }          
            
         break;
