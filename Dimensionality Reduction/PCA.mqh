@@ -11,17 +11,19 @@
 #include "base.mqh"
 #include <MALE5\MqPlotLib\plots.mqh>
 
+//+------------------------------------------------------------------+
+//|            Principal Component Analysis Class                    |
+//+------------------------------------------------------------------+
+class CPCA
+  {
+
 enum criterion
   {
     CRITERION_VARIANCE,
     CRITERION_KAISER,
     CRITERION_SCREE_PLOT
   };
-//+------------------------------------------------------------------+
-//|            Principal Component Analysis Class                    |
-//+------------------------------------------------------------------+
-class CPCA
-  {
+  
 CPlots   plt;
 
 protected:
