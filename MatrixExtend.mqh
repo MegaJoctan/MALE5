@@ -68,7 +68,7 @@ public:
    template<typename T>
    static bool       XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
-   static void       TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
+   static void       TrainTestSplitMatrices(const matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    static matrix     DesignMatrix(matrix &x_matrix);              
    static matrix     OneHotEncoding(vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
@@ -101,10 +101,10 @@ public:
    
 //--- Manipulations
 
-   static vector     concatenate(vector &v1, vector &v2);              //Appends v2 to vector 1
-   static matrix     concatenate(matrix &mat1, matrix &mat2, int axis = 0);
+   static vector     concatenate(const vector &v1, const vector &v2);              //Appends v2 to vector 1
+   static matrix     concatenate(const matrix &mat1, const  matrix &mat2, int axis = 0);
    template<typename T>
-   static matrix<T>  concatenate(matrix<T> &mat, vector<T> &v, int axis=1);
+   static matrix<T>  concatenate(const matrix<T> &mat, const vector<T> &v, int axis=1);
    
    template<typename T>
    static bool       Copy(const vector<T> &src, vector<T> &dst, ulong src_start,ulong total=WHOLE_ARRAY);
@@ -740,13 +740,12 @@ void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
             matrix_.Row(temp, i);
           }
       }   
-
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-void MatrixExtend::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
+void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
   {
    ulong total = matrix_.Rows(), cols = matrix_.Cols();
    
@@ -754,7 +753,8 @@ void MatrixExtend::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train
    
 //--- Random pseudo matrix
    
-   Randomize(matrix_,random_state);
+   matrix ret_matrix = matrix_;
+   Randomize(ret_matrix,random_state);
    
 //---
 
@@ -769,20 +769,20 @@ void MatrixExtend::TrainTestSplitMatrices(matrix<T> &matrix_, matrix<T> &x_train
    
    int train_count = 0, test_count = 0;
    
-   Copy(matrix_.Col(last_col),y_train,0,train);
-   Copy(matrix_.Col(last_col),y_test,train);
+   Copy(ret_matrix.Col(last_col),y_train,0,train);
+   Copy(ret_matrix.Col(last_col),y_test,train);
  
-   for(ulong i=0; i<matrix_.Rows(); i++)
+   for(ulong i=0; i<ret_matrix.Rows(); i++)
      {
       if(i < (ulong)train)
         {
-         x_train.Row(matrix_.Row(i),train_count);
+         x_train.Row(ret_matrix.Row(i),train_count);
          
          train_count++;
         }
       else
         {
-         x_test.Row(matrix_.Row(i),test_count);
+         x_test.Row(ret_matrix.Row(i),test_count);
          test_count++;
         }
      }
@@ -950,7 +950,7 @@ matrix MatrixExtend::Random(double min,double max,ulong rows,ulong cols,int rand
 //+------------------------------------------------------------------+
 //|   Appends vector v1 to the end of vector v2                      |
 //+------------------------------------------------------------------+
-vector MatrixExtend::concatenate(vector &v1, vector &v2)
+vector MatrixExtend::concatenate(const vector &v1, const vector &v2)
  {
    vector v_out = v1; 
    
@@ -967,7 +967,7 @@ vector MatrixExtend::concatenate(vector &v1, vector &v2)
 //+------------------------------------------------------------------+
 //|   Appends matrix mat1 to the end of mat2                         |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::concatenate(matrix &mat1, matrix &mat2, int axis = 0)
+matrix MatrixExtend::concatenate(const matrix &mat1, const matrix &mat2, int axis = 0)
  {
      matrix m_out = {};
 
@@ -1011,7 +1011,7 @@ matrix MatrixExtend::concatenate(matrix &mat1, matrix &mat2, int axis = 0)
 //|   while axis =1 along the colums concatenation
 //+------------------------------------------------------------------+
 template<typename T>
-matrix<T> MatrixExtend::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
+matrix<T> MatrixExtend::concatenate(const matrix<T> &mat, const vector<T> &v, int axis=1)
  {
    matrix<T> ret= mat;
      
@@ -1020,9 +1020,9 @@ matrix<T> MatrixExtend::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
    if (axis == 0) //place it along the rows
     {
       if (mat.Cols() == 0)
-        mat.Resize(mat.Rows(), v.Size());
+        ret.Resize(mat.Rows(), v.Size());
         
-      new_rows = mat.Rows()+1; new_cols = mat.Cols();
+      new_rows = ret.Rows()+1; new_cols = ret.Cols();
                  
       if (v.Size() != new_cols)
         {
@@ -1036,9 +1036,9 @@ matrix<T> MatrixExtend::concatenate(matrix<T> &mat, vector<T> &v, int axis=1)
    else if (axis == 1)
      {
          if (mat.Rows() == 0)
-           mat.Resize(v.Size(), mat.Cols());
+           ret.Resize(v.Size(), ret.Cols());
            
-        new_rows = mat.Rows(); new_cols = mat.Cols()+1;
+        new_rows = ret.Rows(); new_cols = ret.Cols()+1;
         
         if (v.Size() != new_rows)
           {
