@@ -13,19 +13,22 @@
 
 #include <MALE5\MatrixExtend.mqh>
 
+struct roc_curve_struct
+ {
+   vector TPR,
+          FPR, 
+          Thresholds;
+ };
+
 struct confusion_matrix_struct
-  {
-   double            accuracy;
-   vector<double>    precision;
-   vector<double>    recall;
-   vector<double>    f1_score;
-   vector<double>    specificity;
-   vector<double>    support;
-
-   vector<double>    avg;
-   vector<double>    w_avg;
-
-  };
+ { 
+   matrix MATRIX;
+   vector CLASSES;
+   vector TP, 
+          TN, 
+          FP, 
+          FN;
+ };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -34,9 +37,10 @@ class Metrics
 protected:
    static int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
 
-   //-- From matrix utility class
-
+   static confusion_matrix_struct confusion_matrix(vector &True, vector &Preds);
+   
 public:
+
    Metrics(void);
    ~Metrics(void);
 
@@ -53,7 +57,15 @@ public:
    //--- Classification metrics
 
    static double accuracy_score(vector &True, vector &Pred);
-   static confusion_matrix_struct confusion_matrix(vector &True, vector &Pred, bool report_show = true);
+   
+   static vector accuracy(vector &True, vector &Preds);
+   static vector precision(vector &True, vector &Preds);
+   static vector recall(vector &True, vector &Preds);
+   static vector f1_score(vector &True, vector &Preds);
+   static vector specificity(vector &True, vector &Preds);
+   
+   static roc_curve_struct roc_curve(vector &True, vector &Preds);
+   static void classification_report(vector &True, vector &Pred, bool report_show = true);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -79,10 +91,6 @@ double Metrics::r_squared(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 double Metrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
   {
    if(True.Size() != Pred.Size())
@@ -100,202 +108,178 @@ double Metrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-confusion_matrix_struct  Metrics::confusion_matrix(vector &True, vector &Pred, bool report_show = true)
+confusion_matrix_struct Metrics::confusion_matrix(vector &True, vector &Preds)
+ {
+  confusion_matrix_struct confusion_matrix; 
+   
+  vector classes = MatrixExtend::Unique(True);
+  confusion_matrix.CLASSES = classes;
+  
+//--- Fill the confusion matrix
+   
+   matrix MATRIX(classes.Size(), classes.Size());
+   MATRIX.Fill(0.0);
+   
+   for(ulong i = 0; i < classes.Size(); i++)
+      for(ulong j = 0; j < classes.Size(); j++)
+         MATRIX[i][j] = SearchPatterns(True, (int)classes[i], Preds, (int)classes[j]);
+   
+   confusion_matrix.MATRIX = MATRIX;
+   confusion_matrix.TP = MATRIX.Diag();
+   confusion_matrix.FP = MATRIX.Sum(0) - confusion_matrix.TP;
+   confusion_matrix.FN = MATRIX.Sum(1) - confusion_matrix.TP;
+   confusion_matrix.TN = MATRIX.Sum() - (confusion_matrix.TP + confusion_matrix.FP + confusion_matrix.FN);
+     
+   return confusion_matrix;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector Metrics::accuracy(vector &True,vector &Preds)
+ {
+  confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+  
+  return (conf_m.TP + conf_m.TN) / conf_m.MATRIX.Sum();
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector Metrics::precision(vector &True,vector &Preds)
+ {
+   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+
+   return conf_m.TP / (conf_m.TP + conf_m.FP + DBL_EPSILON); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector Metrics::f1_score(vector &True,vector &Preds)
+ {
+   vector precision = precision(True, Preds);
+   vector recall = recall(True, Preds);
+   
+   return 2 * precision * recall / (precision + recall + DBL_EPSILON); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector Metrics::recall(vector &True,vector &Preds)
+ {
+   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+
+   return conf_m.TP / (conf_m.TP + conf_m.FN + DBL_EPSILON); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector Metrics::specificity(vector &True,vector &Preds)
+ {
+   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+
+   return conf_m.TN / (conf_m.TN + conf_m.FP + DBL_EPSILON); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds)
+ {
+   roc_curve_struct roc;
+   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+   
+   roc.TPR = recall(True, Preds);
+   roc.FPR = conf_m.FP / (conf_m.FP + conf_m.TN + DBL_EPSILON);
+   
+   return roc;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double Metrics::accuracy_score(vector &True, vector &Preds)
   {
-   ulong TP = 0, TN = 0, FP = 0, FN = 0;
-
-   vector classes = MatrixExtend::Unique(True);
-
-   matrix conf_m(classes.Size(), classes.Size());
-   conf_m.Fill(0);
-
-   vector row(classes.Size());
-   vector conf_v(ulong(MathPow(classes.Size(), 2)));
-
-
-   confusion_matrix_struct confusion_mat;
-
-   if(True.Size() != Pred.Size())
-     {
-      Print("True and Pred vectors are not same in size ");
-      return confusion_mat;
-     }
-
-//---
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      ulong col_ = 0, row_ = 0;
-
-      //---
-      for(ulong j = 0; j < classes.Size(); j++)
-        {
-         conf_m[i][j] = SearchPatterns(True, (int)classes[i], Pred, (int)classes[j]);
-        }
-     }
-
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      ulong col_ = 0, row_ = 0;
-
-      //---
-      for(ulong j = 0; j < classes.Size(); j++)
-        {
-         conf_m[i][j] = SearchPatterns(True, (int)classes[i], Pred, (int)classes[j]);
-        }
-     }
-
-//--- METRICS
-
-   vector diag = conf_m.Diag();
-   confusion_mat.accuracy = NormalizeDouble(diag.Sum() / (conf_m.Sum() + 1e-10), 3);
-
-//--- precision
-
-   confusion_mat.precision.Resize(classes.Size());
-   vector col_v = {};
-
-   double value = 0;
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      col_v = conf_m.Col(i);
-      MatrixExtend::VectorRemoveIndex(col_v, i);
-
-      TP = (ulong)diag[i];
-      FP = (ulong)col_v.Sum();
-
-      value = TP / double(TP + FP + 1e-10);
-
-      confusion_mat.precision[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
-     }
-
-//--- recall
-
-   vector row_v = {};
-   confusion_mat.recall.Resize(classes.Size());
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      row_v = conf_m.Row(i);
-      MatrixExtend::VectorRemoveIndex(row_v, i);
-
-      TP = (ulong)diag[i];
-      FN = (ulong)row_v.Sum();
-
-      value = TP / double(TP + FN + 1e-10);
-
-      confusion_mat.recall[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
-     }
-
-//--- specificity
-
-   matrix temp_mat = {};
-   ZeroMemory(col_v);
-
-   confusion_mat.specificity.Resize(classes.Size());
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      temp_mat.Copy(conf_m);
-
-      MatrixExtend::RemoveCol(temp_mat, i);
-      MatrixExtend::RemoveRow(temp_mat, i);
-
-      col_v = conf_m.Col(i);
-      MatrixExtend::VectorRemoveIndex(col_v, i);
-
-      FP = (ulong)col_v.Sum();
-      TN = (ulong)temp_mat.Sum();
-
-      value = TN / double(TN + FP + 1e-10);
-
-      confusion_mat.specificity[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
-     }
-
-//--- f1 score
-
-   confusion_mat.f1_score.Resize(classes.Size());
-
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      confusion_mat.f1_score[i] = 2 * ((confusion_mat.precision[i] * confusion_mat.recall[i]) / (confusion_mat.precision[i] + confusion_mat.recall[i]+ 1e-10));
-
-      value = confusion_mat.f1_score[i];
-
-      confusion_mat.f1_score[i] = NormalizeDouble(MathIsValidNumber(value) ? value : 0, 8);
-     }
-
+   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
+   
+   return conf_m.MATRIX.Diag().Sum() / (conf_m.MATRIX.Sum() + DBL_EPSILON);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Metrics::classification_report(vector &True, vector &Pred, bool report_show = true)
+  {
+  
+  vector accuracy = accuracy(True, Pred);
+  vector precision = precision(True, Pred);
+  vector specificity = specificity(True, Pred);
+  vector recall = recall(True, Pred);
+  vector f1_score = f1_score(True, Pred); 
+  
+  
+  confusion_matrix_struct conf_m = confusion_matrix(True, Pred);
+  
 //--- support
+   
+   ulong size = conf_m.MATRIX.Rows();
+   
+   vector support(size);
+   
+   for(ulong i = 0; i < size; i++)
+      support[i] = NormalizeDouble(MathIsValidNumber(conf_m.MATRIX.Row(i).Sum()) ? conf_m.MATRIX.Row(i).Sum() : 0, 8);
 
-   confusion_mat.support.Resize(classes.Size());
-
-   ZeroMemory(row_v);
-   for(ulong i = 0; i < classes.Size(); i++)
-     {
-      row_v = conf_m.Row(i);
-      confusion_mat.support[i] = NormalizeDouble(MathIsValidNumber(row_v.Sum()) ? row_v.Sum() : 0, 8);
-     }
-
-   int total_size = (int)conf_m.Sum();
+   int total_size = (int)conf_m.MATRIX.Sum();
 
 //--- Avg and w avg
+   
+   vector avg, w_avg;
+   avg.Resize(5);
+   w_avg.Resize(5);
 
-   confusion_mat.avg.Resize(5);
-   confusion_mat.w_avg.Resize(5);
+   avg[0] = precision.Mean();
 
-   confusion_mat.avg[0] = confusion_mat.precision.Mean();
+   avg[1] = recall.Mean();
+   avg[2] = specificity.Mean();
+   avg[3] = f1_score.Mean();
 
-   confusion_mat.avg[1] = confusion_mat.recall.Mean();
-   confusion_mat.avg[2] = confusion_mat.specificity.Mean();
-   confusion_mat.avg[3] = confusion_mat.f1_score.Mean();
-
-   confusion_mat.avg[4] = total_size;
+   avg[4] = total_size;
 
 //--- w avg
 
-   vector support_prop = confusion_mat.support / double(total_size + 1e-10);
+   vector support_prop = support / double(total_size + 1e-10);
 
-   vector c = confusion_mat.precision * support_prop;
-   confusion_mat.w_avg[0] = c.Sum();
+   vector c = precision * support_prop;
+   w_avg[0] = c.Sum();
 
-   c = confusion_mat.recall * support_prop;
-   confusion_mat.w_avg[1] = c.Sum();
+   c = recall * support_prop;
+   w_avg[1] = c.Sum();
 
-   c = confusion_mat.specificity * support_prop;
-   confusion_mat.w_avg[2] = c.Sum();
+   c = specificity * support_prop;
+   w_avg[2] = c.Sum();
 
-   c = confusion_mat.f1_score * support_prop;
-   confusion_mat.w_avg[3] = c.Sum();
+   c = f1_score * support_prop;
+   w_avg[3] = c.Sum();
 
-   confusion_mat.w_avg[4] = (int)total_size;
+   w_avg[4] = (int)total_size;
 
 //--- Report
 
    if(report_show)
      {
-      string report = "\n_\t\t\t\tPrecision \tRecall \tSpecificity \tF1 score \tSupport";
+      string report = "\n[CLS][ACC] \t\t\t\t\tPrecision \tRecall \tSpecificity \tF1 score \tSupport";
 
-      for(ulong i = 0; i < classes.Size(); i++)
+      for(ulong i = 0; i < size; i++)
         {
-         report += "\n\t" + string(classes[i]);
+         report += "\n\t[" + string(conf_m.CLASSES[i])+"]["+DoubleToString(accuracy[i], 2)+"]";
          //for (ulong j=0; j<3; j++)
 
-         report += StringFormat("\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f", confusion_mat.precision[i], confusion_mat.recall[i], confusion_mat.specificity[i], confusion_mat.f1_score[i], confusion_mat.support[i]);
+         report += StringFormat("\t\t\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f", precision[i], recall[i], specificity[i], f1_score[i], support[i]);
         }
+      
+      report += "\n";
+      
+      report += StringFormat("\nAverage \t\t\t\t\t\t \t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t %.2f \t\t\t %.1f", avg[0], avg[1], avg[2], avg[3], avg[4]);
+      report += StringFormat("\nW Avg   \t\t\t\t\t\t \t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t %.2f \t\t\t %.1f", w_avg[0], w_avg[1], w_avg[2], w_avg[3], w_avg[4]);
 
-      report += StringFormat("\n\nAccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%.2f\n", confusion_mat.accuracy);
-
-      report += StringFormat("Average \t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f", confusion_mat.avg[0], confusion_mat.avg[1], confusion_mat.avg[2], confusion_mat.avg[3], confusion_mat.avg[4]);
-      report += StringFormat("\nW Avg \t\t\t %.2f \t\t %.2f \t\t %.2f \t\t\t\t %.2f \t\t %.1f", confusion_mat.w_avg[0], confusion_mat.w_avg[1], confusion_mat.w_avg[2], confusion_mat.w_avg[3], confusion_mat.w_avg[4]);
-
-      Print("Confusion Matrix\n", conf_m);
+      Print("Confusion Matrix\n", conf_m.MATRIX);
       Print("\nClassification Report\n", report);
      }
-//---
-
-   return (confusion_mat);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -320,24 +304,13 @@ double Metrics::mse(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::accuracy_score(vector &True, vector &Pred)
-  {
-   return confusion_matrix(True, Pred, false).accuracy;
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 int Metrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
   {
-   int count = 0;
-
+   int count=0;
+   
    for(ulong i = 0; i < True.Size(); i++)
-     {
       if(True[i] == value_A && B[i] == value_B)
-        {
          count++;
-        }
-     }
 
    return count;
   }
@@ -358,3 +331,4 @@ double Metrics::mae(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
