@@ -212,6 +212,7 @@ void Metrics::classification_report(vector &True, vector &Pred, bool report_show
   vector recall = recall(True, Pred);
   vector f1_score = f1_score(True, Pred); 
   
+  double acc = accuracy_score(True, Pred);
   
   confusion_matrix_struct conf_m = confusion_matrix(True, Pred);
   
@@ -262,20 +263,21 @@ void Metrics::classification_report(vector &True, vector &Pred, bool report_show
 
    if(report_show)
      {
-      string report = "\n[CLS][ACC] \t\t\t\t\tPrecision \tRecall \tSpecificity \tF1 score \tSupport";
+      string report = "\n[CLS][ACC] \t\t\t\t\tprecision \trecall \tspecificity \tf1 score \tsupport";
 
       for(ulong i = 0; i < size; i++)
         {
          report += "\n\t[" + string(conf_m.CLASSES[i])+"]["+DoubleToString(accuracy[i], 2)+"]";
          //for (ulong j=0; j<3; j++)
 
-         report += StringFormat("\t\t\t\t\t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t\t %.2f \t\t\t %.1f", precision[i], recall[i], specificity[i], f1_score[i], support[i]);
+         report += StringFormat("\t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t %d", precision[i], recall[i], specificity[i], f1_score[i], (int)support[i]);
         }
       
       report += "\n";
+      report += StringFormat("\naccuracy\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t %.2f \t\t\t\t %d",acc,(int)conf_m.MATRIX.Sum());
       
-      report += StringFormat("\nAverage \t\t\t\t\t\t \t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t %.2f \t\t\t %.1f", avg[0], avg[1], avg[2], avg[3], avg[4]);
-      report += StringFormat("\nW Avg   \t\t\t\t\t\t \t %.2f \t\t\t %.2f \t\t\t %.2f \t\t\t\t %.2f \t\t\t %.1f", w_avg[0], w_avg[1], w_avg[2], w_avg[3], w_avg[4]);
+      report += StringFormat("\naverage\t\t\t\t\t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t %d", avg[0], avg[1], avg[2], avg[3], (int)avg[4]);
+      report += StringFormat("\nWeighed avg\t\t\t \t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t %d", w_avg[0], w_avg[1], w_avg[2], w_avg[3], (int)w_avg[4]);
 
       Print("Confusion Matrix\n", conf_m.MATRIX);
       Print("\nClassification Report\n", report);
