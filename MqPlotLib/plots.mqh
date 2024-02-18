@@ -55,6 +55,7 @@ CPlots::~CPlots(void)
        ObjectDelete(m_chart_id,m_plot_names[i]);
    
    delete(graph);
+   ChartRedraw();
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
