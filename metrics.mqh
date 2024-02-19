@@ -12,6 +12,7 @@
 //+------------------------------------------------------------------+
 
 #include <MALE5\MatrixExtend.mqh>
+#include <MALE5\MqPlotLib\plots.mqh>
 
 struct roc_curve_struct
  {
@@ -34,7 +35,7 @@ struct confusion_matrix_struct
 //+------------------------------------------------------------------+
 class Metrics
   {
-protected:
+protected:   
    static int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
 
    static confusion_matrix_struct confusion_matrix(vector &True, vector &Preds);
@@ -64,8 +65,8 @@ public:
    static vector f1_score(vector &True, vector &Preds);
    static vector specificity(vector &True, vector &Preds);
    
-   static roc_curve_struct roc_curve(vector &True, vector &Preds);
-   static void classification_report(vector &True, vector &Pred, bool report_show = true);
+   static roc_curve_struct roc_curve(vector &True, vector &Preds, bool show_roc_curve=false);
+   static void classification_report(vector &True, vector &Pred, bool show_roc_curve=false);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -181,7 +182,7 @@ vector Metrics::specificity(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds)
+roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds, bool show_roc_curve=false)
  {
    roc_curve_struct roc;
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
@@ -189,6 +190,12 @@ roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds)
    roc.TPR = recall(True, Preds);
    roc.FPR = conf_m.FP / (conf_m.FP + conf_m.TN + DBL_EPSILON);
    
+   CPlots plt;
+   plt.Plot("Roc Curve",roc.FPR,roc.TPR,"roc_curve","False Positive Rate(FPR)","True Positive Rate(TPR)");
+   
+   while (MessageBox("Close or Cancel ROC CURVE to proceed","Roc Curve",MB_OK)<0)
+    Sleep(1);
+    
    return roc;
  }
 //+------------------------------------------------------------------+
@@ -203,7 +210,7 @@ double Metrics::accuracy_score(vector &True, vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Metrics::classification_report(vector &True, vector &Pred, bool report_show = true)
+void Metrics::classification_report(vector &True, vector &Pred, bool show_roc_curve=false)
   {
   
   vector accuracy = accuracy(True, Pred);
@@ -261,8 +268,6 @@ void Metrics::classification_report(vector &True, vector &Pred, bool report_show
 
 //--- Report
 
-   if(report_show)
-     {
       string report = "\n[CLS][ACC] \t\t\t\t\tprecision \trecall \tspecificity \tf1 score \tsupport";
 
       for(ulong i = 0; i < size; i++)
@@ -281,7 +286,8 @@ void Metrics::classification_report(vector &True, vector &Pred, bool report_show
 
       Print("Confusion Matrix\n", conf_m.MATRIX);
       Print("\nClassification Report\n", report);
-     }
+      
+      roc_curve(True, Pred, show_roc_curve);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
