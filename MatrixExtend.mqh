@@ -70,7 +70,7 @@ public:
    template <typename T>
    static void       TrainTestSplitMatrices(const matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
    static matrix     DesignMatrix(matrix &x_matrix);              
-   static matrix     OneHotEncoding(vector &v);    //ONe hot encoding 
+   static matrix     OneHotEncoding(const vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
    static vector     Sign(vector &x);
    static matrix     eye(uint num_features);
@@ -92,7 +92,7 @@ public:
 
    static matrix     VectorToMatrix(const vector &v, ulong cols=1);
    template<typename T>
-   static vector     MatrixToVector(matrix<T> &mat);
+   static vector     MatrixToVector(const matrix<T> &mat);
    
    template<typename T>
    static vector     ArrayToVector(const T &Arr[]);     
@@ -189,7 +189,7 @@ matrix MatrixExtend::VectorToMatrix(const vector &v, ulong cols=1)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::MatrixToVector(matrix<T> &mat)
+vector MatrixExtend::MatrixToVector(const matrix<T> &mat)
   {
     vector<T> v = {};
     matrix<T> temp_mat = mat;
@@ -811,7 +811,7 @@ matrix MatrixExtend::DesignMatrix(matrix &x_matrix)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::OneHotEncoding(vector &v)
+matrix MatrixExtend::OneHotEncoding(const vector &v)
  {
    matrix mat = {}; 
    
@@ -1430,19 +1430,19 @@ matrix MatrixExtend::Get(const matrix &mat, ulong start_index, ulong end_index)
   
   if (start_index >= mat.Rows())
     {
-       Print(__FUNCTION__,"Error | start_index (",start_index,") is greater than or Equal to matrix Rows (",mat.Rows(),")");
+       Print(__FUNCTION__," Error | start_index (",start_index,") is greater than or Equal to matrix Rows (",mat.Rows(),")");
        return ret_mat;
     }
     
   if (end_index > mat.Rows())
    {
-       Print(__FUNCTION__,"Error | end_index (",start_index,") is greater than (",mat.Rows(),")");
+       Print(__FUNCTION__," Error | end_index (",end_index,") is greater than (",mat.Rows(),")");
        return ret_mat;
    }
   
   if (start_index > end_index)
     {
-      Print(__FUNCTION__,"Error | start_index shouldn't be greater than end_index ???");
+      Print(__FUNCTION__," Error | start_index shouldn't be greater than end_index ???");
       return ret_mat;
     }
   
