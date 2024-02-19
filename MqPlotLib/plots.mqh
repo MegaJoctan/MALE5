@@ -20,30 +20,35 @@ protected:
    int m_subwin;
    int m_x1, m_x2;
    int m_y1, m_y2;
+   string m_font_family;
    bool m_chart_show;
    
    string m_plot_names[];
+   ENUM_CURVE_TYPE m_curve_type;
    bool GraphCreate(string plot_name);
-   bool VectorToArray(const vector &v,double &arr[]);
    
 public:
-         CPlots(void);
+         CPlots(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, string font_family="Consolas", bool chart_show=true);
         ~CPlots(void);
          
-         
-         void PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, bool chart_show=true);
-         bool ScatterCurvePlots(string plot_name,vector& x , vector& y , string legend, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue, bool   points_fill = true);
-         bool ScatterCurvePlotsMatrix(string plot_name, matrix &normalized_matrix,string legend="col",  string x_axis_label="x_axis",string y_axis_label = "y_axis", bool points_fill = true);
+         bool Plot(string plot_name, vector& x, vector& y, string label, string x_axis_label = "x-axis", string y_axis_label = "y-axis", ENUM_CURVE_TYPE curve_type=CURVE_POINTS_AND_LINES,color  clr = clrDodgerBlue, bool   points_fill = true);
+         bool AddPlot(vector& x , vector& y , string label, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue);
   };
   
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CPlots::CPlots(void)
+CPlots::CPlots(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, string font_family="Consolas", bool chart_show=true):
+   m_chart_id(chart_id),
+   m_subwin(sub_win),
+   m_x1(x1),
+   m_y1(y1),
+   m_x2(x2),
+   m_y2(y2),   
+   m_font_family(font_family),
+   m_chart_show(chart_show)
  {
    graph = new CGraphic();
-      
-   PlotConfigs();
    ChartRedraw(m_chart_id);
  }
 //+------------------------------------------------------------------+
@@ -56,19 +61,6 @@ CPlots::~CPlots(void)
    
    delete(graph);
    ChartRedraw();
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CPlots::PlotConfigs(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, bool chart_show=true)
- {
-   m_chart_id = chart_id;
-   m_subwin = sub_win;
-   m_x1 = x1;
-   m_y1 = y1;
-   m_x2 = x2;
-   m_y2 = y2;   
-   m_chart_show = chart_show;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -93,16 +85,17 @@ bool CPlots::GraphCreate(string plot_name)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-bool CPlots::ScatterCurvePlots(
-                                 string plot_name,
-                                 vector& x,
-                                 vector& y,
-                                 string legend,
-                                 string x_axis_label = "x-axis",
-                                 string y_axis_label = "y-axis",
-                                 color  clr = clrDodgerBlue,
-                                 bool   points_fill = true
-                              )
+bool CPlots::Plot(
+                  string plot_name,
+                  vector& x,
+                  vector& y,
+                  string label,
+                  string x_axis_label = "x-axis",
+                  string y_axis_label = "y-axis",
+                  ENUM_CURVE_TYPE curve_type=CURVE_POINTS_AND_LINES,
+                  color  clr = clrDodgerBlue,
+                  bool   points_fill = true
+               )
   {
    
    if (!this.GraphCreate(plot_name))
@@ -113,14 +106,16 @@ bool CPlots::ScatterCurvePlots(
    double x_arr[], y_arr[];
    MatrixExtend::VectorToArray(x, x_arr);
    MatrixExtend::VectorToArray(y, y_arr);
- 
-   graph.CurveAdd(x_arr, y_arr, clr, CURVE_POINTS_AND_LINES, legend);
+   
+   m_curve_type = curve_type;
+   
+   graph.CurveAdd(x_arr, y_arr, ColorToARGB(clr), m_curve_type, label);
 
    graph.XAxis().Name(x_axis_label);
    graph.XAxis().NameSize(13);
    graph.YAxis().Name(y_axis_label);
    graph.YAxis().NameSize(13);
-   graph.FontSet("Lucida Console", 13);
+   graph.FontSet(m_font_family, 13);
    graph.CurvePlotAll();
    graph.Update();
 
@@ -129,53 +124,28 @@ bool CPlots::ScatterCurvePlots(
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPlots::ScatterCurvePlotsMatrix(string plot_name,matrix &normalized_matrix,string legend="col", string x_axis_label="x_axis",string y_axis_label="y_axis",bool points_fill=true)
- {     
-   if (!this.GraphCreate(plot_name))
-     return (false);
-   
-   int cols = (int)normalized_matrix.Cols(), rows = (int)normalized_matrix.Rows(); 
-   
-   double x[], y[];
-   ArrayResize(x, rows);
-   
-   for (int i=0; i<rows; i++) x[i] = i+1;
-   
-   CColorGenerator generator;
-   
-   for (int i=0; i<cols; i++)
+bool CPlots::AddPlot(vector &x,vector &y,string label,string x_axis_label="x-axis",string y_axis_label="y-axis",color clr=16748574)
+ {
+   double x_arr[], y_arr[];
+   MatrixExtend::VectorToArray(x, x_arr);
+   MatrixExtend::VectorToArray(y, y_arr);
+ 
+   if (!graph.CurveAdd(x_arr, y_arr, ColorToARGB(clr), m_curve_type, label))
     {
-      VectorToArray(normalized_matrix.Col(i), y);
-      graph.CurveAdd(x, y, generator.Next(), CURVE_POINTS_AND_LINES,legend+string(i+1));
+      printf("%s failed to add a plot to the existing plot Err =%d",__FUNCTION__,GetLastError());
+      return false;
     }
 
-
    graph.XAxis().Name(x_axis_label);
    graph.XAxis().NameSize(13);
    graph.YAxis().Name(y_axis_label);
    graph.YAxis().NameSize(13);
-   graph.FontSet("Lucida Console", 13);
+   graph.FontSet(m_font_family, 13);
    graph.CurvePlotAll();
    graph.Update();
 
-
-   return (true);
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool CPlots::VectorToArray(const vector &v,double &arr[])
-  {
-   ArrayResize(arr,(int)v.Size());
-
-   if(ArraySize(arr) == 0)
-      return(false);
-
-   for(ulong i=0; i<v.Size(); i++)
-      arr[i] = v[i];
-
    return(true);
-  }
+ }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
