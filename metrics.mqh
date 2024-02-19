@@ -190,12 +190,15 @@ roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds, bool show_roc_cu
    roc.TPR = recall(True, Preds);
    roc.FPR = conf_m.FP / (conf_m.FP + conf_m.TN + DBL_EPSILON);
    
-   CPlots plt;
-   plt.Plot("Roc Curve",roc.FPR,roc.TPR,"roc_curve","False Positive Rate(FPR)","True Positive Rate(TPR)");
+   if (show_roc_curve)
+   {
+      CPlots plt;
+      plt.Plot("Roc Curve",roc.FPR,roc.TPR,"roc_curve","False Positive Rate(FPR)","True Positive Rate(TPR)");
+      
+      while (MessageBox("Close or Cancel ROC CURVE to proceed","Roc Curve",MB_OK)<0)
+       Sleep(1);
+   } 
    
-   while (MessageBox("Close or Cancel ROC CURVE to proceed","Roc Curve",MB_OK)<0)
-    Sleep(1);
-    
    return roc;
  }
 //+------------------------------------------------------------------+
