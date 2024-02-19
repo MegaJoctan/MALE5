@@ -36,9 +36,9 @@ struct confusion_matrix_struct
 class Metrics
   {
 protected:   
-   static int SearchPatterns(vector &True, int value_A, vector &B, int value_B);
+   static int SearchPatterns(const vector &True, int value_A, const vector &B, int value_B);
 
-   static confusion_matrix_struct confusion_matrix(vector &True, vector &Preds);
+   static confusion_matrix_struct confusion_matrix(const vector &True, const vector &Preds);
    
 public:
 
@@ -47,26 +47,26 @@ public:
 
    //--- Regression metrics
 
-   static double r_squared(vector &True, vector &Pred);
-   static double adjusted_r(vector &True, vector &Pred, uint indep_vars = 1);
+   static double r_squared(const vector &True, const vector &Pred);
+   static double adjusted_r(const vector &True, const vector &Pred, uint indep_vars = 1);
 
-   static double rss(vector &True, vector &Pred);
-   static double mse(vector &True, vector &Pred);
-   static double rmse(vector &True, vector &Pred);
-   static double mae(vector &True, vector &Pred);
+   static double rss(const vector &True, const vector &Pred);
+   static double mse(const vector &True, const vector &Pred);
+   static double rmse(const vector &True, const vector &Pred);
+   static double mae(const vector &True, const vector &Pred);
 
    //--- Classification metrics
 
-   static double accuracy_score(vector &True, vector &Pred);
+   static double accuracy_score(const vector &True, const vector &Pred);
    
-   static vector accuracy(vector &True, vector &Preds);
-   static vector precision(vector &True, vector &Preds);
-   static vector recall(vector &True, vector &Preds);
-   static vector f1_score(vector &True, vector &Preds);
-   static vector specificity(vector &True, vector &Preds);
+   static vector accuracy(const vector &True, const vector &Preds);
+   static vector precision(const vector &True, const vector &Preds);
+   static vector recall(const vector &True, const vector &Preds);
+   static vector f1_score(const vector &True, const vector &Preds);
+   static vector specificity(const vector &True, const vector &Preds);
    
-   static roc_curve_struct roc_curve(vector &True, vector &Preds, bool show_roc_curve=false);
-   static void classification_report(vector &True, vector &Pred, bool show_roc_curve=false);
+   static roc_curve_struct roc_curve(const vector &True, const vector &Preds, bool show_roc_curve=false);
+   static void classification_report(const vector &True, const vector &Pred, bool show_roc_curve=false);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -85,14 +85,14 @@ Metrics::~Metrics(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::r_squared(vector &True, vector &Pred)
+double Metrics::r_squared(const vector &True, const vector &Pred)
   {
    return(Pred.RegressionMetric(True, REGRESSION_R2));
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
+double Metrics::adjusted_r(const vector &True, const vector &Pred, uint indep_vars = 1)
   {
    if(True.Size() != Pred.Size())
      {
@@ -109,7 +109,7 @@ double Metrics::adjusted_r(vector &True, vector &Pred, uint indep_vars = 1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-confusion_matrix_struct Metrics::confusion_matrix(vector &True, vector &Preds)
+confusion_matrix_struct Metrics::confusion_matrix(const vector &True, const vector &Preds)
  {
   confusion_matrix_struct confusion_matrix; 
    
@@ -136,7 +136,7 @@ confusion_matrix_struct Metrics::confusion_matrix(vector &True, vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Metrics::accuracy(vector &True,vector &Preds)
+vector Metrics::accuracy(const vector &True,const vector &Preds)
  {
   confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
   
@@ -145,7 +145,7 @@ vector Metrics::accuracy(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Metrics::precision(vector &True,vector &Preds)
+vector Metrics::precision(const vector &True,const vector &Preds)
  {
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
 
@@ -154,7 +154,7 @@ vector Metrics::precision(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Metrics::f1_score(vector &True,vector &Preds)
+vector Metrics::f1_score(const vector &True,const vector &Preds)
  {
    vector precision = precision(True, Preds);
    vector recall = recall(True, Preds);
@@ -164,7 +164,7 @@ vector Metrics::f1_score(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Metrics::recall(vector &True,vector &Preds)
+vector Metrics::recall(const vector &True,const vector &Preds)
  {
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
 
@@ -173,7 +173,7 @@ vector Metrics::recall(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Metrics::specificity(vector &True,vector &Preds)
+vector Metrics::specificity(const vector &True,const vector &Preds)
  {
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
 
@@ -182,7 +182,7 @@ vector Metrics::specificity(vector &True,vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds, bool show_roc_curve=false)
+roc_curve_struct Metrics::roc_curve(const vector &True,const vector &Preds, bool show_roc_curve=false)
  {
    roc_curve_struct roc;
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
@@ -204,7 +204,7 @@ roc_curve_struct Metrics::roc_curve(vector &True,vector &Preds, bool show_roc_cu
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::accuracy_score(vector &True, vector &Preds)
+double Metrics::accuracy_score(const vector &True, const vector &Preds)
   {
    confusion_matrix_struct conf_m = confusion_matrix(True, Preds);
    
@@ -213,7 +213,7 @@ double Metrics::accuracy_score(vector &True, vector &Preds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Metrics::classification_report(vector &True, vector &Pred, bool show_roc_curve=false)
+void Metrics::classification_report(const vector &True, const vector &Pred, bool show_roc_curve=false)
   {
   
   vector accuracy = accuracy(True, Pred);
@@ -295,7 +295,7 @@ void Metrics::classification_report(vector &True, vector &Pred, bool show_roc_cu
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::rss(vector &True, vector &Pred)
+double Metrics::rss(const vector &True, const vector &Pred)
   {
    vector c = True - Pred;
    c = MathPow(c, 2);
@@ -305,7 +305,7 @@ double Metrics::rss(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::mse(vector &True, vector &Pred)
+double Metrics::mse(const vector &True, const vector &Pred)
   {
    vector c = True - Pred;
    c = MathPow(c, 2);
@@ -315,7 +315,7 @@ double Metrics::mse(vector &True, vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int Metrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
+int Metrics::SearchPatterns(const vector &True, int value_A, const vector &B, int value_B)
   {
    int count=0;
    
@@ -328,14 +328,14 @@ int Metrics::SearchPatterns(vector &True, int value_A, vector &B, int value_B)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::rmse(vector &True, vector &Pred)
+double Metrics::rmse(const vector &True, const vector &Pred)
   {
    return Pred.RegressionMetric(True, REGRESSION_RMSE);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Metrics::mae(vector &True, vector &Pred)
+double Metrics::mae(const vector &True, const vector &Pred)
   {
    return Pred.RegressionMetric(True, REGRESSION_MAE);
   }
