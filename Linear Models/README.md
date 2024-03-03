@@ -20,7 +20,7 @@ By fitting the line/hyperplane to the data, linear regression allows us to:
 
 ## CLinearRegression Class Documentation
 
-The `CLinearRegression` class implements linear regression functionality for MQL5. It provides methods for both training and prediction:
+The `CLinearRegression` class implements linear regression functionality. It provides methods for both training and prediction:
 
 **Public Functions:**
 
@@ -47,7 +47,7 @@ The `CLinearRegression` class implements linear regression functionality for MQL
 
 
 
-## CLogisticRegression Class: Logistic Regression for MQL5
+## CLogisticRegression Class: Logistic Regression
 
 The `CLogisticRegression` class provides functionalities for implementing logistic regression in MQL5. This statistical method allows you to model the probability of a binary outcome (belonging to one of two classes) based on independent variables.
 
@@ -94,7 +94,7 @@ By adjusting the weights and bias through training (minimizing the error between
 
 
 
-## CPolynomialRegression Class: Polynomial Regression for MQL5
+## CPolynomialRegression Class: Polynomial Regression
 
 The `CPolynomialRegression` class provides functionalities for implementing polynomial regression in MQL5. This technique extends linear regression by fitting a higher-degree polynomial function to the data, allowing for more complex relationships between the independent and dependent variables.
 
