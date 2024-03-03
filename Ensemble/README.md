@@ -1,4 +1,4 @@
-## AdaBoost Ensemble Learning with MQL5
+## AdaBoost Ensemble Learning
 
 This explanation covers the concept of AdaBoost and its implementation in `adaboost.mqh` for MQL5, highlighting the flexibility of using different weak learners (like decision trees or logistic regression).
 
@@ -41,7 +41,7 @@ The `AdaBoost` class provides functionalities for implementing the AdaBoost algo
 The key takeaway here is that the `AdaBoost` class is **not limited to** using decision trees as weak learners. The provided examples showcase its usage with both decision trees and logistic regression. This demonstrates the flexibility of the AdaBoost framework, where any model capable of making predictions (classification or regression) can be used as a weak learner.
 
 
-## Random Forest Classification and Regression: MQL5 Documentation
+## Random Forest Classification and Regression: 
 
 This explanation covers the `CRandomForestClassifier` and `CRandomForestRegressor` classes in MQL5, which implement **random forests** for classification and regression tasks, respectively.
 
