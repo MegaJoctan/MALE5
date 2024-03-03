@@ -62,3 +62,6 @@ The `CLinearSVM` class provides functionalities for training and using a linear 
 * The chosen hyperparameters (learning rate, epochs, etc.) can significantly impact the performance of the model. Experimentation and tuning might be needed for optimal results.
 * The class uses mini-batch training for improved efficiency on large datasets.
 * During training, the `during_training` flag is set to True to prevent making predictions while the model is being updated.
+
+**Reference**
+* [Data Science and Machine Learning(Part 15): SVM, A Must-Have Tool in Every Trader's Toolbox ](https://www.mql5.com/en/articles/13395)
