@@ -54,54 +54,52 @@ It was developed to help build machine learning-based trading robots, effortless
 > All the algorithms in this repository works best when the data is [normalized](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library#preprocessingmqh-mql5-normalization-techniques), This is crucial for all Machine Learning techniques
 
 ## Read the Docs
-* **Foundation Libraries | modules**
-  * [MatrixExtend (MatrixExtend.mqh)](https://github.com/MegaJoctan/MALE5/wiki#matrixextendmatrixextendmqh)
-  * [Cross Validation Library (cross_validation.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Cross-Validation-Library)
-  * [Linear Algebra Library (linalg.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Linear-Algebra-Library)
-  * [Kernels library (kernels.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Kernels-Library)
-  * [Metrics library (metrics.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Metrics-library)
-  * [Pre-processing library (preprocessing.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library)
-  * [Tensor library (Tensor.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Tensor-Library)
+**Foundation Libraries | modules**
+* [MatrixExtend (MatrixExtend.mqh)](https://github.com/MegaJoctan/MALE5/wiki#matrixextendmatrixextendmqh)
+* [Cross Validation Library (cross_validation.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Cross-Validation-Library)
+* [Linear Algebra Library (linalg.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Linear-Algebra-Library)
+* [Kernels library (kernels.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Kernels-Library)
+* [Metrics library (metrics.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Metrics-library)
+* [Pre-processing library (preprocessing.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library)
+* [Tensor library (Tensor.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Tensor-Library)
 
-* **Linear Models**
-  * [Linear Regression (Linear Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#theory-overview-linear-regression)
-  * [Logistic Regression (Logistic Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#clogisticregression-class-logistic-regression)
-  * Ridge Regression
-  * [Polynomial Regression (Polynomial Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#cpolynomialregression-class-polynomial-regression)
+**Linear Models**
+* [Linear Regression (Linear Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#theory-overview-linear-regression)
+* [Logistic Regression (Logistic Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#clogisticregression-class-logistic-regression)
+* Ridge Regression
+* [Polynomial Regression (Polynomial Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#cpolynomialregression-class-polynomial-regression)
 
 * **Decision Trees**
-  * [Decision Tree (tree.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Decision%20Tree#decision-trees-in-mql5-classification-and-regression)
+* [Decision Tree (tree.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Decision%20Tree#decision-trees-in-mql5-classification-and-regression)
 
-* **Clustering Techniques**
-  * DBSCAN
-  * Hierachical Clustering
-  * KMeans
+**Clustering Techniques**
+* DBSCAN
+* Hierachical Clustering
+* KMeans
 
-* **Dimension Reduction Techniques**
-  * [Linear Discriminant Analysis (LDA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#linear-discriminant-analysis-lda)
-  * [Principal Component Analysis (PCA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#principal-component-analysis-pca)
-  * [Non-Negative Matrix Factorization (NMF.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#non-negative-matrix-factorization-nmf)
-  * [Truncated Singular Value Decomposition (TruncatedSVD.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#truncated-singular-value-decomposition-truncated-svd)
+**Dimension Reduction Techniques**
+* [Linear Discriminant Analysis (LDA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#linear-discriminant-analysis-lda)
+* [Principal Component Analysis (PCA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#principal-component-analysis-pca)
+* [Non-Negative Matrix Factorization (NMF.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#non-negative-matrix-factorization-nmf)
+* [Truncated Singular Value Decomposition (TruncatedSVD.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#truncated-singular-value-decomposition-truncated-svd)
 
-* **Ensemble Algorithms**
-  * [Adaboost(AdaBoost.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#adaboost-ensemble-learning)
-  * [Random forest(Random Forest.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#random-forest-classification-and-regression)
+**Ensemble Algorithms**
+* [Adaboost(AdaBoost.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#adaboost-ensemble-learning)
+* [Random forest(Random Forest.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#random-forest-classification-and-regression)
 
-* **Naive Bayes**
-  * [Naive Bayes(Naive Bayes.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Naive%20Bayes#naive-bayes-classifier)
+**Naive Bayes**
+* [Naive Bayes(Naive Bayes.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Naive%20Bayes#naive-bayes-classifier)
 
-* **Neighbors**
-  * K-nearest neighbors
+**Neighbors**
+* K-nearest neighbors
 
-* **Neural Networks**
-  * [Kohonen Maps (kohonen maps.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#kohonen-maps-self-organizing-maps)
-  * [Pattern recognition Neural Networks (Pattern Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#pattern-recognition-neural-network)
-  * [Regression Neural Networks (Regressor Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#regression-neural-network)
+**Neural Networks**
+* [Kohonen Maps (kohonen maps.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#kohonen-maps-self-organizing-maps)
+* [Pattern recognition Neural Networks (Pattern Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#pattern-recognition-neural-network)
+* [Regression Neural Networks (Regressor Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#regression-neural-network)
 
-* **Support vector Machine(SVM)**
-  * [Linear vector Machine (svm.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/SVM#linear-support-vector-machine-svm)
-
-
+**Support vector Machine(SVM)**
+* [Linear vector Machine (svm.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/SVM#linear-support-vector-machine-svm)
 
 
 ## Installing 
