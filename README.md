@@ -54,6 +54,7 @@ It was developed to help build machine learning-based trading robots, effortless
 > All the algorithms in this repository works best when the data is [normalized](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library#preprocessingmqh-mql5-normalization-techniques), This is crucial for all Machine Learning techniques
 
 ## Read the Docs
+* **Foundation Libraries | modules**
   * [MatrixExtend (MatrixExtend.mqh)](https://github.com/MegaJoctan/MALE5/wiki#matrixextendmatrixextendmqh)
   * [Cross Validation Library (cross_validation.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Cross-Validation-Library)
   * [Linear Algebra Library (linalg.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Linear-Algebra-Library)
