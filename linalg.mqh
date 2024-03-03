@@ -5,6 +5,8 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2023, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
+
+#include "MatrixExtend.mqh"
 //+------------------------------------------------------------------+
 //|    implementations of standard linear algebra algorithms         |
 //+------------------------------------------------------------------+
@@ -43,15 +45,47 @@ LinAlg::~LinAlg(void)
  
  }
 //+------------------------------------------------------------------+
-//|	Dot product of two matrices.                                   |
+//|	Dot product of two matrices | Flexible funciton - numpy like   |
 //+------------------------------------------------------------------+
 template<typename T>
-matrix<T> LinAlg::dot(matrix<T> &A,matrix<T> &B)
- {
-   return A.MatMul(B);
+matrix<T> LinAlg::dot(matrix<T> &A, matrix<T> &B)
+ { 
+   matrix Z={};
+   
+   if (A.Cols() == B.Rows()) //Valid Normal matrix multiplication
+    {
+      Z = A.MatMul(B);
+      return Z;
+    }
+   else
+     {
+       //---Check for one dimensional matrices | Scalar
+       
+       if ((A.Rows()==1 && A.Cols()==1))
+        {
+          Z = B * A[0][0];
+          return Z;
+        }
+        
+       if (B.Rows()==1 && B.Cols()==1)
+        {
+          Z = B[0][0] * A;
+          return Z;
+        }
+        
+      //-- Element wise multiplication
+      
+       if (A.Rows()==B.Rows() && A.Cols()==B.Cols()) 
+         {
+            Z = A * B;
+            return Z;
+         }
+     }
+   
+   return Z;
  }
 //+------------------------------------------------------------------+
-//| Matrix or vector<T> norm. | Finds the equlidean distance of the     |
+//| Matrix or vector<T> norm. | Finds the equlidean distance of the  |
 //| two matrices                                                     |
 //+------------------------------------------------------------------+
 template<typename T>
