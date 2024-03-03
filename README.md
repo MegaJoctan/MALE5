@@ -51,37 +51,57 @@ It was developed to help build machine learning-based trading robots, effortless
 -   **Flexible:** You can use it in any program script, Indicator, EA's
 -   **Resource-efficient:** It doesn't consume a lot of memory or CPU, and takes short time intervals to train
 
-**Linear Models**
+> All the algorithms in this repository works best when the data is [normalized](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library#preprocessingmqh-mql5-normalization-techniques), This is crucial for all Machine Learning techniques
 
-- Linear Regression
-- Logistic Regression
-- Polynomial Regression
-- Ridge & Lasso Regression
+## Read the Docs
+* [MatrixExtend (MatrixExtend.mqh)](https://github.com/MegaJoctan/MALE5/wiki#matrixextendmatrixextendmqh)
+* [Cross Validation Library (cross_validation.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Cross-Validation-Library)
+* [Linear Algebra Library (linalg.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Linear-Algebra-Library)
+* [Kernels library (kernels.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Kernels-Library)
+* [Metrics library (metrics.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Metrics-library)
+* [Pre-processing library (preprocessing.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Pre-processing-library)
+* [Tensor library (Tensor.mqh)](https://github.com/MegaJoctan/MALE5/wiki/Tensor-Library)
 
-**Decision Tree**
-**Random Forest**
-**Naive Bayes & Gaussian Naive Bayes**
-**Neural Networks**
+* **Linear Models**
+  * [Linear Regression (Linear Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#theory-overview-linear-regression)
+  * [Logistic Regression (Logistic Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#clogisticregression-class-logistic-regression)
+  * Ridge Regression
+  * [Polynomial Regression (Polynomial Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#cpolynomialregression-class-polynomial-regression)
 
-- Pattern Nets
-- Regressor Nets
-- Kohonen Maps
+* **Decision Trees**
+  * [Decision Tree (tree.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Decision%20Tree#decision-trees-in-mql5-classification-and-regression)
 
-**Neighbors**
-- KNN Nearest Neighbors
+* **Clustering Techniques**
+  * DBSCAN
+  * Hierachical Clustering
+  * KMeans
 
-**Support Vector Machines**
-- Support Vector machine
+* **Dimension Reduction Techniques**
+  * [Linear Discriminant Analysis (LDA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#linear-discriminant-analysis-lda)
+  * [Principal Component Analysis (PCA.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#principal-component-analysis-pca)
+  * [Non-Negative Matrix Factorization (NMF.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#non-negative-matrix-factorization-nmf)
+  * [Truncated Singular Value Decomposition (TruncatedSVD.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Dimensionality%20Reduction#truncated-singular-value-decomposition-truncated-svd)
 
-**Clustering**
-- KMeans 
-- Hierarchical/Agglomerative clustering
-**Data Mining**
-- Principal Component Analysis(pca)
+* **Ensemble Algorithms**
+  * [Adaboost(AdaBoost.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#adaboost-ensemble-learning)
+  * [Random forest(Random Forest.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Ensemble#random-forest-classification-and-regression)
 
-**Clustering techniques | Unsupervised Learning:**
+* **Naive Bayes**
+  * [Naive Bayes(Naive Bayes.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Naive%20Bayes#naive-bayes-classifier)
 
--   KNN clustering 
+* **Neighbors**
+  * K-nearest neighbors
+
+* **Neural Networks**
+  * [Kohonen Maps (kohonen maps.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#kohonen-maps-self-organizing-maps)
+  * [Pattern recognition Neural Networks (Pattern Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#pattern-recognition-neural-network)
+  * [Regression Neural Networks (Regressor Nets.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Neural%20Networks#regression-neural-network)
+
+* **Support vector Machine(SVM)**
+  * [Linear vector Machine (svm.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/SVM#linear-support-vector-machine-svm)
+
+
+
 
 ## Installing 
 
@@ -89,9 +109,7 @@ Go to the Include directory and open CMD then run
 ``` cmd  
 git clone https://github.com/MegaJoctan/MALE5.git
 ```
-
-## Read the Docs
-There is a short clear description of how to use this library on this repository wiki https://github.com/MegaJoctan/MALE5/wiki
+Or download the zip file from the releases section extract the library, Under MQL5 folder in your MetaEditor, from there paste the MALE5 directory you extracted under the Include folder
 
 ## Opening an issue
 You can also post bug reports and feature requests (only) in [GitHub issues](https://github.com/MegaJoctan/MALE5/issues).
@@ -110,7 +128,4 @@ Register to our recommended broker:
 ## Let's work together
 Create a personal Job for me on MQL5 | [HIRE ME](https://www.mql5.com/en/job/new?prefered=omegajoctan)
 
-## Reference
-* [MQL5 Articles](https://www.mql5.com/en/users/omegajoctan/publications)
 
-Copyright © 2023, Omega Joctan Msigwa
