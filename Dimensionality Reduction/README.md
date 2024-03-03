@@ -12,7 +12,7 @@ The `CLDA` class provides functionalities for performing LDA in MQL5:
 
 **Public Functions:**
 
-* **CLDA(uint k=NULL, lda_criterion CRITERION_=CRITERION_SCREE_PLOT, double reg_param =1e-6):** Constructor, allows setting hyperparameters:
+* `CLDA(uint k=NULL, lda_criterion CRITERION_=CRITERION_SCREE_PLOT, double reg_param =1e-6)` Constructor, allows setting hyperparameters:
     * `k`: Number of components to extract (default: None, determined automatically).
     * `CRITERION_`: Criterion for selecting the best components (default: CRITERION_SCREE_PLOT).
     * `reg_param`: Regularization parameter to prevent overfitting (default: 1e-6).
@@ -55,7 +55,7 @@ The `CPCA` class provides functionalities for performing PCA in MQL5:
 
 **Public Functions:**
 
-* **CPCA(int k=0, criterion CRITERION_=CRITERION_SCREE_PLOT):** Constructor, allows setting hyperparameters:
+* `CPCA(int k=0, criterion CRITERION_=CRITERION_SCREE_PLOT)` Constructor, allows setting hyperparameters:
     * `k`: Number of components to extract (default: 0, determined automatically using the chosen criterion).
     * `CRITERION_`: Criterion for selecting the best components (default: CRITERION_SCREE_PLOT).
 * `~CPCA(void)` Destructor.
@@ -101,16 +101,16 @@ The `CNMF` class provides functionalities for performing NMF :
 
 **Public Functions:**
 
-* **CNMF(uint max_iter=100, double tol=1e-4, int random_state=-1):** Constructor, allows setting hyperparameters:
+* `CNMF(uint max_iter=100, double tol=1e-4, int random_state=-1)` Constructor, allows setting hyperparameters:
     * `max_iter`: Maximum number of iterations for the NMF algorithm (default: 100).
     * `tol`: Tolerance for convergence (default: 1e-4).
     * `random_state`: Random seed for initialization (default: -1, uses random seed).
-* **~CNMF(void):** Destructor.
-* **matrix fit_transform(matrix &X, uint k=2):** Trains the model on the provided data (`X`) and returns the decomposed components (`W` and `H`).
+* `~CNMF(void)` Destructor.
+* `matrix fit_transform(matrix &X, uint k=2)` Trains the model on the provided data (`X`) and returns the decomposed components (`W` and `H`).
     * `k`: Number of components to extract (default: 2).
-* **matrix transform(matrix &X):** Transforms new data (`X`) using the trained model.
-* **vector transform(vector &X):** Transforms a single new data point (`X`) using the trained model.
-* **uint select_best_components(matrix &X):** Analyzes the input data and suggests an appropriate number of components (implementation details might vary depending on the specific NMF algorithm used).
+* `matrix transform(matrix &X)` Transforms new data (`X`) using the trained model.
+* `vector transform(vector &X)` Transforms a single new data point (`X`) using the trained model.
+* `uint select_best_components(matrix &X)` Analyzes the input data and suggests an appropriate number of components (implementation details might vary depending on the specific NMF algorithm used).
 
 **III. Additional Notes:**
 
