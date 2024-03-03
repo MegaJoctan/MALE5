@@ -63,11 +63,11 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
 //--- Center the data (subtract mean)
 
     this.mean = X.Mean(0);
-    matrix X_centered = Base::subtract(X, this.mean);
+    matrix X_centered = BaseDimRed::subtract(X, this.mean);
     
 //--- Compute the covariance matrix
    
-    Base::ReplaceNaN(X_centered);
+    BaseDimRed::ReplaceNaN(X_centered);
     matrix cov_matrix = X_centered.Cov(false);
     
 //---  Perform SVD on the covariance matrix
@@ -75,7 +75,7 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
     matrix U={}, Vt={};
     vector Sigma={};
     
-    Base::ReplaceNaN(cov_matrix);
+    BaseDimRed::ReplaceNaN(cov_matrix);
     
     if (!cov_matrix.SVD(U,Vt,Sigma))
        Print(__FUNCTION__," Line ",__LINE__," Failed to calculate SVD Err=",GetLastError());    
@@ -86,13 +86,13 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
          Print(__FUNCTION__," Best value of K = ",m_components);
        }
                  
-    this.components_ = Base::Slice(Vt, this.m_components).Transpose();
-    Base::ReplaceNaN(this.components_);
+    this.components_ = BaseDimRed::Slice(Vt, this.m_components).Transpose();
+    BaseDimRed::ReplaceNaN(this.components_);
         
     if (MQLInfoInteger(MQL_DEBUG))
       Print("components_T[",components_.Rows(),"X",components_.Cols(),"]\n",this.components_);
     
-    this.explained_variance_ = MathPow(Base::Slice(Sigma, this.m_components), 2) / (X.Rows() - 1);
+    this.explained_variance_ = MathPow(BaseDimRed::Slice(Sigma, this.m_components), 2) / (X.Rows() - 1);
     
     return X_centered.MatMul(components_);
  }
@@ -101,7 +101,7 @@ matrix CTruncatedSVD::fit_transform(matrix &X)
 //+------------------------------------------------------------------+
 matrix CTruncatedSVD::transform(matrix &X)
  {
-   matrix X_centered = Base::subtract(X, this.mean);
+   matrix X_centered = BaseDimRed::subtract(X, this.mean);
    
    if (X.Cols()!=this.n_features)
      {
@@ -138,7 +138,7 @@ ulong CTruncatedSVD::_select_n_components(vector &singular_values)
     for (uint i=0; i<k.Size(); i++)
       k[i] = i+1;
     
-    plt.ScatterCurvePlots("Explained variance plot",k,explained_variance_ratio,"variance","components","Variance");
+    plt.Plot("Explained variance plot",k,explained_variance_ratio,"variance","components","Variance");
     
    return explained_variance_ratio.ArgMax() + 1;  //Choose k for maximum explained variance
  }

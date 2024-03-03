@@ -73,7 +73,7 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
    
    this.mean = x.Mean(0);
    
-   matrix x_centered = Base::subtract(x, this.mean);
+   matrix x_centered = BaseDimRed::subtract(x, this.mean);
    
    matrix class_means(classes.Size(), x.Cols());
    class_means.Fill(0.0);
@@ -113,7 +113,7 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
          }
 
          
-     matrix diff = Base::subtract(class_samples, class_means.Row(i)); //Each row subtracted to the mean
+     matrix diff = BaseDimRed::subtract(class_samples, class_means.Row(i)); //Each row subtracted to the mean
      if (diff.Rows()==0 && diff.Cols()==0) //if the subtracted matrix is zero stop the program for possible bugs or errors
       {
         DebugBreak();
@@ -138,7 +138,7 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
   
   matrix SBSW = SW.Inv().MatMul(SB);
   
-  Base::ReplaceNaN(SBSW);
+  BaseDimRed::ReplaceNaN(SBSW);
   
   if (!SBSW.Eig(eigen_vectors, eigen_values))
     {
@@ -154,8 +154,8 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
    vector args = MatrixExtend::ArgSort(eigen_values);
    MatrixExtend::Reverse(args);
    
-   eigen_values = Base::Sort(eigen_values, args);
-   eigen_vectors = Base::Sort(eigen_vectors, args);
+   eigen_values = BaseDimRed::Sort(eigen_values, args);
+   eigen_vectors = BaseDimRed::Sort(eigen_vectors, args);
    
 //---
    
@@ -171,7 +171,7 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
   else //plot the scree plot 
     extract_components(eigen_values);
     
-  this.projection_matrix = Base::Slice(eigen_vectors, this.m_components);
+  this.projection_matrix = BaseDimRed::Slice(eigen_vectors, this.m_components);
     
   return x_centered.MatMul(projection_matrix.Transpose());
  }
@@ -186,7 +186,7 @@ matrix CLDA::transform(const matrix &x)
       matrix empty = {};
       return empty; 
     }
-  matrix x_centered = Base::subtract(x, this.mean);
+  matrix x_centered = BaseDimRed::subtract(x, this.mean);
   
   return x_centered.MatMul(this.projection_matrix.Transpose());  
  }
@@ -269,7 +269,7 @@ uint CLDA::extract_components(vector &eigen_values, double threshold=0.95)
              
           vector vars = eigen_values;
           
-          plt.ScatterCurvePlots("Scree plot",v_cols,vars,"EigenValue","LDA","EigenValue");
+          plt.Plot("Scree plot",v_cols,vars,"EigenValue","Principal Components","EigenValue", CURVE_POINTS_AND_LINES);
 
 //---
       string warn = "\n<<<< WARNING >>>>\nThe Scree plot doesn't return the determined number of k m_components\nThe cummulative variance Or kaiser will return the number of k m_components instead\nThe k returned might be different from what you see on the scree plot";

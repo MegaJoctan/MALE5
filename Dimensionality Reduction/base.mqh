@@ -6,14 +6,17 @@
 #property copyright "Copyright 2023, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 //+------------------------------------------------------------------+
-//| Base class for dimension reduction, containing most useful       |
+//| BaseDimRed class for dimension reduction, containing most useful       |
 //| that are necessary for the algorithms in this folder             |
 //+------------------------------------------------------------------+
-class Base
+
+#include <MALE5\MatrixExtend.mqh>
+
+class BaseDimRed
   {
 public:
-                     Base(void);
-                    ~Base(void);
+                     BaseDimRed(void);
+                    ~BaseDimRed(void);
                     
                     static matrix Slice(const matrix &mat, uint from_0_to, int axis=0);
                     static vector Slice(const vector &v, uint from_0_to);
@@ -25,9 +28,15 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix Base::Slice(const matrix &mat, uint from_0_to, int axis=0)
+matrix BaseDimRed::Slice(const matrix &mat, uint from_0_to, int axis=0)
  {
   matrix ret = {};
+  
+  if (from_0_to==0)
+    {
+      printf("%s Cannot slice a vector from index 0 to 0",__FUNCTION__);
+      return mat;
+    }
   
   switch(axis)
     {
@@ -55,10 +64,16 @@ matrix Base::Slice(const matrix &mat, uint from_0_to, int axis=0)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Base::Slice(const vector &v, uint from_0_to)
+vector BaseDimRed::Slice(const vector &v, uint from_0_to)
  {
    vector ret(from_0_to);
    
+  if (from_0_to==0)
+    {
+      printf("%s Cannot slice a vector from index 0 to 0",__FUNCTION__);
+      return v;
+    }
+    
    for (uint i=0; i<ret.Size(); i++)
      ret[i] = v[i];
   
@@ -67,19 +82,33 @@ vector Base::Slice(const vector &v, uint from_0_to)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix Base::subtract(const matrix&mat, const vector &v)
+matrix BaseDimRed::subtract(const matrix&mat, const vector &v)
  {
    matrix ret = mat;
    
-   for (ulong i=0; i<mat.Rows(); i++)
-     ret.Row(mat.Row(i)-v, i);
+   if (mat.Rows()!=v.Size() && mat.Cols()!=v.Size())
+     {
+       printf("%s Dimensions Mismatch",__FUNCTION__);
+       matrix empty = {};
+       return empty;
+     }
+   
+   bool isrows = v.Size()==mat.Rows() ? true : false;
+   
+   for (ulong i=0; i<(isrows?mat.Cols():mat.Rows()); i++)
+    {
+      if (isrows)
+       ret.Col(mat.Col(i)-v, i);
+      else
+       ret.Row(mat.Row(i)-v, i);
+    }
    
    return ret; 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Base::ReplaceNaN(matrix &mat)
+void BaseDimRed::ReplaceNaN(matrix &mat)
  {
    for (ulong i = 0; i < mat.Rows(); i++) 
      for (ulong j = 0; j < mat.Cols(); j++) 
@@ -89,7 +118,7 @@ void Base::ReplaceNaN(matrix &mat)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix Base::Sort(matrix &mat, vector &args)
+matrix BaseDimRed::Sort(matrix &mat, vector &args)
  {
    matrix m = mat;
    
@@ -107,7 +136,7 @@ matrix Base::Sort(matrix &mat, vector &args)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector Base::Sort(vector &v, vector &args)
+vector BaseDimRed::Sort(vector &v, vector &args)
  {
    vector vec = v;
    
