@@ -43,4 +43,4 @@ By understanding the theoretical foundation and functionalities of the `CDecisio
 
 **Reference**
 
-[Data Science and Machine Learning (Part 17): Money in the Trees? The Art and Science of Random Forests in Forex Trading](https://www.mql5.com/en/articles/13765)
+[Data Science and Machine Learning (Part 16): A Refreshing Look at Decision Trees](https://www.mql5.com/en/articles/13862)
