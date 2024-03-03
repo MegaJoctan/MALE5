@@ -45,9 +45,6 @@ The `CLinearRegression` class implements linear regression functionality for MQL
 * Internal helper functions (`checkIsTrained`, `TrimNumber`, `dx_wrt_bo`, `dx_wrt_b1`) are not directly accessible from the user but support the core functionalities.
 * The class checks if the model is trained before allowing predictions using the `checkIsTrained` function.
 
-By understanding the theoretical foundation and using the functions provided by the `CLinearRegression` class, MQL5 users can perform linear regression for prediction and relationship analysis tasks within their programs
-
-
 
 
 ## CLogisticRegression Class: Logistic Regression for MQL5
@@ -95,9 +92,6 @@ By adjusting the weights and bias through training (minimizing the error between
 * The class utilizes gradient descent to optimize the weights and bias during training.
 * Hyperparameter tuning (epochs, learning rate, tolerance) can significantly impact model performance and should be considered based on the specific data and task.
 
-By understanding the purpose and functionalities of the `CLogisticRegression` class and the underlying mathematical concepts, users can effectively leverage logistic regression for binary classification problems within their MQL5 programs.
-
-
 
 
 ## CPolynomialRegression Class: Polynomial Regression for MQL5
@@ -140,7 +134,6 @@ By increasing the degree of the polynomial, the model can capture more complex n
 * The `BIC` function can be used to help select an appropriate polynomial degree by balancing model complexity and goodness-of-fit.
 * Choosing a high polynomial degree without sufficient data can lead to overfitting, so careful consideration and potentially additional techniques like regularization might be necessary.
 
-By understanding the purpose and functionalities of the `CPolynomialRegression` class and the underlying mathematical concepts, users can effectively utilize polynomial regression to model non-linear relationships within their MQL5 programs. Remember to choose the appropriate polynomial degree and be cautious of overfitting, especially when dealing with limited data.
 
 **References**
 * [Data Science and Machine Learning (Part 01): Linear Regression](https://www.mql5.com/en/articles/10459)
