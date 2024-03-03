@@ -27,12 +27,15 @@ protected:
    ENUM_CURVE_TYPE m_curve_type;
    bool GraphCreate(string plot_name);
    
+   vector m_x, m_y;
+   string x_label, y_label;
+   
 public:
          CPlots(long chart_id=0, int sub_win=0 ,int x1=30, int y1=40, int x2=550, int y2=310, string font_family="Consolas", bool chart_show=true);
         ~CPlots(void);
          
-         bool Plot(string plot_name, vector& x, vector& y, string label, string x_axis_label = "x-axis", string y_axis_label = "y-axis", ENUM_CURVE_TYPE curve_type=CURVE_POINTS_AND_LINES,color  clr = clrDodgerBlue, bool   points_fill = true);
-         bool AddPlot(vector& x , vector& y , string label, string x_axis_label = "x-axis", string y_axis_label = "y-axis",color  clr = clrDodgerBlue);
+         bool Plot(string plot_name, vector& x, vector& y, string x_axis_label, string y_axis_label, string label, ENUM_CURVE_TYPE curve_type=CURVE_POINTS_AND_LINES,color  clr = clrDodgerBlue, bool   points_fill = true);
+         bool AddPlot(vector &v,string label="plt",color clr=clrOrange);
   };
   
 //+------------------------------------------------------------------+
@@ -89,9 +92,9 @@ bool CPlots::Plot(
                   string plot_name,
                   vector& x,
                   vector& y,
+                  string x_axis_label,
+                  string y_axis_label,
                   string label,
-                  string x_axis_label = "x-axis",
-                  string y_axis_label = "y-axis",
                   ENUM_CURVE_TYPE curve_type=CURVE_POINTS_AND_LINES,
                   color  clr = clrDodgerBlue,
                   bool   points_fill = true
@@ -102,6 +105,11 @@ bool CPlots::Plot(
      return (false);
    
 //---
+   
+   this.m_x = x;
+   this.m_y = y;
+   this.x_label = x_axis_label;;
+   this.y_label = y_axis_label;
    
    double x_arr[], y_arr[];
    MatrixExtend::VectorToArray(x, x_arr);
@@ -124,11 +132,11 @@ bool CPlots::Plot(
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CPlots::AddPlot(vector &x,vector &y,string label,string x_axis_label="x-axis",string y_axis_label="y-axis",color clr=16748574)
+bool CPlots::AddPlot(vector &v, string label="plt",color clr=clrOrange)
  {
    double x_arr[], y_arr[];
-   MatrixExtend::VectorToArray(x, x_arr);
-   MatrixExtend::VectorToArray(y, y_arr);
+   MatrixExtend::VectorToArray(this.m_x, x_arr);
+   MatrixExtend::VectorToArray(v, y_arr);
  
    if (!graph.CurveAdd(x_arr, y_arr, ColorToARGB(clr), m_curve_type, label))
     {
@@ -136,9 +144,9 @@ bool CPlots::AddPlot(vector &x,vector &y,string label,string x_axis_label="x-axi
       return false;
     }
 
-   graph.XAxis().Name(x_axis_label);
+   graph.XAxis().Name(this.x_label);
    graph.XAxis().NameSize(13);
-   graph.YAxis().Name(y_axis_label);
+   graph.YAxis().Name(this.y_label);
    graph.YAxis().NameSize(13);
    graph.FontSet(m_font_family, 13);
    graph.CurvePlotAll();
