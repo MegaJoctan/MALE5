@@ -24,18 +24,18 @@ The `CLinearRegression` class implements linear regression functionality for MQL
 
 **Public Functions:**
 
-* **CLinearRegression(void):** Default constructor.
-* **~CLinearRegression(void):** Destructor.
-* **void fit_LeastSquare(matrix &x, vector &y):** Fits the model using the least squares method. 
+* `CLinearRegression(void)` Default constructor.
+* `~CLinearRegression(void)` Destructor.
+* `void fit_LeastSquare(matrix &x, vector &y)` Fits the model using the least squares method. 
     * This method trains the model by finding the coefficients (Betas) that minimize the sum of squared errors between the predicted and actual values.
     * Requires `x` (matrix of independent variables) and `y` (vector of dependent variables) as input.
-* **void fit_GradDescent(matrix &x, vector &y, double alpha, uint epochs = 1000):** Fits the model using gradient descent.
+* `void fit_GradDescent(matrix &x, vector &y, double alpha, uint epochs = 1000)` Fits the model using gradient descent.
     * This method trains the model iteratively, updating the coefficients based on the calculated gradients (slopes of the error function).
     * Requires `x` (matrix of independent variables), `y` (vector of dependent variables), `alpha` (learning rate), and optional `epochs` (number of iterations) as input.
-* **double predict(vector &x):** Predicts the dependent variable for a new data point represented by the input vector `x`.
+* `double predict(vector &x)` Predicts the dependent variable for a new data point represented by the input vector `x`.
     * Requires a vector containing the values for the independent variables of the new data point.
     * Assumes the model is already trained (trained flag checked internally).
-* **vector predict(matrix &x):** Predicts the dependent variables for multiple new data points represented by the input matrix `x`.
+* `vector predict(matrix &x)` Predicts the dependent variables for multiple new data points represented by the input matrix `x`.
     * Requires a matrix where each row represents a new data point with its independent variable values.
     * Assumes the model is already trained (trained flag checked internally).
 
@@ -53,18 +53,18 @@ The `CLogisticRegression` class provides functionalities for implementing logist
 
 **Public Functions:**
 
-* **CLogisticRegression(uint epochs=10, double alpha=0.01, double tol=1e-8):** Constructor, allows setting hyperparameters (epochs, learning rate, tolerance) for training.
-* **~CLogisticRegression(void):** Destructor.
-* **void fit(matrix &x, vector &y):** Trains the model using the provided training data (`x` - independent variables, `y` - binary classification labels).
+* `CLogisticRegression(uint epochs=10, double alpha=0.01, double tol=1e-8)` Constructor, allows setting hyperparameters (epochs, learning rate, tolerance) for training.
+* `~CLogisticRegression(void)` Destructor.
+* `void fit(matrix &x, vector &y)` Trains the model using the provided training data (`x` - independent variables, `y` - binary classification labels).
     * Internally performs gradient descent optimization to find the optimal weights and bias for the model.
-* **int predict(vector &x):** Predicts the class label (0 or 1) for a new data point represented by the input vector `x`.
+* `int predict(vector &x)` Predicts the class label (0 or 1) for a new data point represented by the input vector `x`.
     * Assumes the model is already trained (checked internally).
-* **vector predict(matrix &x):** Predicts class labels for multiple new data points represented by the input matrix `x`.
+* `vector predict(matrix &x)` Predicts class labels for multiple new data points represented by the input matrix `x`.
     * Each row in the matrix represents a new data point.
     * Assumes the model is already trained (checked internally).
-* **double predict_proba(vector &x):** Predicts the probability of belonging to class 1 for a new data point represented by the input vector `x`.
+* `double predict_proba(vector &x)` Predicts the probability of belonging to class 1 for a new data point represented by the input vector `x`.
     * Assumes the model is already trained (checked internally).
-* **vector predict_proba(matrix &x):** Predicts the probabilities of belonging to class 1 for multiple new data points represented by the input matrix `x`.
+* `vector predict_proba(matrix &x)` Predicts the probabilities of belonging to class 1 for multiple new data points represented by the input matrix `x`.
     * Each row in the matrix represents a new data point.
     * Assumes the model is already trained (checked internally).
 
@@ -100,15 +100,15 @@ The `CPolynomialRegression` class provides functionalities for implementing poly
 
 **Public Functions:**
 
-* **CPolynomialRegression(int degree=2):** Constructor, allows setting the degree of the polynomial (default is 2).
-* **~CPolynomialRegression(void):** Destructor.
-* **void BIC(ulong k, vector &bic, int &best_degree):** Calculates the Bayesian Information Criterion (BIC) for different polynomial degrees (`k`) and recommends the "best" degree based on the lowest BIC value (stored in `best_degree`).
+* `CPolynomialRegression(int degree=2)` Constructor, allows setting the degree of the polynomial (default is 2).
+* `~CPolynomialRegression(void)` Destructor.
+* `void BIC(ulong k, vector &bic, int &best_degree)` Calculates the Bayesian Information Criterion (BIC) for different polynomial degrees (`k`) and recommends the "best" degree based on the lowest BIC value (stored in `best_degree`).
     * Requires `k` (vector of degree values to evaluate), `bic` (output vector to store BIC values), and `best_degree` (output variable to store the recommended degree).
-* **void fit(matrix &x, vector &y):** Trains the model using the provided training data (`x` - independent variables, `y` - dependent variables).
+* `void fit(matrix &x, vector &y)` Trains the model using the provided training data (`x` - independent variables, `y` - dependent variables).
     * Internally fits the polynomial function to the data and stores the coefficients in the `Betas` and `Betas_v` member variables.
-* **double predict(vector &x):** Predicts the dependent variable for a new data point represented by the input vector `x`.
+* `double predict(vector &x)` Predicts the dependent variable for a new data point represented by the input vector `x`.
     * Assumes the model is already trained (trained flag not explicitly mentioned but potentially implemented internally).
-* **vector predict(matrix &x):** Predicts the dependent variables for multiple new data points represented by the input matrix `x`.
+* `vector predict(matrix &x)` Predicts the dependent variables for multiple new data points represented by the input matrix `x`.
     * Each row in the matrix represents a new data point.
     * Assumes the model is already trained (trained flag not explicitly mentioned but potentially implemented internally).
 
