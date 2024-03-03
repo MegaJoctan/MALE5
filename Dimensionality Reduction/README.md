@@ -36,9 +36,6 @@ The `CLDA` class provides functionalities for performing LDA in MQL5:
 * The `m_regparam` member variable allows for regularization to prevent overfitting.
 * The class internally uses the `CPlots` class (not documented here) for potential visualization purposes (e.g., scree plot).
 
-By understanding the theoretical foundation and functionalities of the `CLDA` class, MQL5 users can leverage LDA for dimensionality reduction and classification tasks, particularly when dealing with class separation in their data.
-
-
 
 
 ## Principal Component Analysis (PCA) 
@@ -77,8 +74,6 @@ The `CPCA` class provides functionalities for performing PCA in MQL5:
 * The `m_criterion` member variable allows choosing the criterion for selecting the number of components (same options as in `CLDA`).
 * The class internally uses the `CPlots` class (not documented here) for potential visualization purposes.
 * Saving and loading functionalities allow for model persistence and reusability.
-
-By understanding the theoretical foundation and functionalities of the `CPCA` class, MQL5 users can leverage PCA for dimensionality reduction, data visualization, and potentially feature extraction tasks within their programs.
 
 
 
@@ -127,8 +122,6 @@ By understanding the theoretical foundation and functionalities of the `CNMF` cl
 * Dimensionality reduction for data visualization or machine learning algorithms that require lower-dimensional inputs.
 * Feature extraction to identify underlying structure or patterns in non-negative data.
 * Topic modeling for analyzing text data or other types of document collections.
-
-It's important to note that the specific functionalities and implementation details of the `CNMF` class might vary depending on the chosen MQL5 library or framework. Refer to the specific documentation of the library you are using for the most accurate and up-to-date information.
 
 
 
