@@ -1,44 +1,50 @@
-There are three types of Naive bayes algorithms Under this class;
+## Naive Bayes Classifier
 
-## Multinomial Naive bayes.
-This is used for discrete counts, for example text classification the class CNaiveBayes is responsible for this
+This documentation explains the `CNaiveBayes` class in MQL5, which implements a **Naive Bayes classifier** for classification tasks.
 
-## Gaussian naive bayes
+**I. Naive Bayes Theory:**
 
-is used for classification too as it assumes that features are independent to each other and they follow 
-the normal distribution
-CGaussianNaiveBayes:: is the class responsible for this
+Naive Bayes is a probabilistic classifier based on **Bayes' theorem**. It assumes that the features used for classification are **independent** of each other given the class label. This simplifies the calculations involved in making predictions.
 
-## Bernoulli:
+**II. CNaiveBayes Class:**
 
-This binomial model is useful, if your feature vectors are binary ones, meaning the zeros and ones
+The `CNaiveBayes` class provides functionalities for training and using a Naive Bayes classifier in MQL5:
 
-A class for this won't be available in this library, as I think it is irrelevant to the trading scenarios
-that this library was primarily built to perform
+**Public Functions:**
 
-## Advantages of Naive Bayes classifier
+* **CNaiveBayes(void):** Constructor.
+* **~CNaiveBayes(void):** Destructor.
+* **void fit(matrix &x, vector &y):** Trains the model on the provided data (`x` - features, `y` - target labels).
+* **int predict(vector &x):** Predicts the class label for a single input vector.
+* **vector predict(matrix &x):** Predicts class labels for all rows in the input matrix.
 
-It is one of the fastest ML algorithms to predict a class of dataset
-It can be used for binary as well as multi-class classifiers
-It performs well in multi-class predictions compared to other algorithms
-It is the most popular choice for text classification problems
+**Internal Variables:**
 
-## Disadvantages of the Naive Bayes Classifier
+* `n_features`: Number of features in the data.
+* `y_target`: Vector of target labels used during training.
+* `classes`: Vector containing the available class labels.
+* `class_proba`: Vector storing the prior probability of each class.
+* `features_proba`: Matrix storing the conditional probability of each feature value given each class.
+* `c_prior_proba`: Vector storing the calculated prior probability of each class after training.
+* `c_evidence`: Vector storing the calculated class evidence for a new data point.
+* `calcProba(vector &v_features)`: Internal function (not directly accessible) that likely calculates the class probabilities for a given feature vector.
 
-if a categorical variable is in the new dataset, but wasn't observed in the training dataseet, the model will
-assign it to have a probability of zero, since probabilities depend on the prior evidence
-The naive bayes assumes that the features varibles are completely independent, this might prove to be wrong often times
-but since this was built to make trading decisions, who cares ?? by the way who knows what causes the market to behave the way
-it does and how are such thing as indicators relate to one another?
+**III. Class Functionality:**
 
+1. **Training:**
+    * The `fit` function takes the input data (features and labels) and performs the following:
+        * Calculates the prior probability of each class (number of samples belonging to each class divided by the total number of samples).
+        * Estimates the conditional probability of each feature value given each class (using techniques like Laplace smoothing to handle unseen features).
+    * These probabilities are stored in the internal variables for later use in prediction.
 
-## Applications of the Naive Bayes classifier
+2. **Prediction:**
+    * The `predict` functions take a new data point (feature vector) and:
+        * Calculate the class evidence for each class using Bayes' theorem, considering the prior probabilities and conditional probabilities of the features.
+        * The class with the **highest class evidence** is predicted as the most likely class for the new data point.
 
-It is used for credit scoring 
-it is used in medical data classification
-it is mostly used for text clssifcation problems such as spam filtering
+**IV. Additional Notes:**
 
+* The class assumes the data is already preprocessed and ready for use.
 
-
-
-
+**Reference**
+* [Data Science and Machine Learning (Part 11): Naïve Bayes, Probability theory in Trading](https://www.mql5.com/en/articles/12184)
