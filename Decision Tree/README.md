@@ -42,4 +42,5 @@ This class inherits from `CDecisionTreeClassifier` and specializes in regression
 By understanding the theoretical foundation and functionalities of the `CDecisionTreeClassifier` and `CDecisionTreeRegressor` classes, MQL5 users can leverage decision trees for classification and regression tasks within their programs.
 
 **Reference**
+
 [Data Science and Machine Learning (Part 17): Money in the Trees? The Art and Science of Random Forests in Forex Trading](https://www.mql5.com/en/articles/13765)
