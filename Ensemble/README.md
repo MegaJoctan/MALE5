@@ -2,7 +2,7 @@
 
 This explanation covers the concept of AdaBoost and its implementation in `adaboost.mqh` for MQL5, highlighting the flexibility of using different weak learners (like decision trees or logistic regression).
 
-**I. AdaBoost Theory (Ensemble Learning Approach):**
+**I. AdaBoost Theory (Ensemble Learning Approach)`
 
 AdaBoost, short for Adaptive Boosting, is an ensemble learning algorithm that combines multiple **weak learners** (models with moderate predictive power) into a **strong learner** (model with improved predictive performance). It achieves this by:
 
@@ -19,7 +19,7 @@ AdaBoost, short for Adaptive Boosting, is an ensemble learning algorithm that co
 
 The `AdaBoost` class provides functionalities for implementing the AdaBoost algorithm using either **decision trees** or **logistic regression** as weak learners.
 
-**A. Common functionalities (present in both DecisionTree and LogisticRegression namespaces):**
+**A. Common functionalities (present in both DecisionTree and LogisticRegression namespaces)`
 
 * `AdaBoost(uint n_estimators=50, int random_state=42, bool bootstrapping=true)` Constructor, allows setting hyperparameters (number of weak learners, random state for reproducibility, and enabling/disabling bootstrapping during training).
 * `~AdaBoost(void)` Destructor.
@@ -45,7 +45,7 @@ The key takeaway here is that the `AdaBoost` class is **not limited to** using d
 
 This explanation covers the `CRandomForestClassifier` and `CRandomForestRegressor` classes in MQL5, which implement **random forests** for classification and regression tasks, respectively.
 
-**I. Random Forest Theory (Ensemble Learning Approach):**
+**I. Random Forest Theory (Ensemble Learning Approach)`
 
 A random forest is an ensemble learning method that combines multiple **decision trees** into a single model to improve predictive performance. Each decision tree is trained on a **random subset of features** (independent variables) and a **bootstrapped sample** of the data (randomly drawn with replacement, increasing the importance of potentially informative data points). Predictions from all trees are then aggregated through **majority vote** (classification) or **averaging** (regression) to make the final prediction. This process reduces the variance of the model and helps prevent overfitting.
 
@@ -55,13 +55,13 @@ This class provides functionalities for implementing a random forest for **class
 
 **Public Functions:**
 
-* **CRandomForestClassifier(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1):** Constructor, allows setting hyperparameters (number of trees, minimum samples per split, maximum tree depth, and random state for reproducibility).
-* **~CRandomForestClassifier(void):** Destructor.
-* **void fit(matrix &x, vector &y, bool replace=true, errors_classifier err=ERR_ACCURACY):** Trains the model on the provided data (`x` - independent variables, `y` - class labels).
+* `CRandomForestClassifier(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1)` Constructor, allows setting hyperparameters (number of trees, minimum samples per split, maximum tree depth, and random state for reproducibility).
+* `~CRandomForestClassifier(void)` Destructor.
+* `void fit(matrix &x, vector &y, bool replace=true, errors_classifier err=ERR_ACCURACY)` Trains the model on the provided data (`x` - independent variables, `y` - class labels).
     * `replace` controls whether bootstrapping samples with replacement (True) or not (False).
     * `err` specifies the error metric to use for internal training evaluation (default: ERR_ACCURACY).
-* **double predict(vector &x):** Predicts the class label for a new data point (`x`).
-* **vector predict(matrix &x):** Predicts class labels for multiple new data points (`x`).
+* `double predict(vector &x)` Predicts the class label for a new data point (`x`).
+* `vector predict(matrix &x)` Predicts class labels for multiple new data points (`x`).
 
 **Internal Functions:**
 
@@ -74,11 +74,11 @@ This class implements a random forest for **regression** tasks. It inherits from
 
 **Public Functions:**
 
-* **CRandomForestRegressor(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1):** Constructor (same as for the classifier).
-* **~CRandomForestRegressor(void):** Destructor (same as for the classifier).
-* **void fit(matrix &x, vector &y, bool replace=true, errors_regressor err=ERR_R2_SCORE):** Trains the model (same as for the classifier, but default error metric is ERR_R2_SCORE).
-* **double predict(vector &x):** Predicts the continuous value for a new data point (`x`).
-* **vector predict(matrix &x):** Predicts continuous values for multiple new data points (`x`).
+* `CRandomForestRegressor(uint n_trees=100, uint minsplit=NULL, uint max_depth=NULL, int random_state=-1)` Constructor (same as for the classifier).
+* `~CRandomForestRegressor(void)` Destructor (same as for the classifier).
+* `void fit(matrix &x, vector &y, bool replace=true, errors_regressor err=ERR_R2_SCORE)` Trains the model (same as for the classifier, but default error metric is ERR_R2_SCORE).
+* `double predict(vector &x)` Predicts the continuous value for a new data point (`x`).
+* `vector predict(matrix &x)` Predicts continuous values for multiple new data points (`x`).
 
 **Internal Functions:**
 
