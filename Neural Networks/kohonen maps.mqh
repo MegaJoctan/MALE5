@@ -44,8 +44,8 @@ class CKohonenMaps
                   CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint clusters=2, double alpha=0.01, uint epochs=100);
                  ~CKohonenMaps(void);
                  
-                  uint KOMPredCluster(vector &v);
-                  vector KOMPredCluster(matrix &matrix_);
+                  uint predict(vector &v);
+                  vector predict(matrix &matrix_);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -126,7 +126,15 @@ CKohonenMaps::CKohonenMaps(matrix &matrix_, bool save_clusters=true, uint cluste
           plotmatrix.Col(v, i);
        }   
     
-    this.plt.ScatterCurvePlotsMatrix("kom",plotmatrix,"Map","clusters","clusters");       
+    vector x(plotmatrix.Rows());    for (ulong i=0; i<x.Size(); i++) x[i] = (int)i+1;
+    
+    CColorGenerator clr;
+    
+    plt.Plot("kom", x, plotmatrix.Col(0), "map", "clusters","cluster"+string(1),CURVE_POINTS,clr.Next()); //plot the first cluster
+    for (ulong i=1; i<plotmatrix.Cols(); i++) //start at the second column in the matrix | the second cluster
+      {
+        plt.AddPlot(plotmatrix.Col(i), "cluster"+string(i+1),clr.Next()); //Add the rest of clusters to the existing plot 
+      }
 
 //---
 
@@ -188,7 +196,7 @@ double CKohonenMaps:: Euclidean_distance(const vector &v1, const vector &v2)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-uint CKohonenMaps::KOMPredCluster(vector &v)
+uint CKohonenMaps::predict(vector &v)
  {
   vector temp_v = v;
   
@@ -211,7 +219,7 @@ uint CKohonenMaps::KOMPredCluster(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-vector CKohonenMaps::KOMPredCluster(matrix &matrix_)
+vector CKohonenMaps::predict(matrix &matrix_)
  {   
    vector v(n);
    
@@ -222,7 +230,7 @@ vector CKohonenMaps::KOMPredCluster(matrix &matrix_)
       }
    
    for (ulong i=0; i<matrix_.Rows(); i++)
-      v[i] = KOMPredCluster(matrix_.Row(i));
+      v[i] = predict(matrix_.Row(i));
       
     return(v);
  }
