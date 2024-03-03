@@ -17,21 +17,21 @@ Decision trees are powerful machine learning algorithms that use a tree-like str
 
 This class implements a decision tree for classification tasks. It offers the following functionalities:
 
-* **CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI):** Constructor, allows setting hyperparameters (minimum samples per split, maximum tree depth, and splitting criterion).
-* **~CDecisionTreeClassifier(void):** Destructor.
-* **void fit(const matrix &x, const vector &y):** Trains the model on the provided data (`x` - independent variables, `y` - class labels).
-* **void print_tree(Node *tree, string indent=" ",string padl="):** Prints the tree structure in a readable format.
-* **double predict(const vector &x):** Predicts the class label for a new data point (`x`).
-* **vector predict(const matrix &x):** Predicts class labels for multiple new data points (`x`).
+* `CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI)` Constructor, allows setting hyperparameters (minimum samples per split, maximum tree depth, and splitting criterion).
+* `~CDecisionTreeClassifier(void)` Destructor.
+* `void fit(const matrix &x, const vector &y)` Trains the model on the provided data (`x` - independent variables, `y` - class labels).
+* `void print_tree(Node *tree, string indent=" ",string padl=")` Prints the tree structure in a readable format.
+* `double predict(const vector &x)` Predicts the class label for a new data point (`x`).
+* `vector predict(const matrix &x)` Predicts class labels for multiple new data points (`x`).
 
 **CDecisionTreeRegressor Class:**
 
 This class inherits from `CDecisionTreeClassifier` and specializes in regression tasks. It overrides specific functions and implements different splitting criteria:
 
-* **CDecisionTreeRegressor(uint min_samples_split=2, uint max_depth=2):** Constructor, allows setting hyperparameters (minimum samples per split and maximum tree depth).
-* **~CDecisionTreeRegressor(void):** Destructor.
-* **void fit(matrix &x, vector &y):** Trains the model on the provided data (`x` - independent variables, `y` - continuous values).
-* **double predict(const vector &x):** Predicts the continuous value for a new data point (`x`).
+* `CDecisionTreeRegressor(uint min_samples_split=2, uint max_depth=2):` Constructor, allows setting hyperparameters (minimum samples per split and maximum tree depth).
+* `~CDecisionTreeRegressor(void):` Destructor.
+* `void fit(matrix &x, vector &y):` Trains the model on the provided data (`x` - independent variables, `y` - continuous values).
+* `double predict(const vector &x)` Predicts the continuous value for a new data point (`x`).
 
 **Additional Notes:**
 
