@@ -30,6 +30,17 @@ struct confusion_matrix_struct
           FP, 
           FN;
  };
+ 
+enum regression_metrics
+{
+   METRIC_R_SQUARED,   // R-squared
+   METRIC_ADJUSTED_R,  // Adjusted R-squared
+   METRIC_RSS,         // Residual Sum of Squares
+   METRIC_MSE,         // Mean Squared Error
+   METRIC_RMSE,        // Root Mean Squared Error
+   METRIC_MAE          // Mean Absolute Error
+};
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -54,6 +65,8 @@ public:
    static double mse(const vector &True, const vector &Pred);
    static double rmse(const vector &True, const vector &Pred);
    static double mae(const vector &True, const vector &Pred);
+   
+   static double RegressionMetric(const vector &True, const vector &Pred, regression_metrics METRIC_);
 
    //--- Classification metrics
 
@@ -342,4 +355,36 @@ double Metrics::mae(const vector &True, const vector &Pred)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+double Metrics::RegressionMetric(const vector &True,const vector &Pred,regression_metrics METRIC_)
+ {
+  double err = 0;
+  
+  switch (METRIC_)
+   {
+     case METRIC_MSE:
+         err = mse(True, Pred);
+         break;
+     case METRIC_RMSE:
+         err = rmse(True, Pred);
+         break;
+     case METRIC_MAE:
+         err = mae(True, Pred);
+         break;
+     case METRIC_RSS:
+         err = rss(True, Pred);
+         break;
+     case METRIC_R_SQUARED:
+         err = r_squared(True, Pred);
+         break;
+     case METRIC_ADJUSTED_R:
+         err = adjusted_r(True, Pred);
+         break;
+     default:
+         break;
+   }
 
+  return err;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
