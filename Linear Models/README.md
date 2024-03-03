@@ -141,3 +141,9 @@ By increasing the degree of the polynomial, the model can capture more complex n
 * Choosing a high polynomial degree without sufficient data can lead to overfitting, so careful consideration and potentially additional techniques like regularization might be necessary.
 
 By understanding the purpose and functionalities of the `CPolynomialRegression` class and the underlying mathematical concepts, users can effectively utilize polynomial regression to model non-linear relationships within their MQL5 programs. Remember to choose the appropriate polynomial degree and be cautious of overfitting, especially when dealing with limited data.
+
+**References**
+* [Data Science and Machine Learning (Part 01): Linear Regression](https://www.mql5.com/en/articles/10459)
+* [Data Science and Machine Learning (Part 02): Logistic Regression](https://www.mql5.com/en/articles/10626)
+* [Data Science and Machine Learning (Part 07): Polynomial Regression](https://www.mql5.com/en/articles/11477)
+* [Data Science and Machine Learning (Part 10): Ridge Regression ](https://www.mql5.com/en/articles/11735)
