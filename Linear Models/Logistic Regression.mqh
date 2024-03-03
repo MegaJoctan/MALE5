@@ -31,6 +31,16 @@ private:
                            }
                          return (true);
                        }
+                       
+                     bool CheckSamplesSize(string func, ulong size)
+                       {
+                         if (size != samples)
+                          {
+                            printf("%s x sample size doesn't align with the training data samples %d",func, size);
+                            return false;
+                          }
+                         return true;
+                       }
                     
                     matrix weights;
                     double bias;
@@ -40,6 +50,7 @@ private:
                     uint m_epochs;
                     double m_alpha;
                     double m_tol;
+                    ulong samples;
                     
 public:
                      CLogisticRegression(uint epochs=10, double alpha=0.01, double tol=1e-8);
@@ -71,6 +82,7 @@ CLogisticRegression::CLogisticRegression(uint epochs=10, double alpha=0.01, doub
 void CLogisticRegression::fit(matrix &x, vector &y)
  {
    ulong m = x.Rows(), n = x.Cols();
+   samples = n;
    
    this.weights = MatrixExtend::Random(-1,1,n,1,42);
    
@@ -121,6 +133,9 @@ CLogisticRegression::~CLogisticRegression(void)
 int CLogisticRegression::predict(vector &x)
  {
    if (!checkIsTrained(__FUNCTION__))
+    return 0;
+   
+   if (!CheckSamplesSize(__FUNCTION__,x.Size()))
     return 0;
    
    matrix x_mat = MatrixExtend::VectorToMatrix(x, x.Size());

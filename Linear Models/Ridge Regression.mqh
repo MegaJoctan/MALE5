@@ -9,18 +9,13 @@
 //+------------------------------------------------------------------+
  
 #include <MALE5\preprocessing.mqh>
-#include <MALE5\matrix_utils.mqh>
-#include <MALE5\Linear Regression\Linear Regression.mqh>
+#include <MALE5\MatrixExtend.mqh>
+#include "Linear Regression.mqh"
 
 //+------------------------------------------------------------------+
 
 class CRidgeregression
   {
-   private:
-   
-   CPreprocessing pre_processing; 
-   CMatrixutils matrix_utils;
-   CLinearRegression *Linear_reg;
   
    protected: 
                         matrix XMatrix; //matrix of independent variables
@@ -50,11 +45,9 @@ CRidgeregression::CRidgeregression(matrix &_matrix)
     n = _matrix.Rows();
     k = _matrix.Cols();
     
-    pre_processing.Standardization(_matrix); 
+    MatrixExtend::XandYSplitMatrices(_matrix,XMatrix,yVector);
     
-    matrix_utils.XandYSplitMatrices(_matrix,XMatrix,yVector);
-    
-    YMatrix = matrix_utils.VectorToMatrix(yVector);
+    YMatrix = MatrixExtend::VectorToMatrix(yVector);
     
 //---
 
@@ -78,7 +71,7 @@ CRidgeregression::~CRidgeregression(void)
 
 vector CRidgeregression::L2Norm(double lambda)
  {    
-   matrix design = matrix_utils.DesignMatrix(XMatrix);
+   matrix design = MatrixExtend::DesignMatrix(XMatrix);
    
    matrix XT = design.Transpose();
    
@@ -98,7 +91,7 @@ vector CRidgeregression::L2Norm(double lambda)
       //Print("Betas\n",Betas);
    #endif 
    
-  return(matrix_utils.MatrixToVector(Betas));
+  return(MatrixExtend::MatrixToVector(Betas));
  }
  
 //+------------------------------------------------------------------+
