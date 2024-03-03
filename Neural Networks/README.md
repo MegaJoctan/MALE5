@@ -162,4 +162,7 @@ The `CRegressorNets` class provides functionalities for training and using an ML
 * Detailed implementation of the backpropagation algorithm is not provided but is likely the core functionality for training the network.
 
 
-
+**Reference**
+* [Data Science and Machine Learning (Part 12): Can Self-Training Neural Networks Help You Outsmart the Stock Market?](https://www.mql5.com/en/articles/12209)
+* [Data Science and Machine Learning — Neural Network (Part 01): Feed Forward Neural Network demystified](https://www.mql5.com/en/articles/11275)
+* [Data Science and Machine Learning — Neural Network (Part 02): Feed forward NN Architectures Design](https://www.mql5.com/en/articles/11334)
