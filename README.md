@@ -69,7 +69,7 @@ It was developed to help build machine learning-based trading robots, effortless
 * Ridge Regression
 * [Polynomial Regression (Polynomial Regression.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Linear%20Models#cpolynomialregression-class-polynomial-regression)
 
-* **Decision Trees**
+**Decision Trees**
 * [Decision Tree (tree.mqh)](https://github.com/MegaJoctan/MALE5/tree/master/Decision%20Tree#decision-trees-in-mql5-classification-and-regression)
 
 **Clustering Techniques**
