@@ -11,8 +11,6 @@
 #include <MALE5\Decision Tree\tree.mqh>
 #include <MALE5\metrics.mqh>
 
-#define Random(mini, maxi) mini + int((MathRand() / 32767.0) * (maxi - mini))
-
 enum errors_classifier
   {
    ERR_ACCURACY
