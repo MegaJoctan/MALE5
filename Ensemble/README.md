@@ -40,9 +40,6 @@ The `AdaBoost` class provides functionalities for implementing the AdaBoost algo
 
 The key takeaway here is that the `AdaBoost` class is **not limited to** using decision trees as weak learners. The provided examples showcase its usage with both decision trees and logistic regression. This demonstrates the flexibility of the AdaBoost framework, where any model capable of making predictions (classification or regression) can be used as a weak learner.
 
-By understanding the theoretical foundation and functionalities of the `AdaBoost` class and its flexibility in using different weak learners, MQL5 users can leverage ensemble learning for various classification and regression tasks within their programs.
-
-
 
 ## Random Forest Classification and Regression: MQL5 Documentation
 
@@ -93,7 +90,6 @@ This class implements a random forest for **regression** tasks. It inherits from
 * Hyperparameter tuning (number of trees, minimum samples per split, maximum depth) can significantly impact performance.
 * Random forests offer improved generalization and reduced variance compared to single decision trees.
 
-By understanding the theoretical foundation and functionalities of these classes, MQL5 users can leverage random forests for effective classification and regression tasks within their programs.
 
 **Reference**
 * [Data Science and Machine Learning (Part 17): Money in the Trees? The Art and Science of Random Forests in Forex Trading](https://www.mql5.com/en/articles/13765)
