@@ -206,13 +206,17 @@ bool StandardizationScaler::save(string save_dir, string column_names, bool comm
 
    matrix m = MatrixExtend::VectorToMatrix(this.mean, this.mean.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Mean.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Mean.csv", m, column_names, common_dir,8))
+    return false;
    
 //--- save std
 
    m = MatrixExtend::VectorToMatrix(this.std, this.mean.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Std.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Std.csv", m, column_names, common_dir,8))
+     return false;
+     
+   return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -299,7 +303,7 @@ matrix MinMaxScaler::fit_transform(const matrix &X)
       }
    
    if (MQLInfoInteger(MQL_DEBUG))
-     Print("Min: ",this.min," Max: ",this.max);
+     Print("Min: ",this.min,"\nMax: ",this.max);
    
 //---
    return this.transform(X);
@@ -348,13 +352,17 @@ bool MinMaxScaler::save(string save_dir,string column_names,bool common_dir=fals
 
    matrix m = MatrixExtend::VectorToMatrix(this.min, this.min.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Min.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Min.csv", m, column_names, common_dir,8))
+     return false;
    
 //--- save max
-
+   
    m = MatrixExtend::VectorToMatrix(this.max, this.max.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Max.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Max.csv", m, column_names, common_dir,8))
+     return false;
+   
+   return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -439,7 +447,7 @@ matrix RobustScaler::fit_transform(const matrix &X)
      }
      
    if (MQLInfoInteger(MQL_DEBUG))
-     Print("Median: ",this.median," Quantile: ",this.std);
+     Print("Median: ",this.median,"\nQuantile: ",this.std);
    
    
 //---
@@ -489,13 +497,17 @@ bool RobustScaler::save(string save_dir,string column_names,bool common_dir=fals
 
    matrix m = MatrixExtend::VectorToMatrix(this.median, this.median.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-Median.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-Median.csv", m, column_names, common_dir,8))
+     return false;
 
 //--- save quantile
 
    m = MatrixExtend::VectorToMatrix(this.std, this.std.Size());
    
-   return MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-std.csv", m, column_names, common_dir,8);
+   if (!MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-std.csv", m, column_names, common_dir,8))
+     return false;
+   
+   return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
