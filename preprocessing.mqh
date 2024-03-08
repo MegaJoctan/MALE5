@@ -120,23 +120,35 @@ class StandardizationScaler
   {
 protected:
    vector mean, std;
+   bool loaded_scaler;
    
 public:
                      StandardizationScaler(void);
+                     StandardizationScaler(const double &mean[], const double &std[]); //For Loading the pre-fitted scaler 
                     ~StandardizationScaler(void);
                     
-                    matrix fit_transform(const matrix &X);
-                    matrix transform(const matrix &X);
-                    vector transform(const vector &X);
-                    bool save(string save_dir, string column_names, bool common_dir=false);
-                    bool load(string dir);
+                    virtual matrix fit_transform(const matrix &X);
+                    virtual matrix transform(const matrix &X);
+                    virtual vector transform(const vector &X);
+                    
+                    virtual bool   save(string save_dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 StandardizationScaler::StandardizationScaler(void)
  {
- 
+   loaded_scaler = false;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+StandardizationScaler::StandardizationScaler(const double &mean_[],const double &std_[])
+ {
+   this.mean = MatrixExtend::ArrayToVector(mean_);
+   this.std = MatrixExtend::ArrayToVector(std_);
+   
+   loaded_scaler = true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -150,6 +162,13 @@ StandardizationScaler::~StandardizationScaler(void)
 //+------------------------------------------------------------------+
 matrix StandardizationScaler::fit_transform(const matrix &X)
  { 
+  
+  if (loaded_scaler)
+    {
+      printf("% This is a loaded scaler | no need to fit to the new data, call another instance of a class",__FUNCTION__);
+      return X;
+    }
+  
   this.mean.Resize(X.Cols());
   this.std.Resize(X.Cols());
   
@@ -182,13 +201,13 @@ vector StandardizationScaler::transform(const vector &X)
    vector v(X.Size());
    if (this.mean.Size()==0 || this.std.Size()==0)
      {
-       printf("%s Call the fit_transform function fist to fit the scaler or\n the load function to load the pre-fitted scalerbefore attempting to transform the new data",__FUNCTION__);
+       printf("%s Call the fit_transform function first to fit the scaler or\n Load the pre-fitted scaler before attempting to transform the new data",__FUNCTION__);
        return v;
      }
    
    if (X.Size() != this.mean.Size())
      {
-         printf("%s X of size [%d] doesn't match the same number of features in a given X matrix on the fit_transform function call",__FUNCTION__,this.mean.Size());
+         printf("%s Dimension mismatch between trained data sized=(%d) and the new data sized=(%d)",__FUNCTION__,this.mean.Size(),X.Size());
          return v;
      }
    
@@ -200,53 +219,24 @@ vector StandardizationScaler::transform(const vector &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool StandardizationScaler::save(string save_dir, string column_names, bool common_dir=false)
+bool StandardizationScaler::save(string save_dir)
  {
 //---save mean
 
-   matrix m = MatrixExtend::VectorToMatrix(this.mean, this.mean.Size());
-   
-   if (!MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Mean.csv", m, column_names, common_dir,8))
-    return false;
+   if (!MatrixExtend::write_bin(this.mean, save_dir+"\\mean.bin"))
+     {
+       printf("%s Failed Save the mean values of the Scaler",__FUNCTION__);
+       return false;
+     }
    
 //--- save std
 
-   m = MatrixExtend::VectorToMatrix(this.std, this.mean.Size());
-   
-   if (!MatrixExtend::WriteCsv(save_dir+"\\StandardizationScaler-Std.csv", m, column_names, common_dir,8))
-     return false;
+   if (!MatrixExtend::write_bin(this.std, save_dir+"\\std.bin"))
+     {
+       printf("%s Failed Save the Standard deviation values of the Scaler",__FUNCTION__);
+       return false;
+     }
      
-   return true;
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool StandardizationScaler::load(string dir)
- {  
-    Print("Loading StandardizationScaler from ",dir);
-    
-    string headers;
-    matrix m = MatrixExtend::ReadCsv(dir+"\\StandardizationScaler-Mean.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-    
-    mean = MatrixExtend::MatrixToVector(m);
-    
-    m = MatrixExtend::ReadCsv(dir+"\\StandardizationScaler-Std.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-      
-    std = MatrixExtend::MatrixToVector(m);
-    
-    Print("Scaler Loaded for data: ",headers);
-    if (MQLInfoInteger(MQL_DEBUG))
-      {
-         Print("Mean : ",this.mean);
-         Print("Std  : ",this.std);
-      }
-    
    return true;
  }
  
@@ -262,23 +252,26 @@ class MinMaxScaler
   {
 protected:
    vector min, max;
+   bool loaded_scaler;
    
 public:
                      MinMaxScaler(void);
+                     MinMaxScaler(const double &min_[], const double &max_[]); //For Loading the pre-fitted scaler 
+                     
                     ~MinMaxScaler(void);
                     
-                    matrix fit_transform(const matrix &X);
-                    matrix transform(const matrix &X);
-                    vector transform(const vector &X);
-                    bool save(string save_dir, string column_names, bool common_dir=false);
-                    bool load(string dir);
+                    virtual matrix fit_transform(const matrix &X);
+                    virtual matrix transform(const matrix &X);
+                    virtual vector transform(const vector &X);
+                    
+                    virtual bool   save(string dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MinMaxScaler::MinMaxScaler(void)
  {
- 
+   loaded_scaler =false;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -290,9 +283,26 @@ MinMaxScaler::~MinMaxScaler(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MinMaxScaler::MinMaxScaler(const double &min_[],const double &max_[])
+ {
+   this.min = MatrixExtend::ArrayToVector(min_);
+   this.max = MatrixExtend::ArrayToVector(max_);
+   
+   loaded_scaler = true;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 matrix MinMaxScaler::fit_transform(const matrix &X)
  {
- 
+  if (loaded_scaler)
+    {
+      printf("% This is a loaded scaler | no need to fit to the new data, call another instance of a class",__FUNCTION__);
+      return X;
+    }
+
+//---
+
   this.min.Resize(X.Cols());
   this.max.Resize(X.Cols());
   
@@ -346,56 +356,31 @@ matrix MinMaxScaler::transform(const matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool MinMaxScaler::save(string save_dir,string column_names,bool common_dir=false)
+bool MinMaxScaler::save(string save_dir)
  {
 //---save min
 
-   matrix m = MatrixExtend::VectorToMatrix(this.min, this.min.Size());
-   
-   if (!MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Min.csv", m, column_names, common_dir,8))
-     return false;
+   if (!MatrixExtend::write_bin(this.min, save_dir+"\\min.bin"))
+     {
+       printf("%s Failed to save the Min values for the scaler",__FUNCTION__);
+       return false;
+     }
    
 //--- save max
    
-   m = MatrixExtend::VectorToMatrix(this.max, this.max.Size());
-   
-   if (!MatrixExtend::WriteCsv(save_dir+"\\MinMaxScaler-Max.csv", m, column_names, common_dir,8))
-     return false;
+   if (!MatrixExtend::write_bin(this.max, save_dir+"\\max.bin"))
+     {
+       printf("%s Failed to save the Max values for the scaler",__FUNCTION__);
+       return false;
+     }
    
    return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool MinMaxScaler::load(string dir)
- {  
-    Print("Loading MinMaxScaler from ",dir);
-    
-    string headers;
-    matrix m = MatrixExtend::ReadCsv(dir+"\\MinMaxScaler-Min.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-    
-    min = MatrixExtend::MatrixToVector(m);
-    
-    m = MatrixExtend::ReadCsv(dir+"\\MinMaxScaler-Max.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-      
-    max = MatrixExtend::MatrixToVector(m);
-    
-    Print("Scaler Loaded for data: ",headers);
-    if (MQLInfoInteger(MQL_DEBUG))
-      {
-         Print("min : ",this.min);
-         Print("max : ",this.max);
-      }
-    
-   return true;
- }
- 
+
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //|                                                                  |
@@ -407,23 +392,35 @@ bool MinMaxScaler::load(string dir)
 class RobustScaler
   {
 protected:
-   vector median, std;
+   vector median, quantile;
+   bool loaded_scaler;
+   
 public:
                      RobustScaler(void);
+                     RobustScaler(const double &median_[], const double &quantile_[]);
                     ~RobustScaler(void);
                     
-                    matrix fit_transform(const matrix &X);
-                    matrix transform(const matrix &X);
-                    vector transform(const vector &X);
-                    bool save(string save_dir, string column_names, bool common_dir=false);
-                    bool load(string dir);
+                    virtual matrix fit_transform(const matrix &X);
+                    virtual matrix transform(const matrix &X);
+                    virtual vector transform(const vector &X);
+                    virtual bool   save(string save_dir);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 RobustScaler::RobustScaler(void)
  {
- 
+   loaded_scaler = false;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+RobustScaler::RobustScaler(const double &median_[],const double &quantile_[])
+ {
+   this.median = MatrixExtend::ArrayToVector(median_);
+   this.quantile = MatrixExtend::ArrayToVector(quantile_);
+   
+   loaded_scaler = true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -437,20 +434,28 @@ RobustScaler::~RobustScaler(void)
 //+------------------------------------------------------------------+
 matrix RobustScaler::fit_transform(const matrix &X)
  {
+  if (loaded_scaler)
+    {
+      printf("% This is a loaded scaler | no need to fit to the new data, call another instance of a class",__FUNCTION__);
+      return X;
+    }
+
+//---
+
   this.median.Resize(X.Cols());
-  this.std.Resize(X.Cols());
+  this.quantile.Resize(X.Cols());
   
     for (ulong i=0; i<X.Cols(); i++)
      {
        this.median[i] = X.Col(i).Median();
-       this.std[i] = MathAbs(X.Col(i) - this.median[i]).Median() * 1.4826;  // 1.4826 is a constant for consistency;
+       this.quantile[i] = MathAbs(X.Col(i) - this.median[i]).Median() * 1.4826;  // 1.4826 is a constant for consistency;
      }
      
    if (MQLInfoInteger(MQL_DEBUG))
-     Print("Median: ",this.median,"\nQuantile: ",this.std);
-   
+     Print("Median: ",this.median,"\nQuantile: ",this.quantile);
    
 //---
+
    return this.transform(X);
  }
 //+------------------------------------------------------------------+
@@ -484,60 +489,31 @@ vector RobustScaler::transform(const vector &X)
      }
      
     for (ulong i=0; i<X.Size(); i++)
-      v[i] = (X[i] - this.median[i]) / (std[i] + 1e-10); 
+      v[i] = (X[i] - this.median[i]) / (quantile[i] + 1e-10); 
     
     return v;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool RobustScaler::save(string save_dir,string column_names,bool common_dir=false)
+bool RobustScaler::save(string save_dir)
  {
 //--- save median
-
-   matrix m = MatrixExtend::VectorToMatrix(this.median, this.median.Size());
    
-   if (!MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-Median.csv", m, column_names, common_dir,8))
-     return false;
+   if (!MatrixExtend::write_bin(this.median, save_dir+"\\median.bin"))
+     {
+       printf("%s Failed to save the Median values for the scaler",__FUNCTION__);
+       return false;
+     }
 
 //--- save quantile
 
-   m = MatrixExtend::VectorToMatrix(this.std, this.std.Size());
+   if (!MatrixExtend::write_bin(this.quantile, save_dir+"\\quantile.bin"))
+     {
+       printf("%s Failed to save the Quantile values for the scaler",__FUNCTION__);
+       return false;
+     }
    
-   if (!MatrixExtend::WriteCsv(save_dir+"\\RobustScaler-std.csv", m, column_names, common_dir,8))
-     return false;
-   
-   return true;
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool RobustScaler::load(string dir)
- {  
-    Print("Loading RobustScaler from ",dir);
-    
-    string headers;
-    matrix m = MatrixExtend::ReadCsv(dir+"\\RobustScaler-Median.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-    
-    median = MatrixExtend::MatrixToVector(m);
-    
-    m = MatrixExtend::ReadCsv(dir+"\\RobustScaler-Std.csv", headers); 
-    
-    if (m.Rows()==0)
-      return false;
-      
-    std = MatrixExtend::MatrixToVector(m);
-    
-    Print("Scaler Loaded for data: ",headers);
-    if (MQLInfoInteger(MQL_DEBUG))
-      {
-         Print("Median: ",this.median);
-         Print("S t d : ",this.std);
-      }
-    
    return true;
  }
 //+------------------------------------------------------------------+
