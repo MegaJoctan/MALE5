@@ -53,6 +53,7 @@ public:
    static bool       WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="",bool common=false, int digits=5);
    static matrix     ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false);
    static matrix     DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
+   static bool       write_bin(vector &v, string file);
    
 //--- Manipulations
    
@@ -1521,6 +1522,30 @@ matrix MatrixExtend::eye(uint num_features)
    ret_matrix.Diag(diag, 0);
    
    return ret_matrix;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool MatrixExtend::write_bin(vector &v,string file)
+ {
+   int handle = FileOpen(file,FILE_READ|FILE_WRITE|FILE_BIN,",");
+   if (handle == INVALID_HANDLE)
+    {
+      printf("Invalid handle Err=%d",GetLastError());
+      DebugBreak();
+      return false;
+    }
+   
+   double arr[];
+   ArrayResize(arr, (int)v.Size());
+   
+   for (uint i=0; i<arr.Size(); i++)
+    arr[i] = v[i];
+   
+   FileWriteArray(handle, arr);
+   FileClose(handle);
+  
+  return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
