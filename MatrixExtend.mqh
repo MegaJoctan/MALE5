@@ -536,6 +536,8 @@ matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter
    int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
       
    datetime time_start = GetTickCount(), current_time;
+   string header_arr[]; 
+   int header_column = 0;
    
    if(handle == INVALID_HANDLE)
      {
@@ -554,7 +556,10 @@ matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter
          
          if(rows ==0)
            {
-            headers += data;
+             header_column++;
+             ArrayResize(header_arr, header_column);
+             
+             header_arr[header_column-1] = data;
            }
          
          column++;
@@ -582,7 +587,16 @@ matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter
         
       FileClose(handle);
      }
-     
+
+//--- Get the headers
+   
+   headers="";
+   for(uint i=0; i<header_arr.Size(); i++)
+      headers += header_arr[i] + ((i==header_arr.Size()-1) ? "" :delimiter);
+   
+//---
+
+ 
    int rows =all_size/cols_total;
    
    Comment("");
@@ -596,7 +610,8 @@ matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter
          GetCol(Arr, Col, i+1, cols_total);
          mat.Col(FixColumn(encoder, Col), i);
       }
-
+   
+   
    return(mat);
   }
 //+------------------------------------------------------------------+
