@@ -35,10 +35,10 @@ public:
                     template<typename T>
                     bool   Add(matrix<T> &mat_ , ulong POS);
                     template<typename T>
-                    bool   Append(vector<T> &v, ulong POS);
-                    
+                    bool   Append(matrix<T> mat_);
                     void   Print_();
                     matrix Get(ulong POS);
+                    
                     template<typename T>
                     void   Fill(T value);
                     void   MemoryClear();
@@ -92,28 +92,19 @@ bool  CTensors::Add(matrix<T> &mat_ , ulong POS)
    return (true);
  }
 //+------------------------------------------------------------------+
-//|      Appending rows to the Get Matrix at POS index               |
+//|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool CTensors::Append(vector<T> &v, ulong POS)
+bool CTensors::Append(matrix<T> mat_)
  {
-   if (POS > SIZE) 
-     {
-       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",SIZE);
-       
-       return (false);
-     }
-     
-//---
-
-   matrix<T> mat = this.matrices[POS].Matrix;
+   if (ArrayResize(matrices, SIZE+1)<0)
+    return false;
+    
+   SIZE = matrices.Size();
    
-   mat.Resize(mat.Rows()+1, mat.Cols());
-   mat.Row(v, mat.Rows()-1);
+   matrices[SIZE-1].Matrix = mat_;
    
-   Add(mat, POS);
-   
-  return (true);
+   return true;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -121,7 +112,7 @@ bool CTensors::Append(vector<T> &v, ulong POS)
 void CTensors::Print_(void)
  {
    for (ulong i=0; i<SIZE; i++)
-     Print("TENSOR INDEX <<",i,">>\n",this.matrices[i].Matrix); 
+     Print("TENSOR INDEX [",i,"] matrix-size=(",this.matrices[i].Matrix.Rows(),"x",this.matrices[i].Matrix.Cols(),")\n",this.matrices[i].Matrix); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -244,7 +235,7 @@ bool  CTensorsVectors::Add(vector &v, ulong POS)
 void CTensorsVectors::Print_(void)
  {
    for (ulong i=0; i<SIZE; i++)
-     Print("TENSOR INDEX <<",i,">>\n",this.vectors[i].Vector); 
+     Print("TENSOR INDEX [",i,"] vector-size =(",this.vectors[i].Vector.Size(),")\n",this.vectors[i].Vector); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
