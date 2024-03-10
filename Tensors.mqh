@@ -31,16 +31,12 @@ public:
                     ~CTensors(void);
                     
                     uint   SIZE;
-                    
-                    template<typename T>
-                    bool   Add(matrix<T> &mat_ , ulong POS);
-                    template<typename T>
-                    bool   Append(matrix<T> mat_);
+                    bool   Add(matrix<double> &mat_ , ulong POS);
+                    bool   Append(matrix<double> &mat_);
+                    matrix<double> Get(ulong POS);
                     void   Print_();
-                    matrix Get(ulong POS);
                     
-                    template<typename T>
-                    void   Fill(T value);
+                    void   Fill(double value);
                     void   MemoryClear();
   };
 //+------------------------------------------------------------------+
@@ -77,8 +73,8 @@ CTensors::~CTensors(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-template<typename T>
-bool  CTensors::Add(matrix<T> &mat_ , ulong POS)
+
+bool  CTensors::Add(matrix<double> &mat_ , ulong POS)
  {
    if (POS > SIZE) 
      {
@@ -94,15 +90,15 @@ bool  CTensors::Add(matrix<T> &mat_ , ulong POS)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-template<typename T>
-bool CTensors::Append(matrix<T> mat_)
+
+bool CTensors::Append(matrix<double> &mat_)
  {
    if (ArrayResize(matrices, SIZE+1)<0)
     return false;
     
    SIZE = matrices.Size();
-   
-   matrices[SIZE-1].Matrix = mat_;
+   matrices[SIZE-1] = new CMatrix();
+   matrices[SIZE-1].Matrix = mat_; //Add the new matrix to the newly created tensor index
    
    return true;
  }
@@ -117,23 +113,26 @@ void CTensors::Print_(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CTensors::Get(ulong POS)
+
+matrix<double> CTensors::Get(ulong POS)
  {
+   matrix<double> mat={};
    if (POS > SIZE) 
      {
        Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",SIZE);
-       
-       matrix mat = {};
        return (mat);
      }
+   
+   matrix temp = this.matrices[POS].Matrix;
+   mat.Assign(temp);
      
-   return (this.matrices[POS].Matrix); 
+   return (mat); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-template<typename T>
-void CTensors::Fill(T value)
+
+void CTensors::Fill(double value)
  {
    for (ulong i=0; i<SIZE; i++)
      this.matrices[i].Matrix.Fill(value);
