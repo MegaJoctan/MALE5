@@ -51,7 +51,7 @@ public:
    static bool       WriteCsv(string csv_name, matrix<T> &matrix_, string &header[] ,bool common=false, int digits=5);
    template <typename T>
    static bool       WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="",bool common=false, int digits=5);
-   static matrix     ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false);
+   static matrix     ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false, bool auto_encode=false);
    static matrix     DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY);
    static bool       write_bin(vector &v, string file);
    
@@ -524,7 +524,7 @@ bool MatrixExtend::IsNumber(string text)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false)
+matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false, bool auto_encode=false)
   {
    CLabelEncoder encoder;
   
@@ -608,7 +608,9 @@ matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter
    for (int i=0; i<cols_total; i++)
       {
          GetCol(Arr, Col, i+1, cols_total);
-         mat.Col(FixColumn(encoder, Col), i);
+         
+         col_vector = auto_encode ? FixColumn(encoder, Col) : ArrayToVector(Col);
+         mat.Col(col_vector, i);
       }
    
    
@@ -1543,6 +1545,7 @@ matrix MatrixExtend::eye(uint num_features)
 //+------------------------------------------------------------------+
 bool MatrixExtend::write_bin(vector &v,string file)
  {
+   FileDelete(file);
    int handle = FileOpen(file,FILE_READ|FILE_WRITE|FILE_BIN,",");
    if (handle == INVALID_HANDLE)
     {
