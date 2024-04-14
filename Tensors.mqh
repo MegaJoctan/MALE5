@@ -10,8 +10,6 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-#define TENSOR_COLS 2
-
 class CMatrix
   {
    public:
@@ -38,6 +36,7 @@ public:
                     
                     void   Fill(double value);
                     void   MemoryClear();
+                    string shape(); //returns the shape of the tensor
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -147,6 +146,14 @@ void CTensors::MemoryClear(void)
       this.matrices[i].Matrix.Resize(1,0);
       ZeroMemory(this.matrices[i].Matrix);
     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+string CTensors::shape(void)
+ {
+   printf("Warning: %s assumes all matrices in the tensor have the same size",__FUNCTION__);
+   return StringFormat("(%d, %d, %d)",this.SIZE,this.matrices[0].Matrix.Rows(),this.matrices[0].Matrix.Cols());
  }
 
 //+------------------------------------------------------------------+
