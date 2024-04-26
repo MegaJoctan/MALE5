@@ -132,6 +132,10 @@ public:
                     virtual vector transform(const vector &X);
                     
                     virtual bool   save(string save_dir);
+                    
+                    
+                    virtual matrix inverse_transform(const matrix &X_scaled);
+                    virtual vector inverse_transform(const vector &X_scaled);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -184,6 +188,29 @@ matrix StandardizationScaler::fit_transform(const matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+vector StandardizationScaler::inverse_transform(const vector &X_scaled)
+ {
+    vector X(X_scaled.Size());
+
+    if (this.mean.Size() == 0 || this.std.Size() == 0) {
+        printf("%s Call the fit_transform function first to fit the scaler or\n Load the pre-fitted scaler before attempting to transform the new data", __FUNCTION__);
+        return X;
+    }
+
+    if (X_scaled.Size() != this.mean.Size()) {
+        printf("%s Dimension mismatch between trained data sized=(%d) and the new data sized=(%d)", __FUNCTION__, this.mean.Size(), X_scaled.Size());
+        return X;
+    }
+
+    for (ulong i = 0; i < X.Size(); i++) {
+        X[i] = X_scaled[i] * (this.std[i] + 1e-10) + this.mean[i];
+    }
+
+    return X;
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 matrix StandardizationScaler::transform(const matrix &X)
  {
    matrix X_norm = X;
@@ -192,6 +219,19 @@ matrix StandardizationScaler::transform(const matrix &X)
      X_norm.Row(this.transform(X.Row(i)), i);
    
    return X_norm;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+matrix StandardizationScaler::inverse_transform(const matrix &X_scaled)
+ {
+   matrix X = X_scaled;
+   
+   for (ulong i=0; i<X.Rows(); i++)
+     X.Row(this.inverse_transform(X_scaled.Row(i)), i);
+   
+   return X;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -265,6 +305,9 @@ public:
                     virtual vector transform(const vector &X);
                     
                     virtual bool   save(string dir);
+                                        
+                    virtual matrix inverse_transform(const matrix &X_scaled);
+                    virtual vector inverse_transform(const vector &X_scaled);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -356,6 +399,43 @@ matrix MinMaxScaler::transform(const matrix &X)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+matrix MinMaxScaler::inverse_transform(const matrix &X_scaled)
+ {
+   matrix X = X_scaled;
+   
+   for (ulong i=0; i<X.Rows(); i++)
+     X.Row(this.inverse_transform(X_scaled.Row(i)), i);
+   
+   return X;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector MinMaxScaler::inverse_transform(const vector &X_scaled)
+ {
+   vector v(X_scaled.Size());
+   if (this.min.Size()==0 || this.max.Size()==0)
+     {
+       printf("%s Call the fit_transform function fist to fit the scaler or\n the load function to load the pre-fitted scalerbefore attempting to transform the new data",__FUNCTION__);
+       return v;
+     }
+   
+   if (X_scaled.Size() != this.min.Size())
+     {
+         printf("%s X of size [%d] doesn't match the same number of features in a given X matrix on the fit_transform function call",__FUNCTION__,this.min.Size());
+         return v;
+     }
+
+//--- Perform inverse transformation
+
+    for (ulong i = 0; i < X_scaled.Size(); ++i) 
+        v[i] = X_scaled[i] * (max[i] - min[i]) + min[i];
+
+    return v;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 bool MinMaxScaler::save(string save_dir)
  {
 //---save min
@@ -403,7 +483,9 @@ public:
                     virtual matrix fit_transform(const matrix &X);
                     virtual matrix transform(const matrix &X);
                     virtual vector transform(const vector &X);
+                    
                     virtual bool   save(string save_dir);
+                    
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
