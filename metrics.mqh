@@ -284,11 +284,11 @@ void Metrics::classification_report(const vector &True, const vector &Pred, bool
 
 //--- Report
 
-      string report = "\n[CLS][ACC] \t\t\t\t\tprecision \trecall \tspecificity \tf1 score \tsupport";
+      string report = "\n[CLS] \t\t\t\t\t\t\tprecision \trecall \tspecificity \tf1 score \tsupport";
 
       for(ulong i = 0; i < size; i++)
         {
-         report += "\n\t[" + string(conf_m.CLASSES[i])+"]["+DoubleToString(accuracy[i], 2)+"]";
+         report += "\n\t\t[" + string(conf_m.CLASSES[i])+"]\t\t\t";
          //for (ulong j=0; j<3; j++)
 
          report += StringFormat("\t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t\t %.2f \t\t\t\t %d", precision[i], recall[i], specificity[i], f1_score[i], (int)support[i]);
