@@ -31,7 +31,7 @@ public:
                     uint   SIZE;
                     bool   Add(matrix<double> &mat_ , ulong POS);
                     bool   Append(matrix<double> &mat_);
-                    matrix<double> Get(ulong POS);
+                    matrix<double> Get(int POS);
                     void   Print_();
                     
                     void   Fill(double value);
@@ -113,16 +113,16 @@ void CTensors::Print_(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-matrix<double> CTensors::Get(ulong POS)
+matrix<double> CTensors::Get(int POS)
  {
    matrix<double> mat={};
-   if (POS > SIZE) 
-     {
-       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",SIZE);
-       return (mat);
-     }
+   if (POS<-1 || POS > int(SIZE))
+    {
+      printf("%s failed, index out of range. Line %d",__FUNCTION__, __LINE__);
+      return mat;
+    }
    
-   matrix temp = this.matrices[POS].Matrix;
+   matrix temp = this.matrices[POS==-1?SIZE-1: POS].Matrix; //if the selected position is -1 we obtain the last matrix in our tensor
    mat.Assign(temp);
      
    return (mat); 
