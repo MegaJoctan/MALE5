@@ -139,6 +139,7 @@ public:
    template<typename T>
    static vector     ArgSort(vector<T> &v);
    static matrix     Slice(const matrix &mat, ulong start, ulong end, uint axis=0);
+   static vector     Slice(const vector &vec, ulong start, ulong end);
 
 //--- Others
    
@@ -1612,6 +1613,33 @@ matrix MatrixExtend::Slice(const matrix &mat, ulong start, ulong end, uint axis=
               return sliced;
               break;
            } 
+     } 
+     
+   return sliced;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector MatrixExtend::Slice(const vector &vec, ulong start, ulong end)
+ {
+   vector sliced = {};
+   if (start>=end)
+    {
+      printf("%s failed, end must be >= start",__FUNCTION__);
+      return sliced;
+    }
+    
+   
+   sliced.Resize(end-start);
+   for (ulong i=start, count=0; i<end; i++, count++)
+     {
+         if (end-start>vec.Size())
+           {
+             printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
+             return sliced;
+           }
+           
+           sliced[count] = vec[i];
      } 
      
    return sliced;
