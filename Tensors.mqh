@@ -20,13 +20,13 @@ class CMatrix
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-class CTensors
+class C3DTensor
   {
 CMatrix* matrices[]; 
 
 public:
-                     CTensors(uint DIM); //For one dimension tensor
-                    ~CTensors(void);
+                     C3DTensor(uint DIM); //For one dimension tensor
+                    ~C3DTensor(void);
                     
                     uint   SIZE;
                     bool   Add(matrix<double> &mat_ , ulong POS);
@@ -41,7 +41,7 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CTensors::CTensors(uint DIM)
+C3DTensor::C3DTensor(uint DIM)
  {
    SIZE = DIM;
    
@@ -61,7 +61,7 @@ CTensors::CTensors(uint DIM)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CTensors::~CTensors(void)
+C3DTensor::~C3DTensor(void)
  {
    for (uint i=0; i<SIZE; i++)
      if (CheckPointer(matrices[i]) != POINTER_INVALID)
@@ -73,7 +73,7 @@ CTensors::~CTensors(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-bool  CTensors::Add(matrix<double> &mat_ , ulong POS)
+bool  C3DTensor::Add(matrix<double> &mat_ , ulong POS)
  {
    if (POS > SIZE) 
      {
@@ -90,7 +90,7 @@ bool  CTensors::Add(matrix<double> &mat_ , ulong POS)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-bool CTensors::Append(matrix<double> &mat_)
+bool C3DTensor::Append(matrix<double> &mat_)
  {
    if (ArrayResize(matrices, SIZE+1)<0)
     return false;
@@ -104,7 +104,7 @@ bool CTensors::Append(matrix<double> &mat_)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensors::Print_(void)
+void C3DTensor::Print_(void)
  {
    for (ulong i=0; i<SIZE; i++)
      Print("TENSOR INDEX [",i,"] matrix-size=(",this.matrices[i].Matrix.Rows(),"x",this.matrices[i].Matrix.Cols(),")\n",this.matrices[i].Matrix); 
@@ -113,7 +113,7 @@ void CTensors::Print_(void)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-matrix<double> CTensors::Get(int POS)
+matrix<double> C3DTensor::Get(int POS)
  {
    matrix<double> mat={};
    if (POS<-1 || POS > int(SIZE))
@@ -131,7 +131,7 @@ matrix<double> CTensors::Get(int POS)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void CTensors::Fill(double value)
+void C3DTensor::Fill(double value)
  {
    for (ulong i=0; i<SIZE; i++)
      this.matrices[i].Matrix.Fill(value);
@@ -139,7 +139,7 @@ void CTensors::Fill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensors::MemoryClear(void)
+void C3DTensor::MemoryClear(void)
  {
    for (ulong i=0; i<SIZE; i++)
     {
@@ -150,7 +150,7 @@ void CTensors::MemoryClear(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-string CTensors::shape(void)
+string C3DTensor::shape(void)
  {
    printf("Warning: %s assumes all matrices in the tensor have the same size",__FUNCTION__);
    return StringFormat("(%d, %d, %d)",this.SIZE,this.matrices[0].Matrix.Rows(),this.matrices[0].Matrix.Cols());
@@ -168,9 +168,10 @@ class CVectors
           vector Vector;
   };
 
-//---
-
-class CTensorsVectors
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+class C2DTensor
   {
 CVectors             *vectors[];
 
@@ -178,24 +179,24 @@ private:
    uint SIZE;
 
 public:
-                     CTensorsVectors(uint DIM);
-                    ~CTensorsVectors(void);
+                     C2DTensor(uint DIM);
+                    ~C2DTensor(void);
                     
                      bool Add(vector &v, ulong POS);
                      void Print_(void);
-                     vector Get(ulong POS);
+                     vector Get(int POS);
                      void Fill(double value);
                      void MemoryClear();
+                     string shape(void);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CTensorsVectors::CTensorsVectors(uint DIM)
+C2DTensor::C2DTensor(uint DIM)
  {
    SIZE = DIM;
    
    ArrayResize(vectors, SIZE);
-   
    
    for (uint i=0; i<SIZE; i++)
        vectors[i] = new CVectors;
@@ -211,7 +212,7 @@ CTensorsVectors::CTensorsVectors(uint DIM)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CTensorsVectors::~CTensorsVectors(void)
+C2DTensor::~C2DTensor(void)
  {
    for (uint i=0; i<SIZE; i++)
      if (CheckPointer(vectors[i]) != POINTER_INVALID)
@@ -222,7 +223,7 @@ CTensorsVectors::~CTensorsVectors(void)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool  CTensorsVectors::Add(vector &v, ulong POS)
+bool  C2DTensor::Add(vector &v, ulong POS)
  {
    if (POS > SIZE) 
      {
@@ -238,30 +239,30 @@ bool  CTensorsVectors::Add(vector &v, ulong POS)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::Print_(void)
+void C2DTensor::Print_(void)
  {
+ 
    for (ulong i=0; i<SIZE; i++)
      Print("TENSOR INDEX [",i,"] vector-size =(",this.vectors[i].Vector.Size(),")\n",this.vectors[i].Vector); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CTensorsVectors::Get(ulong POS)
+vector C2DTensor::Get(int POS)
  {
-   if (POS > SIZE) 
-     {
-       Print(__FUNCTION__," Index Error POS =",POS," greater than TENSOR_DIM ",SIZE);
-       
-       vector v = {};
-       return (v);
-     }
+    if (POS<-1 || POS > int(SIZE))
+       {
+         printf("%s failed, index out of range. Line %d",__FUNCTION__, __LINE__);
+         vector v = {};
+         return v;
+       }
      
-   return (this.vectors[POS].Vector); 
+   return (this.vectors[POS==-1?SIZE-1: POS].Vector); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::Fill(double value)
+void C2DTensor::Fill(double value)
  {
    for (ulong i=0; i<SIZE; i++)
      this.vectors[i].Vector.Fill(value);
@@ -269,13 +270,21 @@ void CTensorsVectors::Fill(double value)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CTensorsVectors::MemoryClear(void)
+void C2DTensor::MemoryClear(void)
  {
    for (ulong i=0; i<SIZE; i++)
     {
       this.vectors[i].Vector.Resize(1,0);
       ZeroMemory(this.vectors[i].Vector);
     }
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+string C2DTensor::shape(void)
+ {
+   printf("Warning: %s assumes all vectors in the tensor have the same size",__FUNCTION__);
+   return StringFormat("(%d, %d)",this.SIZE,this.vectors[0].Vector.Size());
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
