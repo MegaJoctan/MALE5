@@ -183,6 +183,7 @@ public:
                     ~C2DTensor(void);
                     
                      bool Add(vector &v, ulong POS);
+                     bool Append(vector &v);
                      void Print_(void);
                      vector Get(int POS);
                      void Fill(double value);
@@ -285,6 +286,20 @@ string C2DTensor::shape(void)
  {
    printf("Warning: %s assumes all vectors in the tensor have the same size",__FUNCTION__);
    return StringFormat("(%d, %d)",this.SIZE,this.vectors[0].Vector.Size());
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool C2DTensor::Append(vector &v)
+ {
+   if (ArrayResize(this.vectors, SIZE+1)<0)
+    return false;
+    
+   SIZE = vectors.Size();
+   vectors[SIZE-1] = new CVectors();
+   vectors[SIZE-1].Vector = v; //Add the new matrix to the newly created tensor index
+   
+   return true;   
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
