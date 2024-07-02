@@ -138,6 +138,8 @@ public:
    static vector     Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING);
    template<typename T>
    static vector     ArgSort(vector<T> &v);
+   static matrix     Slice(const matrix &mat, ulong start, ulong end, uint axis=0);
+   static vector     Slice(const vector &vec, ulong start, ulong end);
 
 //--- Others
    
@@ -1564,6 +1566,83 @@ bool MatrixExtend::write_bin(vector &v,string file)
    FileClose(handle);
   
   return true;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+matrix MatrixExtend::Slice(const matrix &mat, ulong start, ulong end, uint axis=0)
+ {
+   matrix sliced = {};
+   if (start>=end)
+    {
+      printf("%s failed, end must be >= start",__FUNCTION__);
+      return sliced;
+    }
+    
+   
+   for (ulong i=start, count=0; i<end; i++, count++)
+     {
+         switch(axis)
+           {
+            case  0: //slice along rows
+              
+               if (end-start>mat.Rows())
+                 {
+                   printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
+                   return sliced;
+                 }
+                 
+                 sliced.Resize(end-start, mat.Cols());
+                 sliced.Row(mat.Row(i) , count);
+              
+              break;
+            case 1: //slice along columns
+             
+               if (end-start>mat.Cols())
+                 {
+                   printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
+                   return sliced;
+                 }
+                 
+                 sliced.Resize(mat.Rows(), end-start);
+                 sliced.Col(mat.Col(i) , count);
+              
+              break;
+            default:
+              printf("%s failed, Unknown axis value %d",__FUNCTION__, axis);
+              return sliced;
+              break;
+           } 
+     } 
+     
+   return sliced;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector MatrixExtend::Slice(const vector &vec, ulong start, ulong end)
+ {
+   vector sliced = {};
+   if (start>=end)
+    {
+      printf("%s failed, end must be >= start",__FUNCTION__);
+      return sliced;
+    }
+    
+   
+   sliced.Resize(end-start);
+   for (ulong i=start, count=0; i<end; i++, count++)
+     {
+         if (end-start>vec.Size())
+           {
+             printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
+             return sliced;
+           }
+           
+           sliced[count] = vec[i];
+     } 
+     
+   return sliced;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
