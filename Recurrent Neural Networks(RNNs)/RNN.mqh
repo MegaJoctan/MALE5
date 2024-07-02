@@ -32,9 +32,9 @@ public:
                      bool Init(const uchar &onnx_buff[], ulong flags=ONNX_DEFAULT);
                      bool Init(string onnx_filename, uint flags=ONNX_DEFAULT);
 
-                     virtual int predict_bin(const matrix &x, const vector &classes_in_data);
-                     virtual vector predict_bin(CTensors &timeseries_tensor, const vector &classes_in_data);
-                     virtual vector predict_proba(const matrix &x);
+                     virtual int predict_bin(const matrix &x, const vector &classes_in_data); //predicts classes | useful for live trading
+                     virtual vector predict_bin(C3DTensor &timeseries_tensor, const vector &classes_in_data); //predict classes for the entire data  | useful for training purposes
+                     virtual vector predict_proba(const matrix &x); //Predicts probabilities | Useful for live trading
                      
                      double predict(const matrix &x);
   };
@@ -321,7 +321,7 @@ vector CRNN::predict_proba(const matrix &x)
 //|  When given a matrix for timeseries data collected it provides   |
 //| a scalar binary value which is a prediction                      |
 //+------------------------------------------------------------------+
-vector CRNN::predict_bin(CTensors &timeseries_tensor, const vector &classes_in_data)
+vector CRNN::predict_bin(C3DTensor &timeseries_tensor, const vector &classes_in_data)
  {
    vector preds(timeseries_tensor.SIZE);
    for (uint i=0; i<timeseries_tensor.SIZE; i++)
