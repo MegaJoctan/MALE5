@@ -10,31 +10,48 @@
 //+------------------------------------------------------------------+
 
 #include <MALE5\MatrixExtend.mqh>
+#include <MALE5\Neural Networks\optimizers.mqh>
 
 class CARIMA
   {
-public:
+protected:
+
+   //vector roll(const vector &ts, int shift); 
+
 
    vector difference(const vector &ts, uint interval=1);
    double inverse_difference(const vector &history, double y_hat, uint interval=1);
    vector auto_regressive(const vector &params, const vector &ts, uint p);
    vector moving_average(const vector &params, const vector &errors, uint q);
    
-   double objective_function(const vector &params, const vector &ts, uint p, uint d, uint q); 
+   double objective_function(const vector &ts); 
+   
+//--- 
+   
+   //void adfuller_test(const vector &ts, uint max_lag=UINT_MAX);
+   
+   struct __config_struct__
+     {
+        uint p,d,q;
+        vector params;
+     }config;
    
 public:
-                     CARIMA(void);
+                     CARIMA(uint p, uint d, uint q);
                     ~CARIMA(void);
                     
-                    vector arima(const vector &params, const vector &ts, uint p, uint d, uint q);
-                    vector gradient_descent(const vector &ts, uint p, uint d, uint q, double learning_rate=0.01, uint epochs=1000);
+                    vector arima(const vector &ts);
+                    void fit(const vector &ts, OptimizerAdaGrad *optimizer, uint epochs=1000, bool verbose=true);
+                    vector predict(const vector &ts);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CARIMA::CARIMA(void)
+CARIMA::CARIMA(uint p, uint d, uint q)
  {
- 
+   config.p = p;
+   config.d = d;
+   config.q = q;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -77,7 +94,7 @@ vector CARIMA::difference(const vector &ts, uint interval=1)
 //+------------------------------------------------------------------+
 double CARIMA::inverse_difference(const vector &history, double y_hat, uint interval=1)
  {
-   return y_hat + history[history.Size()-1];
+   return y_hat + history[history.Size()-interval];
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -156,63 +173,171 @@ vector CARIMA::moving_average(const vector &params,const vector &errors,uint q)
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
+//| The arima function integrates the autoregressive (AR),           |
+//| differencing (I), and moving average (MA) components to form the |
+//| ARIMA model. This function is responsible for applying these     |
+//| three components sequentially to model a time series.            |
+//|                                                                  |
+//| Parameters:                                                      |
+//| params: The combined parameters for the AR and MA parts of the   |
+//|         model.                                                   |
+//| ts: The original time series data.                               |
+//| p: The order of the AR component.                                |
+//| d: The order of differencing to make the series stationary.      |
+//| q: The order of the MA component                                 |
+//|                                                                  |   
 //+------------------------------------------------------------------+
-vector CARIMA::arima(const vector &params,const vector &ts,uint p,uint d,uint q)
+vector CARIMA::arima(const vector &ts)
  {
-   vector diff_ts = difference(ts, d);
-   vector ar_values = auto_regressive(params, diff_ts, p);
+   if (config.params.Size()==0)
+     {
+       printf("%s Error, Call the fit method first to train the model before using it for predictions",__FUNCTION__);
+       DebugBreak();
+       
+       vector empty={};
+       return empty;
+     }
+     
+   vector diff_ts = difference(ts, config.d);
+   vector ar_values = auto_regressive(config.params, diff_ts, config.p);
    vector residuals = diff_ts - ar_values;
-   vector ma_values = moving_average(params, residuals, q);
+   vector ma_values = moving_average(config.params, residuals, config.q);
    
    return ar_values + ma_values;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CARIMA::objective_function(const vector &params, const vector &ts, uint p, uint d, uint q)
+vector CARIMA::predict(const vector &ts)
  {
-   vector arima_values = arima(params, ts, p, d, q);  
-   vector diff_ts = difference(ts, d);
+   vector y_hat = arima(ts);
+   
+   vector forecast(y_hat.Size());
+   for (ulong i=0; i<y_hat.Size(); i++)
+     forecast[i] = inverse_difference(ts, y_hat[i], config.d);
+     
+   return forecast;
+ }
+//+------------------------------------------------------------------+
+//|      The function to optimize using gradient descent             |
+//+------------------------------------------------------------------+
+double CARIMA::objective_function(const vector &ts)
+ {
+   vector arima_values = arima(ts);  
+   vector diff_ts = difference(ts, config.d);
    
    vector residuals = diff_ts - arima_values;
    
-   return MathPow(residuals.Sum(), 2); //SUM OF SQUARED RESIDUALS (SSR)
+   return MathPow(residuals, 2).Sum(); //SUM OF SQUARED ERRORS (SSE)
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CARIMA::gradient_descent(const vector &ts,uint p,uint d,uint q,double learning_rate=0.010000, uint epochs=1000)
+void CARIMA::fit(const vector &ts, OptimizerAdaGrad *optimizer, uint epochs=1000, bool verbose=true)
  {
    uint min = 1, max = (uint)ts.Size();
    int random_state = MQLInfoInteger(MQL_DEBUG)?42:-1;
    
-   vector params = MatrixExtend::Random(min, max, (int)p+q, random_state);
+   config.params.Resize(int(config.p+config.q));
+   config.params.Fill(0.0);
    
 //---
    
+   
+   OptimizerAdaGrad adam = optimizer;
+   
    for (uint epoch=0; epoch<epochs; epoch++)
      {
-       vector gradients = MatrixExtend::Zeros(params.Size());
-        for (uint param=0; param<params.Size(); param++)
+       vector gradients = MatrixExtend::Zeros(config.params.Size());
+        for (uint param=0; param<config.params.Size(); param++)
            {
-              params[param] += 1e-5;
-              double loss_1 = objective_function(params, ts, p, d, q);        
-              params[param] -= 2 * 1e-5;               
-              double loss_2 = objective_function(params, ts, p, d, q);
+              config.params[param] += 1e-5;
+              double loss_1 = objective_function(ts);        
+              config.params[param] -= 2 * 1e-5;               
+              double loss_2 = objective_function(ts);
               
               gradients[param] = (loss_1 - loss_2) / (2 * 1e-5);
-              params[param] += 1e-5; 
+              config.params[param] += 1e-5; 
            }
            
-        double loss = objective_function(params, ts, p, d, q);
-        printf("epoch[%d/%d] loss = %.5f",epoch+1, epochs, loss);
+        double loss = objective_function(ts);
         
-        params -= learning_rate * gradients;
+        if (verbose)
+          printf("epoch[%d/%d] loss = %.5f",epoch+1, epochs, loss);
+        
+        matrix params_matrix = MatrixExtend::VectorToMatrix(config.params), 
+               gradients_matrix = MatrixExtend::VectorToMatrix(gradients); //1D matrices
+        
+        adam.update(params_matrix, gradients_matrix);
+        
+        config.params = MatrixExtend::MatrixToVector(params_matrix);
      }
      
-   return params;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+/*
+void CARIMA::adfuller_test(const vector &ts, uint max_lag=UINT_MAX)
+ {
+   uint size = (uint)ts.Size();
+   
+   if (max_lag == UINT_MAX)
+     max_lag = int(pow(size-1, 1/3)); //default max length 
+   
+     
+//--- Calculate the test statistics
+   
+   vector diff = this.difference(ts);
+   matrix lagged_diff = MatrixExtend::Zeros(max_lag, size-max_lag); //[1xn] matrix given the default max-lag
+   
+   for (int lag=1; lag<(int)max_lag+1; lag++)
+     {
+       vector rolled_vector = roll(diff, -lag);
+       vector sliced_vector = MatrixExtend::Slice(rolled_vector,max_lag, rolled_vector.Size());
+       
+       lagged_diff.Row(sliced_vector, lag-1);
+     }
+     
+   Print("lagged_diff\n",lagged_diff);
+ }
+*/
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+/*
+vector CARIMA::roll(const vector &ts, int shift) 
+{
+   int n  = (int)ts.Size();
+   vector temp_v(n);
+   temp_v.Fill(0.0);
+   
+   // If shift is 0, do nothing
+   if (shift == 0) 
+     {
+       printf("function=%s line=%d failed to roll a given vector",__FUNCTION__,__LINE__);
+       return temp_v;
+     }
 
+
+   // Handle positive and negative shifts
+   if (shift > 0) 
+   {
+      for (int i = 0; i < n; i++) 
+      {
+         temp_v[(i + shift) % n] = ts[i];
+      }
+   } 
+   else 
+   {
+      shift = -shift;
+      for (int i = 0; i < n; i++) 
+      {
+         temp_v[i] = ts[(i + shift) % n];
+      }
+   }
+   return temp_v;
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
