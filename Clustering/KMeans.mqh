@@ -9,7 +9,7 @@
 
 #include <Graphics\Graphic.mqh>
 CGraphic graph;
-#include <MALE5\matrix_utils.mqh>
+#include <MALE5\MatrixExtend.mqh>
 
 //+------------------------------------------------------------------+
 enum errors
@@ -22,7 +22,6 @@ enum errors
  
 class CKMeans
   {
-  CMatrixutils matrix_utils;
   
 private:
    ulong             n; //number of samples
@@ -181,7 +180,7 @@ void CKMeans::KMeansClustering(matrix &clustered_matrix, matrix &centroids, int 
             // solving for new cluster and updtating the old ones
             
             
-             cluster_comb_v = matrix_utils.MatrixToVector(cluster_comb_m);
+             cluster_comb_v = MatrixExtend::MatrixToVector(cluster_comb_m);
             
 
             if(iter == iterations-1)
@@ -270,7 +269,7 @@ void CKMeans::ElbowMethod(const int initial_k=1, int total_k=10, bool showPlot =
          for(ulong j=0; j<x_y_z.Size()/m_cols; j++)
            {
 
-            matrix_utils.Copy(x_y_z, short_v, uint(j*m_cols), (uint)m_cols);
+            MatrixExtend::Copy(x_y_z, short_v, uint(j*m_cols), (uint)m_cols);
 
             //---                WCSS ( within cluster sum of squared residuals )
 
