@@ -69,7 +69,7 @@ public:
    template<typename T>
    static bool       XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
-   static void       TrainTestSplitMatrices(const matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1);
+   static void       TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1, bool shuffle=true);
    static matrix     DesignMatrix(matrix &x_matrix);              
    static matrix     OneHotEncoding(const vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
@@ -138,8 +138,8 @@ public:
    static vector     Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING);
    template<typename T>
    static vector     ArgSort(vector<T> &v);
-   static matrix     Slice(const matrix &mat, ulong start, ulong end, uint axis=0);
-   static vector     Slice(const vector &vec, ulong start, ulong end);
+   static matrix     Slice(const matrix &mat, ulong start_index, int end_index, uint axis=0);
+   static vector     Slice(const vector &vec, ulong start_index, int end_index);
 
 //--- Others
    
@@ -765,47 +765,39 @@ void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &matrix_, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1)
+void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1, bool shuffle=true)
   {
-   ulong total = matrix_.Rows(), cols = matrix_.Cols();
+   ulong total = X.Rows(), cols = X.Cols();
    
    ulong last_col = cols-1;
    
 //--- Random pseudo matrix
    
-   matrix ret_matrix = matrix_;
-   Randomize(ret_matrix,random_state);
+   matrix temp_x = X; vector temp_y = y;
    
-//---
+   if (shuffle)
+    {
+      matrix temp_matrix = concatenate(X, y);
+      Randomize(temp_matrix, random_state);
+      XandYSplitMatrices(temp_matrix, temp_x, temp_y);
+    }
+    
+//--- Resizing the new metrices
 
    int train = (int)MathFloor(total*train_size);
    int test = (int)total-train;
    
-   x_train.Resize(train,cols-1);
-   x_test.Resize(test,cols-1);
    
-   y_train.Resize(train);
-   y_test.Resize(test);
+//---
    
-   int train_count = 0, test_count = 0;
+   x_train = Slice(temp_x, 0, train);
+   x_test = Slice(temp_x, train, -1);
    
-   Copy(ret_matrix.Col(last_col),y_train,0,train);
-   Copy(ret_matrix.Col(last_col),y_test,train);
- 
-   for(ulong i=0; i<ret_matrix.Rows(); i++)
-     {
-      if(i < (ulong)train)
-        {
-         x_train.Row(ret_matrix.Row(i),train_count);
-         
-         train_count++;
-        }
-      else
-        {
-         x_test.Row(ret_matrix.Row(i),test_count);
-         test_count++;
-        }
-     }
+//---
+   
+   y_train = Slice(temp_y, 0, train);
+   y_test = Slice(temp_y, train, -1);
+   
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -1570,41 +1562,52 @@ bool MatrixExtend::write_bin(vector &v,string file)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::Slice(const matrix &mat, ulong start, ulong end, uint axis=0)
+matrix MatrixExtend::Slice(const matrix &mat, ulong start_index, int end_index, uint axis=0)
  {
    matrix sliced = {};
-   if (start>=end)
+   
+   if (end_index<-1)
+     {
+       printf("%s line=%d, INvalid end index=%d",__FUNCTION__,__LINE__, end_index);
+       return sliced;
+     }
+   
+   if (end_index==-1)
+     end_index = (int)mat.Rows();
+
+//---
+
+   if ((int)start_index>=end_index)
     {
       printf("%s failed, end must be >= start",__FUNCTION__);
       return sliced;
-    }
-    
+    }    
    
-   for (ulong i=start, count=0; i<end; i++, count++)
+   for (ulong i=start_index, count=0; i<(ulong)end_index; i++, count++)
      {
          switch(axis)
            {
             case  0: //slice along rows
               
-               if (end-start>mat.Rows())
+               if (end_index-start_index>mat.Rows())
                  {
                    printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
                    return sliced;
                  }
                  
-                 sliced.Resize(end-start, mat.Cols());
+                 sliced.Resize(end_index-start_index, mat.Cols());
                  sliced.Row(mat.Row(i) , count);
               
               break;
             case 1: //slice along columns
              
-               if (end-start>mat.Cols())
+               if (end_index-start_index>mat.Cols())
                  {
                    printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
                    return sliced;
                  }
                  
-                 sliced.Resize(mat.Rows(), end-start);
+                 sliced.Resize(mat.Rows(), end_index-start_index);
                  sliced.Col(mat.Col(i) , count);
               
               break;
@@ -1620,20 +1623,32 @@ matrix MatrixExtend::Slice(const matrix &mat, ulong start, ulong end, uint axis=
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Slice(const vector &vec, ulong start, ulong end)
+vector MatrixExtend::Slice(const vector &vec, ulong start_index, int end_index)
  {
    vector sliced = {};
-   if (start>=end)
+   
+   if (end_index<-1)
+     {
+       printf("%s line=%d, Invalid end index=%d",__FUNCTION__,__LINE__, end_index);
+       return sliced;
+     }
+   
+   if (end_index==-1)
+     end_index = (int)vec.Size();
+     
+//---
+   
+   if ((int)start_index>=end_index)
     {
       printf("%s failed, end must be >= start",__FUNCTION__);
       return sliced;
     }
     
-   
-   sliced.Resize(end-start);
-   for (ulong i=start, count=0; i<end; i++, count++)
+
+   sliced.Resize(end_index-start_index);
+   for (ulong i=start_index, count=0; i<(ulong)end_index; i++, count++)
      {
-         if (end-start>vec.Size())
+         if (end_index-start_index>vec.Size())
            {
              printf("%s failed, Index out of range line %d",__FUNCTION__,__LINE__);
              return sliced;
