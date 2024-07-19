@@ -106,8 +106,8 @@ public:
                     
                      void fit(const matrix &x, const vector &y);
                      void print_tree(Node *tree, string indent=" ",string padl="");
-                     double predict(const vector &x);
-                     vector predict(const matrix &x);
+                     double predict_bin(const vector &x);
+                     vector predict_bin(const matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -409,7 +409,7 @@ double CDecisionTreeClassifier::make_predictions(const vector &x, const Node &tr
 //+------------------------------------------------------------------+
 //|      Commonly used for making predictions in REAL-TIME           |
 //+------------------------------------------------------------------+
-double CDecisionTreeClassifier::predict(const vector &x)
+double CDecisionTreeClassifier::predict_bin(const vector &x)
  {
    if (!check_is_fitted(__FUNCTION__))
      return 0;
@@ -419,7 +419,7 @@ double CDecisionTreeClassifier::predict(const vector &x)
 //+------------------------------------------------------------------+
 //|   Commonly used for making predictions in TRAIN-TEST             |
 //+------------------------------------------------------------------+
-vector CDecisionTreeClassifier::predict(const matrix &x)
+vector CDecisionTreeClassifier::predict_bin(const matrix &x)
  {
     vector ret(x.Rows());
  
@@ -427,7 +427,7 @@ vector CDecisionTreeClassifier::predict(const matrix &x)
      return ret;
         
     for (ulong i=0; i<x.Rows(); i++)
-       ret[i] = this.predict(x.Row(i));
+       ret[i] = this.predict_bin(x.Row(i));
        
    return ret;
  }
