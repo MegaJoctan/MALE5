@@ -106,8 +106,9 @@ public:
                     
                      void fit(const matrix &x, const vector &y);
                      void print_tree(Node *tree, string indent=" ",string padl="");
-                     double predict_bin(const vector &x);
-                     vector predict_bin(const matrix &x);
+                     
+                     virtual double predict_bin(const vector &x);
+                     virtual vector predict_bin(const matrix &x);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -455,6 +456,10 @@ public:
                     ~CDecisionTreeRegressor(void);
                     
                      void fit(matrix &x, vector &y);
+                     
+                     virtual double predict(const vector &x); //this is used for live trading
+                     virtual vector predict(const matrix &x);
+                     
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -593,6 +598,20 @@ void CDecisionTreeRegressor::fit(matrix &x, vector &y)
 double CDecisionTreeRegressor::calculate_leaf_value(vector &Y)
  {
    return Y.Mean();
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CDecisionTreeRegressor::predict(const matrix &x)
+ {
+  return predict_bin(x);
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double CDecisionTreeRegressor::predict(const vector &x)
+ {
+  return predict_bin(x);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
