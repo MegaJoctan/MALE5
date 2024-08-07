@@ -90,7 +90,7 @@ Unlike others which are mostly used for analysis and data processing. These AI m
 
 All the predictive models functions for training and deploying them for predictions follow similar patterns.
 
-[![Watch the video](https://img.youtube.com/vi/wKk85PZ2ra8/maxresdefault.jpg)](https://www.youtube.com/watch?v=wKk85PZ2ra8&t=1s)
+[![Watch the video](https://github.com/user-attachments/assets/7d68fa9f-0c75-4d37-9c0f-b9926be9c430)](https://www.youtube.com/watch?v=wKk85PZ2ra8&t=1s)
 
 
 #### For Regression Problems
