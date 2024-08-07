@@ -90,6 +90,9 @@ Unlike others which are mostly used for analysis and data processing. These AI m
 
 All the predictive models functions for training and deploying them for predictions follow similar patterns.
 
+[![Watch the video](https://img.youtube.com/vi/wKk85PZ2ra8/maxresdefault.jpg)](https://www.youtube.com/watch?v=wKk85PZ2ra8&t=1s)
+
+
 #### For Regression Problems
 
 A regression problem is a type of predictive modeling problem where the goal is to predict a continuous output variable based on one or more input features. In other words, given input data, the model aims to determine a continuous value. For example, predicting the next closing price of a financial instrument.
