@@ -43,7 +43,10 @@ protected:
    ar_struct AR(const uint p, const vector &series_data);
    ma_struct MA(const uint q, const vector &residuals);
    
-   uint __p__, __q__;   
+   uint __p__, __q__;  
+    
+   ar_struct ar_parameters;
+   ma_struct ma_parameters;
                      
 public:
                      CARIMA(const uint p, const uint q);
@@ -266,17 +269,47 @@ ma_struct CARIMA::MA(const uint q,const vector &residuals)
 //+------------------------------------------------------------------+
 void CARIMA::fit(const vector &series)
  {
-   ar_struct ar_results = AR(__p__, series);
-   ma_struct ma_results = MA(__q__, ar_results.residuals); 
+   ar_parameters = AR(__p__, series);
+   ma_parameters = MA(__q__, ar_parameters.residuals); 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 vector CARIMA::predict(const vector &series,const uint steps=10)
  {
-    vector forecasted_values = {};
+    vector forecasted_values(10);
     
-    
+    for (uint step=0; step<steps; step++)
+      {
+        
+        //--- Auto-regressive part
+        
+           vector ar_terms = MatrixExtend::Slice(series,series.Size()-__p__, -1);
+           MatrixExtend::Reverse(ar_terms);
+           
+           Print("ar terms: ",ar_terms," ar_theta: ",ar_parameters.theta);
+           
+           double ar_part = ar_parameters.theta.MatMul(ar_terms) + ar_parameters.intercept;
+           
+           Print("ar part = ",ar_part);
+        
+        //--- Moving-average part | Generating MA terms
+        
+           vector ma_terms = MatrixExtend::Slice(series,series.Size()-__q__, -1);
+           MatrixExtend::Reverse(ma_terms);
+           
+           Print("ma terms: ",ma_terms," ma_theta: ",ma_parameters.theta);
+           
+           double ma_part = ma_parameters.theta.MatMul(ma_terms) + ma_parameters.intercept;
+           
+           Print("ma part = ",ma_part);
+            
+        //---
+           
+           double forecast_diff = ar_part + ma_part;
+           forecasted_values[step] = forecast_diff;     
+      }
+          
     return forecasted_values;
  }
 //+------------------------------------------------------------------+
