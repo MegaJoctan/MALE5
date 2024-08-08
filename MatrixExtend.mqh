@@ -70,7 +70,7 @@ public:
    static bool       XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1);
    template <typename T>
    static void       TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1, bool shuffle=true);
-   static matrix     DesignMatrix(matrix &x_matrix);              
+   static matrix     DesignMatrix(const matrix &x);              
    static matrix     OneHotEncoding(const vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
    static vector     Sign(vector &x);
@@ -802,11 +802,11 @@ void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::DesignMatrix(matrix &x_matrix)
+matrix MatrixExtend::DesignMatrix(const matrix &x)
   {
-   matrix out_matrix(x_matrix.Rows(),x_matrix.Cols()+1);
+   matrix out_matrix(x.Rows(),x.Cols()+1);
 
-   vector ones(x_matrix.Rows());
+   vector ones(x.Rows());
    ones.Fill(1);
 
    out_matrix.Col(ones,0);
@@ -814,7 +814,7 @@ matrix MatrixExtend::DesignMatrix(matrix &x_matrix)
 
    for(ulong i=1; i<out_matrix.Cols(); i++)
      {
-      new_vector = x_matrix.Col(i-1);
+      new_vector = x.Col(i-1);
       out_matrix.Col(new_vector,i);
      }
 
