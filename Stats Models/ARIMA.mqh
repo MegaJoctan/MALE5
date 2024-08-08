@@ -14,7 +14,13 @@
 
 struct ar_struct
  {
-   vector residuals;
+   vector residuals; //The differences between actual and predicted values.
+   vector theta; //The coefficients of the AR model.
+   double intercept; //The intercept term from the regression model.
+ };
+
+struct ma_struct
+ {
    vector theta;
    double intercept;
  };
@@ -27,20 +33,31 @@ class CARIMA
   {
 protected:
 
-   CLinearRegression  lr;
+   CLinearRegression  *ar_lr, *ma_lr;
+   
    vector difference(const vector &ts, uint interval=1);
+   double inverse_difference(const vector &history, double y_hat, uint interval=1);
+   
    vector Shift(const vector &v, int shift); 
-
+   
+   ar_struct AR(const uint p, const vector &series_data);
+   ma_struct MA(const uint q, const vector &residuals);
+   
+   uint __p__, __q__;   
+                     
 public:
-                     CARIMA(void);
+                     CARIMA(const uint p, const uint q);
                     ~CARIMA(void);
                     
-                     ar_struct AR(const uint p, const vector &data);
+                     void fit(const vector &series);
+                     vector predict(const vector &series, const uint steps=10);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CARIMA::CARIMA(void)
+CARIMA::CARIMA(const uint p, const uint q)
+ :__p__(p),
+  __q__(q)
  {
  
  }
@@ -49,10 +66,14 @@ CARIMA::CARIMA(void)
 //+------------------------------------------------------------------+
 CARIMA::~CARIMA(void)
  {
- 
+   if (CheckPointer(ar_lr) != POINTER_INVALID)
+     delete ar_lr;
+     
+   if (CheckPointer(ma_lr) != POINTER_INVALID)
+     delete ma_lr;
  }
 //+------------------------------------------------------------------+
-//|   This function shifts data similarly to pandas.DataFrame.shift  |
+//|   This function shifts series_data similarly to pandas.DataFrame.shift  |
 //+------------------------------------------------------------------+
 vector CARIMA::Shift(const vector &v, int shift) 
  {
@@ -80,6 +101,8 @@ vector CARIMA::Shift(const vector &v, int shift)
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
+//|      Perform differencing to make time series stationary         |
+//|                                                                  |
 //+------------------------------------------------------------------+
 vector CARIMA::difference(const vector &ts, uint interval=1)
  {
@@ -99,50 +122,162 @@ vector CARIMA::difference(const vector &ts, uint interval=1)
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
+//|  To invert the differencing, we need to add the differenced value|
+//|  y_hat back to the last observed value before the differencing.  |
+//|                                                                  |
+//|  Parameters                                                      |     
+//|  history: The original time series data before differencing.     |
+//|  yhat: The differenced value or forecast that we want to convert |
+//|         back to the original scale.                              |
+//|  interval: The differencing interval, default value is 1 for     |
+//|            first-order differencing                              |
+//|                                                                  |
 //+------------------------------------------------------------------+
-ar_struct CARIMA::AR(const uint p, const vector &data)
+double CARIMA::inverse_difference(const vector &history, double y_hat, uint interval=1)
+ {
+   return y_hat + history[history.Size()-interval];
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|  This function fits an AutoRegressive model of order p to the    |
+//|  time series data by leveraging linear regression.               |
+//|                                                                  |
+//|  It predicts the current value of the time series based on its   |
+//|  previous p values, calculates the prediction errors, and        |
+//|  provides the arima model coefficients and intercept values.     |
+//|                                                                  |   
+//|                                                                  |
+//|  p: The order of the AR model, which specifies how many lagged   |
+//|     values of the time series to include as predictors.          |
+//|  series_data: The time series series_data.                       |
+//|                                                                  |
+//+------------------------------------------------------------------+
+ar_struct CARIMA::AR(const uint p, const vector &series_data)
  {
    ar_struct ret_struct;
    
-   ulong size = data.Size();
+   ulong size = series_data.Size();
    
-   matrix autoregressive_data(size, p+1);
-   autoregressive_data.Col(data, 0);
+   matrix autoregressive_series_data(size, p+1);
+   autoregressive_series_data.Col(series_data, 0);
    
-   vector shifted_data = {};
+   vector shifted_series_data = {};
  
-    for (ulong i=1; i<p+1; i++)
+    for (ulong i=1; i<p+1; i++) //generate lagged values
       {
-         shifted_data = Shift(data, (uint)i);
-         autoregressive_data.Col(shifted_data, i);
+         shifted_series_data = Shift(series_data, (uint)i);
+         autoregressive_series_data.Col(shifted_series_data, i);
       } 
       
 //---
       
-   autoregressive_data = MatrixExtend::Slice(autoregressive_data,p,-1); 
+   autoregressive_series_data = MatrixExtend::Slice(autoregressive_series_data,p,-1); 
    
 //--- Since the y vector is the first column of this matrix
    
    matrix X;
    vector y;
    
-   MatrixExtend::XandYSplitMatrices(autoregressive_data, X, y, 0); //index 0 to get the first column assigned as y vector
+   MatrixExtend::XandYSplitMatrices(autoregressive_series_data, X, y, 0); //index of 0 gets the first column assigned as y vector
    
-//--- Fitting a linear regression model to the outo-regressive data
+//--- Fitting a linear regression model to the outo-regressive series_data
    
-   lr.fit(X, y);
-   vector y_pred = lr.predict(X);
+   ar_lr = new CLinearRegression();
+   
+   ar_lr.fit(X, y);
+   vector y_pred = ar_lr.predict(X);
       
 //---
 
    ret_struct.residuals = y - y_pred;
-   ret_struct.theta = lr.coeff_;
-   ret_struct.intercept = lr.intercept_;
+   ret_struct.theta = ar_lr.coeff_;
+   ret_struct.intercept = ar_lr.intercept_;
    
    if (MQLInfoInteger(MQL_DEBUG))
      printf("AR(p=%d) model - RMSE: %.4f",p,y_pred.RegressionMetric(y, REGRESSION_RMSE));
    
    return ret_struct;
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//|  The MA function constructs a Moving Average (MA) model by       |
+//|  regressing the current residuals against the past q residuals.  |
+//|  It uses linear regression to determine the coefficients theta   |
+//|  and the intercept that best fit the relationship between the    |
+//|  residuals and their lagged values.                              |   
+//|  The resulting model helps in forecasting future residuals based |   
+//|  on past errors.                                                 |
+//|                                                                  |
+//|  Parameters:                                                     |
+//|  q: The order of the MA model, indicating how many lagged        |
+//|     residuals (errors) should be considered.                     |
+//|  residuals: The array of residuals (errors) from the previous AR |
+//|     model fitting.                                               |
+//|                                                                  |
+//+------------------------------------------------------------------+
+ma_struct CARIMA::MA(const uint q,const vector &residuals)
+ {
+   ma_struct ret_struct;
+   
+   ulong size = residuals.Size();
+   
+   matrix autoregressive_residuals(size, q+1);
+   autoregressive_residuals.Col(residuals, 0);
+   
+   vector shifted_eesiduals = {};
+ 
+    for (ulong i=1; i<q+1; i++) //This loop creates lagged versions of the residuals.
+      {
+         shifted_eesiduals = Shift(residuals, (uint)i);
+         autoregressive_residuals.Col(shifted_eesiduals, i);
+      } 
+     
+//---
+      
+   autoregressive_residuals = MatrixExtend::Slice(autoregressive_residuals,q,-1); 
+   
+//--- Since the y vector is the first column of this matrix
+   
+   matrix X;
+   vector y;
+   
+   MatrixExtend::XandYSplitMatrices(autoregressive_residuals, X, y, 0); //index of 0 gets the first column assigned as y vector
+   
+//--- Fitting a linear regression model to the outo-regressive residuals
+   
+   ma_lr = new CLinearRegression();
+   ma_lr.fit(X, y);
+   vector y_pred = ma_lr.predict(X);
+      
+//---
+   
+   ret_struct.theta = ma_lr.coeff_;
+   ret_struct.intercept = ma_lr.intercept_;   
+
+//---
+
+   if (MQLInfoInteger(MQL_DEBUG))
+     printf("MA(q=%d) model - RMSE: %.4f",q,y_pred.RegressionMetric(y, REGRESSION_RMSE));
+     
+   return ret_struct;   
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void CARIMA::fit(const vector &series)
+ {
+   ar_struct ar_results = AR(__p__, series);
+   ma_struct ma_results = MA(__q__, ar_results.residuals); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector CARIMA::predict(const vector &series,const uint steps=10)
+ {
+    vector forecasted_values = {};
+    
+    
+    return forecasted_values;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
