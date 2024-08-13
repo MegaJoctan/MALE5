@@ -101,8 +101,10 @@ public:
    static bool       VectorToArray(const vector<T> &v,T &arr[]);
    
 //--- Manipulations
-
-   static vector     concatenate(const vector &v1, const vector &v2);              //Appends v2 to vector 1
+   
+   template<typename T>
+   static vector     concatenate(const vector<T> &v1, const vector<T> &v2);              //Appends v2 to vector 1
+   static vector     concatenate(const vector &v, const double value);              //Appends double value to a vector 
    static matrix     concatenate(const matrix &mat1, const  matrix &mat2, int axis = 0);
    template<typename T>
    static matrix<T>  concatenate(const matrix<T> &mat, const vector<T> &v, int axis=1);
@@ -962,7 +964,8 @@ matrix MatrixExtend::Random(double min,double max,ulong rows,ulong cols,int rand
 //+------------------------------------------------------------------+
 //|   Appends vector v1 to the end of vector v2                      |
 //+------------------------------------------------------------------+
-vector MatrixExtend::concatenate(const vector &v1, const vector &v2)
+template<typename T>
+vector MatrixExtend::concatenate(const vector<T> &v1, const vector<T> &v2)
  {
    vector v_out = v1; 
    
@@ -975,6 +978,14 @@ vector MatrixExtend::concatenate(const vector &v1, const vector &v2)
        v_out[i] = v2[index]; 
    
    return (v_out); 
+ }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+vector MatrixExtend::concatenate(const vector &v, const double value) //Appends double value to a vector 
+ {
+   vector v2 = {value};
+   return concatenate(v, v2);
  }
 //+------------------------------------------------------------------+
 //|   Appends matrix mat1 to the end of mat2                         |
