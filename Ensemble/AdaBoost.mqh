@@ -108,7 +108,7 @@ void AdaBoost::fit(matrix &x,vector &y)
       weak_learner = new CDecisionTreeClassifier(this.m_min_split, m_max_depth);             
               
       weak_learner.fit(x_subset, y_subset); //fiting the randomized data to the i-th weak_learner
-      preds = weak_learner.predict(x_subset); //making predictions for the i-th weak_learner
+      preds = weak_learner.predict_bin(x_subset); //making predictions for the i-th weak_learner
              
        for (ulong j=0; j<m; j++)
           misclassified[j] = (preds[j] != y_subset[j]);
@@ -143,7 +143,7 @@ int AdaBoost::predict(vector &x)
           final_preds(m_estimators);
           
    for (uint i=0; i<this.m_estimators; i++)
-     weak_preds[i] = this.weak_learners[i].predict(x);
+     weak_preds[i] = this.weak_learners[i].predict_bin(x);
   
   return (int)weak_preds[(this.m_alphas*weak_preds).ArgMax()]; //Majority decision
  }
