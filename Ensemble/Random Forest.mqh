@@ -90,7 +90,7 @@ void CRandomForestClassifier::fit(matrix &x, vector &y, bool replace=true, error
        forest[i] = new CDecisionTreeClassifier(this.m_minsplit, this.m_maxdepth); //Add the tree to the forest
                      
        forest[i].fit(x_subset, y_subset); //Add the trained tree to the forest
-       preds = forest[i].predict(x_subset);
+       preds = forest[i].predict_bin(x_subset);
        
        current_time = GetTickCount();
        
@@ -108,7 +108,7 @@ double CRandomForestClassifier::predict(vector &x)
    vector predictions(m_ntrees); //predictions from all the trees
     
     for (uint i=0; i<this.m_ntrees; i++) //all trees make the predictions
-      predictions[i] = forest[i].predict(x);
+      predictions[i] = forest[i].predict_bin(x);
       
    vector uniques = MatrixExtend::Unique(predictions);   
    
