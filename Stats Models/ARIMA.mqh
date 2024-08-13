@@ -35,22 +35,24 @@ protected:
 
    CLinearRegression  *ar_lr, *ma_lr;
    
-   vector difference(const vector &ts, uint interval=1);
-   double inverse_difference(const vector &history, double y_hat, uint interval=1);
    
    vector Shift(const vector &v, int shift); 
+   vector Pad(const vector &v, int padSize, double padValue=EMPTY_VALUE);
    
    ar_struct AR(const uint p, const vector &series_data);
    ma_struct MA(const uint q, const vector &residuals);
    
-   uint __p__, __q__;  
+   uint __p__,__d__, __q__;  
     
    ar_struct ar_parameters;
    ma_struct ma_parameters;
                      
 public:
-                     CARIMA(const uint p, const uint q);
+                     CARIMA(const uint p, const uint d, const uint q);
                     ~CARIMA(void);
+                    
+                     vector difference(const vector &ts, uint interval=1);
+                     double inverse_difference(const vector &history, double y_hat, uint interval=1);
                     
                      void fit(const vector &series);
                      vector predict(const vector &series, const uint steps=10);
@@ -58,9 +60,10 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CARIMA::CARIMA(const uint p, const uint q)
+CARIMA::CARIMA(const uint p, const uint d, const uint q)
  :__p__(p),
-  __q__(q)
+  __q__(q),
+  __d__(d)
  {
  
  }
@@ -76,7 +79,8 @@ CARIMA::~CARIMA(void)
      delete ma_lr;
  }
 //+------------------------------------------------------------------+
-//|   This function shifts series_data similarly to pandas.DataFrame.shift  |
+//|   This function shifts series_data similarly to                  |
+//|   pandas.DataFrame.shift                                         |
 //+------------------------------------------------------------------+
 vector CARIMA::Shift(const vector &v, int shift) 
  {
@@ -102,6 +106,27 @@ vector CARIMA::Shift(const vector &v, int shift)
      
    return new_v;
  }
+
+//+------------------------------------------------------------------+
+//|      Function to pad a vector with a specified value             |
+//+------------------------------------------------------------------+
+vector CARIMA::Pad(const vector &v, int padSize, double padValue=EMPTY_VALUE)
+{
+   int originalSize = (int)v.Size();
+   int newSize = originalSize + padSize;
+   
+   vector results(newSize); //a vector to hold the padded results
+   
+   // Fill the beginning of the array with the padValue
+   for (int i = 0; i < padSize; i++)
+      results[i] = padValue;
+   
+   // Copy the original array to the new array after the padding
+   for (int i = 0; i < originalSize; i++)
+      results[i + padSize] = v[i];
+   
+   return results;
+}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //|      Perform differencing to make time series stationary         |
@@ -277,37 +302,48 @@ void CARIMA::fit(const vector &series)
 //+------------------------------------------------------------------+
 vector CARIMA::predict(const vector &series,const uint steps=10)
  {
-    vector forecasted_values(10);
+    vector forecasted_values(steps);
+    vector temp_series = series;
+    
+    //--- We initialize the residuals for the new data
+    
+    vector temp_residuals(series.Size() + steps);
+    temp_residuals.Fill(0);
     
     for (uint step=0; step<steps; step++)
       {
         
         //--- Auto-regressive part
         
-           vector ar_terms = MatrixExtend::Slice(series,series.Size()-__p__, -1);
+           vector ar_terms = MatrixExtend::Slice(temp_series,temp_series.Size()-__p__, -1);
            MatrixExtend::Reverse(ar_terms);
-           
-           Print("ar terms: ",ar_terms," ar_theta: ",ar_parameters.theta);
            
            double ar_part = ar_parameters.theta.MatMul(ar_terms) + ar_parameters.intercept;
            
-           Print("ar part = ",ar_part);
-        
         //--- Moving-average part | Generating MA terms
         
-           vector ma_terms = MatrixExtend::Slice(series,series.Size()-__q__, -1);
+           vector ma_terms = MatrixExtend::Slice(temp_residuals,temp_residuals.Size()-__q__, -1);
            MatrixExtend::Reverse(ma_terms);
-           
-           Print("ma terms: ",ma_terms," ma_theta: ",ma_parameters.theta);
            
            double ma_part = ma_parameters.theta.MatMul(ma_terms) + ma_parameters.intercept;
            
-           Print("ma part = ",ma_part);
-            
-        //---
+        //--- Calculate forecast value difference 
+        
+           double forecast_value_diff = ar_part + ma_part;
+           double new_value = temp_series[temp_series.Size()-1] + forecast_value_diff; // We use the last value in the series to convert the differenced forecast back to original scale
+
+           forecasted_values[step] = new_value;
            
-           double forecast_diff = ar_part + ma_part;
-           forecasted_values[step] = forecast_diff;     
+         //--- Update the temp_residuals with the new forecasted value
+           
+           temp_series = MatrixExtend::concatenate(temp_series, new_value);
+           
+           Print("Temp series\n",temp_series);
+           
+           double new_residual = forecast_value_diff;
+           temp_residuals = MatrixExtend::concatenate(temp_residuals, new_residual);
+           
+           Print("Temp residuals\n",temp_residuals);
       }
           
     return forecasted_values;
