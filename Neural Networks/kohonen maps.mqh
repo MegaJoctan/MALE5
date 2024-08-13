@@ -65,7 +65,8 @@ void CKohonenMaps::fit(const matrix &x)
    n = (uint)x.Cols(); //number of features 
    ulong rows = x.Rows();
    
-   cluster_tensor = new C2DTensor((uint)m);
+   cluster_tensor = new C2DTensor();
+   cluster_tensor.Init((int)m);
    
    w_matrix =MatrixExtend::Random(0.0, 1.0, n, m, m_random_state); 
    
@@ -97,7 +98,7 @@ void CKohonenMaps::fit(const matrix &x)
          ulong min = D.ArgMin();
          
          if (epoch == m_epochs-1) //last iteration
-            cluster_tensor.Add(x.Row(i), min); 
+            cluster_tensor[(int)min].Vector = x.Row(i);; 
 
           
          vector w_new =  w_matrix.Col(min) + (m_alpha * (x.Row(i) - w_matrix.Col(min)));
@@ -123,9 +124,9 @@ void CKohonenMaps::fit(const matrix &x)
    vector v;  
    matrix plotmatrix(rows, m); 
    
-     for (uint i=0; i<this.cluster_tensor.SIZE; i++)
+     for (uint i=0; i<this.cluster_tensor.Size(); i++)
        {
-          v = this.cluster_tensor.Get(i);
+          v = this.cluster_tensor[i].Vector;
                     
           plotmatrix.Col(v, i);
        }   
