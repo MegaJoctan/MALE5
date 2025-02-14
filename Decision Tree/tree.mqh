@@ -10,9 +10,7 @@
 //+------------------------------------------------------------------+
 #include <MALE5\MatrixExtend.mqh>
 
-
 #define log2(leaf_value) MathLog(leaf_value) / MathLog(2)
-
 
 class Node
 {
@@ -30,11 +28,50 @@ class Node
     Node *left_child; //left child Node
     Node *right_child; //right child Node
 
-    Node() : left_child(NULL), right_child(NULL) {} // default constructor
+    Node() {
+    
+     left_child = NULL; right_child = NULL;
+    
+    } // default constructor
 
-    Node(int feature_index_, double threshold_=0.0, Node *left_=NULL, Node *right_=NULL, double info_gain_=NULL, double value_=NULL)
-        : left_child(left_), right_child(right_)
+    // **Copy Constructor**
+    Node(const Node &other)
     {
+        feature_index = other.feature_index;
+        threshold = other.threshold;
+        info_gain = other.info_gain;
+        leaf_value = other.leaf_value;
+
+        // Deep copy child nodes
+        left_child = other.left_child;
+        right_child = other.right_child;
+    }
+
+    // **Assignment Operator (Deep Copy)**
+    Node operator=(const Node &other)
+    {
+        feature_index = other.feature_index;
+        threshold = other.threshold;
+        info_gain = other.info_gain;
+        leaf_value = other.leaf_value;
+
+        // Deep copy child nodes
+        left_child = other.left_child;
+        right_child = other.right_child;
+
+        return GetPointer(this);
+    }
+    
+    ~Node()
+    {
+        if (CheckPointer(left_child)!=POINTER_INVALID)
+           delete left_child;
+        if (CheckPointer(right_child)!=POINTER_INVALID)
+            delete right_child;
+    }
+    
+    Node(int feature_index_, double threshold_, Node &left_, Node &right_, double info_gain_=0.0, double value_=0.0)
+    {    
         this.feature_index = feature_index_;
         this.threshold = threshold_;
         this.info_gain = info_gain_;
@@ -65,7 +102,7 @@ class CDecisionTreeClassifier
   {
 protected:  
    
-   Node *build_tree(matrix &data, uint curr_depth=0);
+   Node build_tree(matrix &data, uint curr_depth=0);
    double  calculate_leaf_value(vector &Y);
    
    bool is_fitted;
@@ -94,18 +131,14 @@ protected:
    
    double make_predictions(const vector &x, const Node &tree);
    
-   void delete_tree(Node* node);
-   
-   Node *nodes[]; //Keeping track of all the nodes in a tree
-   
 public:
-                     Node *root;
+                     Node root;
                      
                      CDecisionTreeClassifier(uint min_samples_split=2, uint max_depth=2, mode mode_=MODE_GINI);
                     ~CDecisionTreeClassifier(void);
                     
                      void fit(const matrix &x, const vector &y);
-                     void print_tree(Node *tree, string indent=" ",string padl="");
+                     void print_tree(Node &tree, string indent=" ",string padl="");
                      
                      virtual double predict_bin(const vector &x);
                      virtual vector predict_bin(const matrix &x);
@@ -125,26 +158,7 @@ CDecisionTreeClassifier::CDecisionTreeClassifier(uint min_samples_split=2, uint 
 //+------------------------------------------------------------------+
 CDecisionTreeClassifier::~CDecisionTreeClassifier(void)
  {   
-   #ifdef DEBUG_MODE
-      Print(__FUNCTION__," Deleting Tree nodes =",nodes.Size());
-   #endif 
-   
-   this.delete_tree(root);
-   
-   for (int i=0; i<(int)nodes.Size(); i++)
-     this.delete_tree(nodes[i]);  
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void CDecisionTreeClassifier::delete_tree(Node* node)
- {
-    if (CheckPointer(node) != POINTER_INVALID)
-    {
-        delete_tree(node.left_child);
-        delete_tree(node.right_child);
-        delete node;
-    }
+ 
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -194,7 +208,7 @@ double CDecisionTreeClassifier::information_gain(vector &parent, vector &l_child
 //+------------------------------------------------------------------+
 //|         function to print the tree                               |
 //+------------------------------------------------------------------+
-void CDecisionTreeClassifier::print_tree(Node *tree, string indent=" ",string padl="")
+void CDecisionTreeClassifier::print_tree(Node &tree, string indent=" ",string padl="")
   {
      if (tree.leaf_value != NULL)
         Print((padl+indent+": "),tree.leaf_value); 
@@ -294,9 +308,8 @@ split_info CDecisionTreeClassifier::get_best_split(const matrix &data, uint num_
                                     
                   if (curr_info_gain > max_info_gain)
                     {             
-                      #ifdef DEBUG_MODE
+                      if (MQLInfoInteger(MQL_DEBUG))
                         printf("    split left: [%dx%d] split right: [%dx%d] curr_info_gain: %f max_info_gain: %f",split.dataset_left.Rows(),split.dataset_left.Cols(),split.dataset_right.Rows(),split.dataset_right.Cols(),curr_info_gain,max_info_gain);
-                      #endif 
                         
                       best_split.feature_index = i;
                       best_split.threshold = possible_thresholds[j];
@@ -315,50 +328,42 @@ split_info CDecisionTreeClassifier::get_best_split(const matrix &data, uint num_
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Node *CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
+Node CDecisionTreeClassifier::build_tree(matrix &data, uint curr_depth=0)
  {
     matrix X;
     vector Y;
+     
+    Node node;    
     
-         
     if (!MatrixExtend::XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
-         #ifdef DEBUG_MODE
+         if (MQLInfoInteger(MQL_DEBUG))
             printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
-         #endif 
          
-         return NULL; //return null pointer
+         return node; //return null pointer
       }
     
     is_fitted = true;
      
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
-        
-    ArrayResize(nodes, nodes.Size()+1); //Append the nodes to memory
-    Node *left_child, *right_child;
-            
     if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
       {
          split_info best_split = this.get_best_split(data, (uint)features);
          
-         #ifdef DEBUG_MODE
+         if (MQLInfoInteger(MQL_DEBUG))
              Print(__FUNCTION__," | ",__LINE__,"\nbest_split left: [",best_split.dataset_left.Rows(),"x",best_split.dataset_left.Cols(),"]\nbest_split right: [",best_split.dataset_right.Rows(),"x",best_split.dataset_right.Cols(),"]\nfeature_index: ",best_split.feature_index,"\nInfo gain: ",best_split.info_gain,"\nThreshold: ",best_split.threshold);
-         #endif 
                   
          if (best_split.info_gain > 0)
            {
-             left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
-             right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
-                      
-             nodes[nodes.Size()-1] = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);  
-             return nodes[nodes.Size()-1];
+             node.left_child = new Node();
+             node.right_child = new Node();
+             
+             node.left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
+             node.right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
            }
       }      
      
-     nodes[nodes.Size()-1] = new Node();
-     nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
-     
-     return nodes[nodes.Size()-1];
+     return node;
  }
 //+------------------------------------------------------------------+
 //|   returns the element from Y that has the highest count,         |
@@ -378,15 +383,12 @@ double CDecisionTreeClassifier::make_predictions(const vector &x, const Node &tr
  {   
    if (!check_is_fitted(__FUNCTION__))
      return 0;
-   
-   //if (CheckPointer(tree)=POINTER_INVALID)
      
     if (tree.leaf_value != NULL) //This is a leaf_value
       return tree.leaf_value;
     
-    #ifdef DEBUG_MODE
+    if (MQLInfoInteger(MQL_DEBUG))
       printf("Tree.threshold %f tree.feature_index %d leaf_value %f",tree.threshold,tree.feature_index,tree.leaf_value);
-    #endif 
     
     if (tree.feature_index>=x.Size())
       return tree.leaf_value;
@@ -397,12 +399,18 @@ double CDecisionTreeClassifier::make_predictions(const vector &x, const Node &tr
     if (feature_value <= tree.threshold)
       {
        if (CheckPointer(tree.left_child)!=POINTER_INVALID)
-          pred = this.make_predictions(x, tree.left_child);  
+         {
+           pred = this.make_predictions(x, tree.left_child);  
+           if (MQLInfoInteger(MQL_DEBUG)) Print("pred: ",pred);
+         }
       }
     else
      {
        if (CheckPointer(tree.right_child)!=POINTER_INVALID)
-         pred = this.make_predictions(x, tree.right_child);
+        {
+          pred = this.make_predictions(x, tree.right_child);
+          if (MQLInfoInteger(MQL_DEBUG)) Print("pred: ",pred);
+        }
      }
      
    return pred;
@@ -450,7 +458,7 @@ private:
                      split_info  get_best_split(matrix &data, uint num_features);
                      double variance_reduction(vector &parent, vector &l_child, vector &r_child);
                      
-                     Node *build_tree(matrix &data, uint curr_depth=0);
+                     Node build_tree(matrix &data, uint curr_depth=0);
 public:
                      CDecisionTreeRegressor(uint min_samples_split=2, uint max_depth=2);
                     ~CDecisionTreeRegressor(void);
@@ -518,9 +526,8 @@ split_info CDecisionTreeRegressor::get_best_split(matrix &data, uint num_feature
                                     
                   if (curr_info_gain > max_info_gain)
                     {             
-                      #ifdef DEBUG_MODE
+                      if (MQLInfoInteger(MQL_DEBUG))
                         printf(__FUNCTION__," | ",__LINE__,"\nsplit left: [%dx%d] split right: [%dx%d] curr_info_gain: %f max_info_gain: %f",split.dataset_left.Rows(),split.dataset_left.Cols(),split.dataset_right.Rows(),split.dataset_right.Cols(),curr_info_gain,max_info_gain);
-                      #endif 
                       
                       best_split.feature_index = i;
                       best_split.threshold = possible_thresholds[j];
@@ -539,47 +546,41 @@ split_info CDecisionTreeRegressor::get_best_split(matrix &data, uint num_feature
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Node *CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
+Node CDecisionTreeRegressor::build_tree(matrix &data, uint curr_depth=0)
  {
     matrix X;
     vector Y;
+    
+    Node node;
       
     if (!MatrixExtend::XandYSplitMatrices(data,X,Y)) //Split the input matrix into feature matrix X and target vector Y.    
       {
-         #ifdef DEBUG_MODE 
+         if (MQLInfoInteger(MQL_DEBUG))
            printf("%s Line %d Failed to build a tree Data Empty",__FUNCTION__,__LINE__);
-         #endif 
          
-         return NULL; //Return a NULL pointer
+         return node; //Return a NULL pointer
       }
       
     ulong samples = X.Rows(), features = X.Cols(); //Get the number of samples and features in the dataset.
-        
-    ArrayResize(nodes, nodes.Size()+1); //Append the nodes to memory
-    Node *left_child, *right_child;
+    Node left_child, right_child;
             
     if (samples >= m_min_samples_split && curr_depth<=m_max_depth)
       {
          split_info best_split = this.get_best_split(data, (uint)features);
          
-         #ifdef DEBUG_MODE
+         if (MQLInfoInteger(MQL_DEBUG))
            Print(__FUNCTION__," | ",__LINE__,"\nbest_split left: [",best_split.dataset_left.Rows(),"x",best_split.dataset_left.Cols(),"]\nbest_split right: [",best_split.dataset_right.Rows(),"x",best_split.dataset_right.Cols(),"]\nfeature_index: ",best_split.feature_index,"\nInfo gain: ",best_split.info_gain,"\nThreshold: ",best_split.threshold);
-         #endif 
-                  
+         
          if (best_split.info_gain > 0)
            {
              left_child = this.build_tree(best_split.dataset_left, curr_depth+1);
              right_child = this.build_tree(best_split.dataset_right, curr_depth+1);
-                      
-             nodes[nodes.Size()-1] = new Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);  
-             return nodes[nodes.Size()-1];
+             
+             node = Node(best_split.feature_index,best_split.threshold,left_child,right_child,best_split.info_gain);
            }
       }      
      
-     nodes[nodes.Size()-1] = new Node();
-     nodes[nodes.Size()-1].leaf_value = this.calculate_leaf_value(Y);
-     
-     return nodes[nodes.Size()-1];
+     return node;
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
