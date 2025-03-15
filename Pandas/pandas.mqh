@@ -132,6 +132,17 @@ public:
 
       return res;
      }
+     
+   vector            Percentile(int value)
+     {
+      vector res(matrix__.Rows());
+      res.Fill(NaN);
+
+      for(ulong i=0; i<res.Size(); i++)
+         res[i] = matrix__.Row(i).Percentile(value);
+
+      return res;
+     }
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -200,9 +211,9 @@ public:
 
    CDataFrame        Drop(const string cols);
    void              Head(const uint count=5);
-   bool              ToCSV(const string file_name, const bool common_path=false, const int digits=5, bool verbosity=false);
+   bool              ToCSV(const string file_name, const bool common_path=false, bool verbosity=false);
 
-   bool              ReadCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false);
+   bool              FromCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false);
    void              Insert(string name, const vector &values);
 
    CDataFrame        Dropnan();
@@ -567,7 +578,7 @@ void CDataFrame::Head(const uint count=5)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CDataFrame::ToCSV(string csv_name, bool common=false, int digits=5, bool verbosity=false)
+bool CDataFrame::ToCSV(string csv_name, bool common=false, bool verbosity=false)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_SHARE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8); //open a csv file
@@ -607,7 +618,7 @@ bool CDataFrame::ToCSV(string csv_name, bool common=false, int digits=5, bool ve
       row = m_values.Row(i);
       for(ulong j=0, cols =1; j<row.Size() && !IsStopped(); j++, cols++)
         {
-         concstring += (string)NormalizeDouble(row[j],digits) + (cols == m_values.Cols() ? "" : ",");
+         concstring += (string)row[j] + (cols == m_values.Cols() ? "" : ",");
         }
 
       if(verbosity)  //if verbosity is set to true, we print the information to let the user know the progress, Useful for debugging purposes
@@ -821,7 +832,7 @@ vector CDataFrame::Shift(const string index, const int shift)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CDataFrame::ReadCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false)
+bool CDataFrame::FromCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false)
   {
    matrix mat_ = {};
    int rows_total=0;
