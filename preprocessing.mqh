@@ -7,107 +7,220 @@
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 
 //+------------------------------------------------------------------+
-//|   LABEL ENCODE CLASS FOR PREPROCESSING INFORMATION               |
+//|               Strings label encoder                              |
 //+------------------------------------------------------------------+
 
-struct CLabelEncoder
-  {
-      private:
-        int dummy;
-        
-         void Unique(const string &Array[], string &classes_arr[]) //From matrix<T> utils
-          {
-            string temp_arr[];
-         
-            ArrayResize(classes_arr,1);
-            ArrayCopy(temp_arr,Array);
-            
-            classes_arr[0] = Array[0];
-            
-            for(int i=0, count =1; i<ArraySize(Array); i++)  //counting the different neighbors
-              {
-               for(int j=0; j<ArraySize(Array); j++)
-                 {
-                  if(Array[i] == temp_arr[j] && temp_arr[j] != "-nan")
-                    {
-                     bool count_ready = false;
-         
-                     for(int n=0; n<ArraySize(classes_arr); n++)
-                        if(Array[i] == classes_arr[n])
-                             count_ready = true;
-         
-                     if(!count_ready)
-                       {
-                        count++;
-                        ArrayResize(classes_arr,count);
-         
-                        classes_arr[count-1] = Array[i]; 
-         
-                        temp_arr[j] = "-nan"; //modify so that it can no more be counted
-                       }
-                     else
-                        break;
-                     //Print("t vectors vector<T> ",v);
-                    }
-                  else
-                     continue;
-                 }
-              }
-          }
-         //--- Sort the array based on the bubble algorithm
-         
-         bool BubbleSortStrings(string &arr[])
-           {
-            int arraySize = ArraySize(arr);
-            
-            if (arraySize == 0)
-              {
-               Print(__FUNCTION__," Failed to Sort | ArraySize = 0");
-               return false;
-              }
-            
-            for(int i = 0; i < arraySize - 1; i++)
-              {
-               for(int j = 0; j < arraySize - i - 1; j++)
-                 {
-                  if(StringCompare(arr[j], arr[j + 1], false) > 0)
-                    {
-                     // Swap arr[j] and arr[j + 1]
-                     string temp = arr[j];
-                     arr[j] = arr[j + 1];
-                     arr[j + 1] = temp;
-                    }
-                 }
-              }
-             return true;
-           }
+class CLabelEncoder
+{
+   private:
+       string m_classes[];
+       int m_mapping[];
        
-      public:         
-         vector encode(string &Arr[])
+       // Helper function to find index of a string in an array
+       int FindStringIndex(const string &array[], const string value)
+       {
+           for(int i = 0; i < ArraySize(array); i++)
            {
-            string unique_values[];
-            Unique(Arr, unique_values);
-            
-            vector ret(ArraySize(Arr));
-                                    
-            if (!BubbleSortStrings(unique_values))
-                return ret;
-             
-             for (int i=0; i<ArraySize(unique_values); i++)
-                for (int j=0; j<ArraySize(Arr); j++)
-                   if (unique_values[i] == Arr[j])
-                     ret[j] = i+1;
-                 
-             return ret;
+               if(array[i] == value)
+                   return i;
            }
-  };
+           return -1;
+       }
+       
+       // Extract unique values and sort them
+       bool GetUniqueSortedClasses(const string &input_[], string &output[])
+       {
+           // Temporary array to mark duplicates
+           string temp[];
+           ArrayResize(temp, ArraySize(input_));
+           ArrayCopy(temp, input_);
+           
+           int count = 0;
+           
+           for(int i = 0; i < ArraySize(temp); i++)
+           {
+               if(temp[i] == "") continue; // Skip already processed
+               
+               // Add to output
+               ArrayResize(output, count + 1);
+               output[count] = temp[i];
+               count++;
+               
+               // Mark all duplicates
+               for(int j = i + 1; j < ArraySize(temp); j++)
+               {
+                   if(temp[j] == temp[i])
+                       temp[j] = ""; // Mark as processed
+               }
+           }
+           
+           // Sort the unique values
+           return BubbleSortStrings(output);
+       }
+       
+       // Bubble sort for strings (same as your original)
+       bool BubbleSortStrings(string &arr[])
+       {
+           int arraySize = ArraySize(arr);
+           
+           if(arraySize == 0)
+           {
+               Print(__FUNCTION__, " Failed to Sort | ArraySize = 0");
+               return false;
+           }
+           
+           for(int i = 0; i < arraySize - 1; i++)
+           {
+               for(int j = 0; j < arraySize - i - 1; j++)
+               {
+                   if(StringCompare(arr[j], arr[j + 1], false) > 0)
+                   {
+                       // Swap arr[j] and arr[j + 1]
+                       string temp = arr[j];
+                       arr[j] = arr[j + 1];
+                       arr[j + 1] = temp;
+                   }
+               }
+           }
+           return true;
+       }
+   
+   public:
+       
+       CLabelEncoder(void)
+        {
+        
+        }
+       
+       ~CLabelEncoder(void)
+        {
+        
+        }
+        
+       bool fit(const string &y[]) // Fit the encoder to the data
+       {
+           if(ArraySize(y) == 0)
+               return false;
+               
+           // Get unique sorted classes
+           if(!GetUniqueSortedClasses(y, m_classes))
+               return false;
+               
+           // Create mapping (not strictly needed but makes transform faster)
+           ArrayResize(m_mapping, ArraySize(m_classes));
+           for(int i = 0; i < ArraySize(m_classes); i++)
+               m_mapping[i] = i;
+               
+           return true;
+       }
+       
+       // Transform labels to encoded integers
+       vector transform(const string &y[])
+       {
+           vector ret(ArraySize(y));
+           
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet",__FUNCTION__);
+               return vector::Zeros(0);
+           }
+           
+           for(int i = 0; i < ArraySize(y); i++)
+           {
+               int idx = FindStringIndex(m_classes, y[i]);
+               if(idx == -1)
+               {
+                   Print("Warning: Unknown label '", y[i], "' found in transform");
+                   ret[i] = -1;
+               }
+               else
+               {
+                   ret[i] = m_mapping[idx];
+               }
+           }
+           
+           return ret;
+       }
+       
+       // Fit and transform in one step
+       vector fit_transform(const string &y[])
+       {
+           if(!fit(y))
+           {
+               printf("%s failed to fit the transformer",__FUNCTION__);
+               return vector::Zeros(0);
+           }
+           return transform(y);
+       }
+       
+       // Transform encoded integers back to original labels
+       string inverse_transform(const int encoded_value)
+       {
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet",__FUNCTION__);
+               return NULL;
+           }
+           
+           if(encoded_value < 0 || encoded_value >= ArraySize(m_classes))
+           {
+               printf("%s error, encoded value %d out of range",__FUNCTION__,encoded_value);
+               return NULL;
+           }
+           
+           return m_classes[encoded_value];
+       }
+};
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+template<typename T>
+vector ArrayToVector(const T &Arr[])
+  {
+   vector v(ArraySize(Arr));
+   
+   for (int i=0; i<ArraySize(Arr); i++)
+     v[i] = double(Arr[i]);
+     
+   return (v);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+template<typename T>
+bool VectorToArray(const vector<T> &v, T &arr[])
+  {
+   vector temp = v;
+   if (!temp.Swap(arr))
+    {
+      Print("Failed to Convert vector to Array Err=",GetLastError());
+      return false;
+    }
+   return(true);
+  }
 
-#include "MatrixExtend.mqh";
- 
-
+bool write_bin(vector &v,string file)
+ {
+   FileDelete(file);
+   int handle = FileOpen(file,FILE_READ|FILE_WRITE|FILE_BIN,",");
+   if (handle == INVALID_HANDLE)
+    {
+      printf("Invalid handle Err=%d",GetLastError());
+      DebugBreak();
+      return false;
+    }
+   
+   double arr[];
+   ArrayResize(arr, (int)v.Size());
+   
+   for (uint i=0; i<arr.Size(); i++)
+    arr[i] = v[i];
+   
+   FileWriteArray(handle, arr);
+   FileClose(handle);
+  
+  return true;
+ }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //|                                                                  |
@@ -149,8 +262,8 @@ StandardizationScaler::StandardizationScaler(void)
 //+------------------------------------------------------------------+
 StandardizationScaler::StandardizationScaler(const double &mean_[],const double &std_[])
  {
-   this.mean = MatrixExtend::ArrayToVector(mean_);
-   this.std = MatrixExtend::ArrayToVector(std_);
+   this.mean = ArrayToVector(mean_);
+   this.std = ArrayToVector(std_);
    
    loaded_scaler = true;
  }
@@ -263,7 +376,7 @@ bool StandardizationScaler::save(string save_dir)
  {
 //---save mean
 
-   if (!MatrixExtend::write_bin(this.mean, save_dir+"\\mean.bin"))
+   if (!write_bin(this.mean, save_dir+"\\mean.bin"))
      {
        printf("%s Failed Save the mean values of the Scaler",__FUNCTION__);
        return false;
@@ -271,7 +384,7 @@ bool StandardizationScaler::save(string save_dir)
    
 //--- save std
 
-   if (!MatrixExtend::write_bin(this.std, save_dir+"\\std.bin"))
+   if (!write_bin(this.std, save_dir+"\\std.bin"))
      {
        printf("%s Failed Save the Standard deviation values of the Scaler",__FUNCTION__);
        return false;
@@ -328,8 +441,8 @@ MinMaxScaler::~MinMaxScaler(void)
 //+------------------------------------------------------------------+
 MinMaxScaler::MinMaxScaler(const double &min_[],const double &max_[])
  {
-   this.min = MatrixExtend::ArrayToVector(min_);
-   this.max = MatrixExtend::ArrayToVector(max_);
+   this.min = ArrayToVector(min_);
+   this.max = ArrayToVector(max_);
    
    loaded_scaler = true;
  }
@@ -440,7 +553,7 @@ bool MinMaxScaler::save(string save_dir)
  {
 //---save min
 
-   if (!MatrixExtend::write_bin(this.min, save_dir+"\\min.bin"))
+   if (!write_bin(this.min, save_dir+"\\min.bin"))
      {
        printf("%s Failed to save the Min values for the scaler",__FUNCTION__);
        return false;
@@ -448,7 +561,7 @@ bool MinMaxScaler::save(string save_dir)
    
 //--- save max
    
-   if (!MatrixExtend::write_bin(this.max, save_dir+"\\max.bin"))
+   if (!write_bin(this.max, save_dir+"\\max.bin"))
      {
        printf("%s Failed to save the Max values for the scaler",__FUNCTION__);
        return false;
@@ -499,8 +612,8 @@ RobustScaler::RobustScaler(void)
 //+------------------------------------------------------------------+
 RobustScaler::RobustScaler(const double &median_[],const double &quantile_[])
  {
-   this.median = MatrixExtend::ArrayToVector(median_);
-   this.quantile = MatrixExtend::ArrayToVector(quantile_);
+   this.median = ArrayToVector(median_);
+   this.quantile = ArrayToVector(quantile_);
    
    loaded_scaler = true;
  }
@@ -582,7 +695,7 @@ bool RobustScaler::save(string save_dir)
  {
 //--- save median
    
-   if (!MatrixExtend::write_bin(this.median, save_dir+"\\median.bin"))
+   if (!write_bin(this.median, save_dir+"\\median.bin"))
      {
        printf("%s Failed to save the Median values for the scaler",__FUNCTION__);
        return false;
@@ -590,7 +703,7 @@ bool RobustScaler::save(string save_dir)
 
 //--- save quantile
 
-   if (!MatrixExtend::write_bin(this.quantile, save_dir+"\\quantile.bin"))
+   if (!write_bin(this.quantile, save_dir+"\\quantile.bin"))
      {
        printf("%s Failed to save the Quantile values for the scaler",__FUNCTION__);
        return false;
