@@ -13,7 +13,6 @@
 class CLabelEncoder
 {
    private:
-       string m_classes[];
        int m_mapping[];
        
        // Helper function to find index of a string in an array
@@ -87,6 +86,8 @@ class CLabelEncoder
    
    public:
        
+       string m_classes[];
+       
        CLabelEncoder(void)
         {
         
@@ -114,6 +115,26 @@ class CLabelEncoder
            return true;
        }
        
+           
+       // Transform a single label to encoded integer
+       int transform(const string value)
+       {
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet", __FUNCTION__);
+               return -1;
+           }
+           
+           int idx = FindStringIndex(m_classes, value);
+           if(idx == -1)
+           {
+               Print("Warning: Unknown label '", value, "' found in transform");
+               return -1;
+           }
+           
+           return m_mapping[idx];
+       }
+       
        // Transform labels to encoded integers
        vector transform(const string &y[])
        {
@@ -126,18 +147,7 @@ class CLabelEncoder
            }
            
            for(int i = 0; i < ArraySize(y); i++)
-           {
-               int idx = FindStringIndex(m_classes, y[i]);
-               if(idx == -1)
-               {
-                   Print("Warning: Unknown label '", y[i], "' found in transform");
-                   ret[i] = -1;
-               }
-               else
-               {
-                   ret[i] = m_mapping[idx];
-               }
-           }
+             ret[i] = transform(y[i]);
            
            return ret;
        }
