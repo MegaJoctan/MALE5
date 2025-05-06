@@ -5,21 +5,201 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2023, Omegafx"
 #property link      "https://www.omegafx.co"
+#property strict
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
 
-#ifndef NaN
-#define  NaN double("nan")
+#ifndef NAN
+#define  NAN double("nan")
 #endif
 
-#ifndef inf
-#define  inf double("inf")
+#ifndef INF
+#define  INF double("inf")
 #endif
 
-#ifndef neg_inf
-#define  neg_inf double("-inf")
+#ifndef NEG_INF
+#define  NEG_INF double("-inf")
 #endif
+
+//+------------------------------------------------------------------+
+//|               Strings label encoder                              |
+//+------------------------------------------------------------------+
+
+class CLabelEncoder
+{
+   private:
+       int m_mapping[];
+       
+       // Helper function to find index of a string in an array
+       int FindStringIndex(const string &array[], const string value)
+       {
+           for(int i = 0; i < ArraySize(array); i++)
+           {
+               if(array[i] == value)
+                   return i;
+           }
+           return -1;
+       }
+       
+       // Extract unique values and sort them
+       bool GetUniqueSortedClasses(const string &input_[], string &output[])
+       {
+           // Temporary array to mark duplicates
+           string temp[];
+           ArrayResize(temp, ArraySize(input_));
+           ArrayCopy(temp, input_);
+           
+           int count = 0;
+           
+           for(int i = 0; i < ArraySize(temp); i++)
+           {
+               if(temp[i] == "") continue; // Skip already processed
+               
+               // Add to output
+               ArrayResize(output, count + 1);
+               output[count] = temp[i];
+               count++;
+               
+               // Mark all duplicates
+               for(int j = i + 1; j < ArraySize(temp); j++)
+               {
+                   if(temp[j] == temp[i])
+                       temp[j] = ""; // Mark as processed
+               }
+           }
+           
+           // Sort the unique values
+           return BubbleSortStrings(output);
+       }
+       
+       // Bubble sort for strings (same as your original)
+       bool BubbleSortStrings(string &arr[])
+       {
+           int arraySize = ArraySize(arr);
+           
+           if(arraySize == 0)
+           {
+               Print(__FUNCTION__, " Failed to Sort | ArraySize = 0");
+               return false;
+           }
+           
+           for(int i = 0; i < arraySize - 1; i++)
+           {
+               for(int j = 0; j < arraySize - i - 1; j++)
+               {
+                   if(StringCompare(arr[j], arr[j + 1], false) > 0)
+                   {
+                       // Swap arr[j] and arr[j + 1]
+                       string temp = arr[j];
+                       arr[j] = arr[j + 1];
+                       arr[j + 1] = temp;
+                   }
+               }
+           }
+           return true;
+       }
+   
+   public:
+       
+       string m_classes[];
+       
+       CLabelEncoder(void)
+        {
+        
+        }
+       
+       ~CLabelEncoder(void)
+        {
+        
+        }
+        
+       bool fit(const string &y[]) // Fit the encoder to the data
+       {
+           if(ArraySize(y) == 0)
+               return false;
+               
+           // Get unique sorted classes
+           if(!GetUniqueSortedClasses(y, m_classes))
+               return false;
+               
+           // Create mapping (not strictly needed but makes transform faster)
+           ArrayResize(m_mapping, ArraySize(m_classes));
+           for(int i = 0; i < ArraySize(m_classes); i++)
+               m_mapping[i] = i;
+               
+           return true;
+       }
+       
+           
+       // Transform a single label to encoded integer
+       int transform(const string value)
+       {
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet", __FUNCTION__);
+               return -1;
+           }
+           
+           int idx = FindStringIndex(m_classes, value);
+           if(idx == -1)
+           {
+               Print("Warning: Unknown label '", value, "' found in transform");
+               return -1;
+           }
+           
+           return m_mapping[idx];
+       }
+       
+       // Transform labels to encoded integers
+       vector transform(const string &y[])
+       {
+           vector ret(ArraySize(y));
+           
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet",__FUNCTION__);
+               return vector::Zeros(0);
+           }
+           
+           for(int i = 0; i < ArraySize(y); i++)
+             ret[i] = (int)transform(y[i]);
+           
+           return ret;
+       }
+       
+       // Fit and transform in one step
+       vector fit_transform(const string &y[])
+       {
+           if(!fit(y))
+           {
+               printf("%s failed to fit the transformer",__FUNCTION__);
+               return vector::Zeros(0);
+           }
+           return transform(y);
+       }
+       
+       // Transform encoded integers back to original labels
+       string inverse_transform(const int encoded_value)
+       {
+           if(ArraySize(m_classes) == 0)
+           {
+               Print("%s error, Encoder not fitted yet",__FUNCTION__);
+               return NULL;
+           }
+           
+           if(encoded_value < 0 || encoded_value >= ArraySize(m_classes))
+           {
+               printf("%s error, encoded value %d out of range",__FUNCTION__,encoded_value);
+               return NULL;
+           }
+           
+           return m_classes[encoded_value];
+       }
+};
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 struct rolling_struct
   {
@@ -67,10 +247,10 @@ protected:
 public:
    matrix            matrix__;
 
-   vector            Mean()
+   vector            mean()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = matrix__.Row(i).Mean();
@@ -78,10 +258,32 @@ public:
       return res;
      }
 
-   vector            Std()
+   vector            min()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
+
+      for(ulong i=0; i<res.Size(); i++)
+         res[i] = matrix__.Row(i).Min();
+
+      return res;
+     }
+     
+   vector            max()
+     {
+      vector res(matrix__.Rows());
+      res.Fill(NAN);
+
+      for(ulong i=0; i<res.Size(); i++)
+         res[i] = matrix__.Row(i).Max();
+
+      return res;
+     }
+     
+   vector            std()
+     {
+      vector res(matrix__.Rows());
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = matrix__.Row(i).Std();
@@ -89,10 +291,10 @@ public:
       return res;
      }
 
-   vector            Var()
+   vector            var()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = matrix__.Row(i).Var();
@@ -100,10 +302,10 @@ public:
       return res;
      }
 
-   vector            Skew()
+   vector            skew()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = CalculateSkewness(matrix__.Row(i));
@@ -111,10 +313,10 @@ public:
       return res;
      }
 
-   vector            Kurtosis()
+   vector            kurtosis()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = CalculateKurtosis(matrix__.Row(i));
@@ -122,10 +324,10 @@ public:
       return res;
      }
 
-   vector            Median()
+   vector            median()
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = matrix__.Row(i).Median();
@@ -133,10 +335,10 @@ public:
       return res;
      }
      
-   vector            Percentile(int value)
+   vector            percentile(int value)
      {
       vector res(matrix__.Rows());
-      res.Fill(NaN);
+      res.Fill(NAN);
 
       for(ulong i=0; i<res.Size(); i++)
          res[i] = matrix__.Row(i).Percentile(value);
@@ -177,11 +379,27 @@ class CDataFrame
      }
 
    int               CDataFrame::CountNaN(const vector &v);
-
+   void              GetCol(const string &data[], string &output[], int col_index, int total_columns);
+   template<typename T>
+   vector            ArrayToVector(const T &Arr[])
+     {
+      vector v(ArraySize(Arr));
+      
+      for (int i=0; i<ArraySize(Arr); i++)
+        v[i] = double(Arr[i]);
+        
+      return (v);
+     }
+     
 public:
 
    string            m_columns[]; //An array of string values for keeping track of the column names
    matrix            m_values; // A 2D matrix
+   CLabelEncoder     m_columns_encoders[];
+   vector            shape()
+     {
+       vector s = {int(m_values.Rows()), int(m_values.Cols())};       return s;
+     }
 
                      CDataFrame();
                      CDataFrame(const string columns, const matrix &values);
@@ -195,42 +413,72 @@ public:
 
    vector            operator[](const string index) {return GetColumn(index); }  //Access a column by its name
 
-   vector            Loc(int index, uint axis = 0);
-   CDataFrame        Iloc(ulong start_row, ulong end_row, ulong start_col, ulong end_col);
-   double            At(ulong row, string col_name);
-   double            Iat(ulong row, ulong col);
+   vector            loc(int index, uint axis = 0);
+   CDataFrame        iloc(ulong start_row, ulong end_row, ulong start_col, ulong end_col);
+   double            at(ulong row, string col_name);
+   double            iat(ulong row, ulong col);
 
    //--- Data exploration methods
 
-   matrix            Tail(uint count=5);
-   void              Info();
-   void              Describe(void);
+   matrix            tail(uint count=5);
+   void              info();
+   void              describe(void);
    
    //---
 
 
-   CDataFrame        Drop(const string cols);
-   void              Head(const uint count=5);
-   bool              ToCSV(const string file_name, const bool common_path=false, bool verbosity=false);
+   CDataFrame        drop(const string cols);
+   void              head(const uint count=5);
+   bool              to_csv(const string file_name, const bool common_path=false, bool verbosity=false);
 
-   bool              FromCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false);
-   void              Insert(string name, const vector &values);
+   bool              from_csv(string file_name,string delimiter=",",bool is_common=false, string datetime_columns="", string columns_to_encode="", bool verbosity=false);
+   void              insert(string name, const vector &values);
 
-   CDataFrame        Dropnan();
+   CDataFrame        dropna();
       
    //--- Timeseries transformation and manipulations
    
-   vector            Pct_change(const string index);
-   vector            Pct_change(const vector &v);
+   vector            pct_change(const string index);
+   vector            pct_change(const vector &v);
 
-   rolling_struct    Rolling(const vector &v, const uint window);
-   rolling_struct    Rolling(const string index, const uint window);
+   rolling_struct    rolling(const vector &v, const uint window);
+   rolling_struct    rolling(const string index, const uint window);
    
-   vector            Shift(const vector &v, const int shift);
-   vector            Shift(const string index, const int shift);
+   vector            shift(const vector &v, const int shift_index);
+   vector            shift(const string col_name, const int shift_index);
    
-   vector            Diff(const vector &v, int period=1);
-   vector            Diff(const string index, int period=1);
+   vector            diff(const vector &v, int period=1);
+   vector            diff(const string col_name, int period=1);
+
+   // Define function pointer type for apply
+   typedef double (*ApplyFunction)(double);
+   
+   // apply function to a specific column
+   vector apply_axis1(const string column_name, ApplyFunction func)
+    {
+      vector col = GetColumn(column_name);
+      vector result(col.Size());
+      result.Fill(NAN);
+   
+      for (uint i = 0; i < col.Size(); i++)
+         result[i] = func(col[i]);  // apply function
+   
+      return result;  // Return transformed column
+    }
+   
+   // apply function to a specific column or all elements in the DataFrame
+   CDataFrame apply_axis0(ApplyFunction func)
+    {
+      CDataFrame result = this; // Copy original DataFrame
+      // apply function to ALL ELEMENTS (row-wise)
+      
+      int idx = 0;
+      for (uint i = 0; i < m_values.Rows(); i++)
+        for (uint j = 0; j < m_values.Cols(); j++)
+           result.m_values[i][j] = func(result.m_values[i][j]); // apply function to each element
+
+      return result; // Return transformed values
+    }
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -278,21 +526,21 @@ CDataFrame::CDataFrame(const string &columns[], const matrix &values)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Pct_change(const string index)
+vector CDataFrame::pct_change(const string index)
   {
    vector col = GetColumn(index);
-   return Pct_change(col);
+   return pct_change(col);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Pct_change(const vector &v)
+vector CDataFrame::pct_change(const vector &v)
   {
    vector col = v;
    ulong size = col.Size();
 
    vector results(size);
-   results.Fill(NaN);
+   results.Fill(NAN);
 
    for(ulong i=1; i<size; i++)
      {
@@ -315,7 +563,7 @@ vector CDataFrame::Pct_change(const vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Loc(int index, uint axis=0)
+vector CDataFrame::loc(int index, uint axis=0)
   {
    if(axis == 0)
      {
@@ -362,7 +610,7 @@ vector CDataFrame::Loc(int index, uint axis=0)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CDataFrame CDataFrame::Iloc(ulong start_row,ulong end_row,ulong start_col,ulong end_col)
+CDataFrame CDataFrame::iloc(ulong start_row,ulong end_row,ulong start_col,ulong end_col)
   {
    CDataFrame df(m_columns, m_values);
 
@@ -395,7 +643,7 @@ CDataFrame CDataFrame::Iloc(ulong start_row,ulong end_row,ulong start_col,ulong 
 //---
 
    df.m_values.Resize(end_row-start_row, end_col-start_col);
-   df.m_values.Fill(NaN);
+   df.m_values.Fill(NAN);
 
    if(ArrayResize(df.m_columns, int(end_col-start_col))<0)
      {
@@ -417,7 +665,7 @@ CDataFrame CDataFrame::Iloc(ulong start_row,ulong end_row,ulong start_col,ulong 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDataFrame::At(ulong row, string col_name)
+double CDataFrame::at(ulong row, string col_name)
   {
    ulong col_number = (ulong)ColNameToIndex(col_name, m_columns);
    return m_values[row][col_number];
@@ -425,7 +673,7 @@ double CDataFrame::At(ulong row, string col_name)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double CDataFrame::Iat(ulong row,ulong col)
+double CDataFrame::iat(ulong row,ulong col)
   {
    return m_values[row][col];
   }
@@ -463,7 +711,7 @@ vector CDataFrame::GetColumn(const string name)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CDataFrame CDataFrame::Drop(const string cols)
+CDataFrame CDataFrame::drop(const string cols)
   {
    CDataFrame df;
    
@@ -533,52 +781,78 @@ CDataFrame CDataFrame::Drop(const string cols)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDataFrame::Head(const uint count=5)
-  {
-// Calculate maximum width needed for each column
-   uint num_cols = m_columns.Size();
+
+void CDataFrame::head(const uint count = 5)
+{
+   uint num_cols = (uint)m_columns.Size();
+   uint num_rows = (uint)m_values.Rows();
+   
+   // Handle case where count is greater than available rows
+   uint display_count = (num_rows <= 2 * count) ? num_rows : count;
+
    uint col_widths[];
    ArrayResize(col_widths, num_cols);
 
-   for(uint col = 0; col < num_cols; col++)  //Determining column width for visualizing a simple table
-     {
+   // Determine max width for each column
+   for (uint col = 0; col < num_cols; col++)
+   {
       uint max_width = StringLen(m_columns[col]);
-      for(uint row = 0; row < count && row < m_values.Rows(); row++)
-        {
+      for (uint row = 0; row < display_count && row < num_rows; row++)
+      {
          string num_str = StringFormat("%.8f", m_values[row][col]);
          max_width = MathMax(max_width, StringLen(num_str));
-        }
-      col_widths[col] = max_width + 4; // Extra padding for readability
-     }
+      }
+      
+      col_widths[col] = max_width + 4; // Extra padding
+   }
 
-// Print column headers with calculated padding
-   string header = "";
-   for(uint col = 0; col < num_cols; col++)
-     {
-      header += StringFormat("| %-*s ", col_widths[col], m_columns[col]);
-     }
-   header += "|";
+   // Print column headers with an empty index column
+   string header = "| Index |";
+   for (uint col = 0; col < num_cols; col++)
+   {
+      header += StringFormat(" %-*s |", col_widths[col], m_columns[col]);
+   }
+   
    Print(header);
 
-// Print rows with padding for each column
-   for(uint row = 0; row < count && row < m_values.Rows(); row++)
-     {
-      string row_str = "";
-      for(uint col = 0; col < num_cols; col++)
-        {
-         row_str += StringFormat("| %-*.*f ", col_widths[col], 8, m_values[row][col]);
-        }
-      row_str += "|";
+   // Print first `count` rows
+   for (uint row = 0; row < display_count; row++)
+   {
+      string row_str = StringFormat("| %5d |", row); // Index column
+      for (uint col = 0; col < num_cols; col++)
+      {
+         row_str += StringFormat(" %-*.*f |", col_widths[col], 8, m_values[row][col]);
+      }
       Print(row_str);
-     }
+   }
 
-// Print dimensions
-   printf("(%dx%d)", m_values.Rows(), m_values.Cols());
-  }
+   // Print separator if skipping rows in the middle
+   if (num_rows > 2 * count)
+   {
+      Print("|  ...  |");
+   }
+
+   // Print last `count` rows if necessary
+   if (num_rows > 2 * count)
+   {
+      for (uint row = num_rows - display_count; row < num_rows; row++)
+      {
+         string row_str = StringFormat("| %5d |", row); // Index column
+         for (uint col = 0; col < num_cols; col++)
+         {
+            row_str += StringFormat(" %-*.*f |", col_widths[col], 8, m_values[row][col]);
+         }
+         Print(row_str);
+      }
+   }
+
+   // Print DataFrame dimensions at the end
+   printf("(%dx%d)", num_rows, num_cols-1);
+}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CDataFrame::ToCSV(string csv_name, bool common=false, bool verbosity=false)
+bool CDataFrame::to_csv(string csv_name, bool common=false, bool verbosity=false)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_SHARE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),",",CP_UTF8); //open a csv file
@@ -640,7 +914,7 @@ bool CDataFrame::ToCSV(string csv_name, bool common=false, bool verbosity=false)
 //|   It also adds it's column name to the records                   |
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDataFrame::Insert(string name, const vector &values)
+void CDataFrame::insert(string name, const vector &values)
   {
 //--- Check if the column exists in the m_columns array if it does exists, instead of creating a new column we modify an existing one
 
@@ -674,10 +948,10 @@ void CDataFrame::Insert(string name, const vector &values)
       return;
      }
 
-//--- If a given vector to be added to the dataframe is smaller than the number of rows present in the matrix, we fill the remaining values with Not a Number (NaN)
+//--- If a given vector to be added to the dataframe is smaller than the number of rows present in the matrix, we fill the remaining values with Not a Number (NAN)
 
    vector temp_vals = vector::Zeros(m_values.Rows());
-   temp_vals.Fill(NaN); //to create NaN values when there was a dimensional mismatch
+   temp_vals.Fill(NAN); //to create NAN values when there was a dimensional mismatch
 
    for(ulong i=0; i<values.Size(); i++)
       temp_vals[i] = values[i];
@@ -693,7 +967,7 @@ void CDataFrame::Insert(string name, const vector &values)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CDataFrame CDataFrame::Dropnan()
+CDataFrame CDataFrame::dropna()
   {
    CDataFrame res_df;
    
@@ -736,18 +1010,18 @@ CDataFrame CDataFrame::Dropnan()
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-rolling_struct CDataFrame::Rolling(const vector &v, const uint window)
+rolling_struct CDataFrame::rolling(const vector &v, const uint window)
   {
    rolling_struct roll_res;
 
    roll_res.matrix__.Resize(v.Size(), window);
-   roll_res.matrix__.Fill(NaN);
+   roll_res.matrix__.Fill(NAN);
 
    for(ulong i = 0; i < v.Size(); i++)
      {
       for(ulong j = 0; j < window; j++)
         {
-         // Calculate the index in the vector for the Rolling window
+         // Calculate the index in the vector for the rolling window
          ulong index = i - (window - 1) + j;
 
          if(index >= 0 && index < v.Size())
@@ -760,19 +1034,19 @@ rolling_struct CDataFrame::Rolling(const vector &v, const uint window)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-rolling_struct CDataFrame::Rolling(const string index, const uint window)
+rolling_struct CDataFrame::rolling(const string index, const uint window)
   {
    vector v = GetColumn(index);
 
-   return Rolling(v, window);
+   return rolling(v, window);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Diff(const vector &v, int period=1)
+vector CDataFrame::diff(const vector &v, int period=1)
   {
    vector res(v.Size());
-   res.Fill(NaN);
+   res.Fill(NAN);
 
    for(ulong i=period; i<v.Size(); i++)
       res[i] = v[i] - v[i-period]; //Calculate the difference between the current value and the previous one
@@ -782,38 +1056,38 @@ vector CDataFrame::Diff(const vector &v, int period=1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Diff(const string index, int period=1)
+vector CDataFrame::diff(const string col_name, int period=1)
   {
-   vector v = this.GetColumn(index);
-// Initialize a result vector filled with NaN
+   vector v = this.GetColumn(col_name);
+// Initialize a result vector filled with NAN
 
-   return Diff(v, period);
+   return diff(v, period);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Shift(const vector &v, const int shift)
+vector CDataFrame::shift(const vector &v, const int shift_index)
   {
-// Initialize a result vector filled with NaN
+// Initialize a result vector filled with NAN
    vector result(v.Size());
-   result.Fill(NaN);
+   result.Fill(NAN);
 
-   if(shift > 0)
+   if(shift_index > 0)
      {
-      // Positive shift: Move elements forward
-      for(ulong i = 0; i < v.Size() - shift; i++)
-         result[i + shift] = v[i];
+      // Positive shift_index: Move elements forward
+      for(ulong i = 0; i < v.Size() - shift_index; i++)
+         result[i + shift_index] = v[i];
      }
    else
-      if(shift < 0)
+      if(shift_index < 0)
         {
-         // Negative shift: Move elements backward
-         for(ulong i = -shift; i < v.Size(); i++)
-            result[i + shift] = v[i];
+         // Negative shift_index: Move elements backward
+         for(ulong i = -shift_index; i < v.Size(); i++)
+            result[i + shift_index] = v[i];
         }
       else
         {
-         // Zero shift: Return the vector unchanged
+         // Zero shift_index: Return the vector unchanged
          result = v;
         }
 
@@ -822,72 +1096,165 @@ vector CDataFrame::Shift(const vector &v, const int shift)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector CDataFrame::Shift(const string index, const int shift)
+vector CDataFrame::shift(const string col_name, const int shift_index)
   {
-   vector v = this.GetColumn(index);
-// Initialize a result vector filled with NaN
+   vector v = this.GetColumn(col_name);
+// Initialize a result vector filled with NAN
 
-   return Shift(v, shift);
+   return shift(v, shift_index);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CDataFrame::FromCSV(string file_name,string delimiter=",",bool is_common=false, bool verbosity=false)
+// Proper column extraction from linear array
+void CDataFrame::GetCol(const string &data[], string &output[], int col_index, int total_columns)
+{
+    int rows = ArraySize(data) / total_columns;
+    ArrayResize(output, rows);
+    
+    for(int i = 0; i < rows; i++)
+    {
+        output[i] = data[i * total_columns + (col_index - 1)];
+    }
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CDataFrame::from_csv(string file_name,string delimiter=",",bool is_common=false, string datetime_columns="",string encode_columns="", bool verbosity=false)
   {
-   matrix mat_ = {};
-   int rows_total=0;
-   int handle = FileOpen(file_name,FILE_READ|FILE_CSV|FILE_ANSI|(is_common?FILE_IS_COMMON:FILE_ANSI),delimiter); //Open a csv file
+   string Arr[];
+   
+//--- Optimized array handling
 
-   ResetLastError();
-   if(handle == INVALID_HANDLE) //Check if the file handle is ok if not return false
+   int CHUNK_SIZE = 1000;
+   int capacity = CHUNK_SIZE;
+   ArrayResize(Arr, capacity);
+
+//---
+
+   int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(is_common?FILE_COMMON:FILE_ANSI),delimiter,CP_UTF8);
+   
+   int all_size = 0, 
+       header_columns = 0;
+   
+   if(handle == INVALID_HANDLE)
      {
       printf("Invalid %s handle Error %d ",file_name,GetLastError());
       Print(GetLastError()==0?" TIP | File Might be in use Somewhere else or in another Directory":"");
-
       return false;
      }
    else
      {
-      int column = 0, rows=0;
-
-      while(!FileIsEnding(handle))
+      int columns = 0, rows=0;
+      while(!FileIsEnding(handle) && !IsStopped())
         {
-         string data = FileReadString(handle);
+         string data = FileReadString(handle); 
+         
          //---
+         
          if(rows ==0)
            {
-            ArrayResize(m_columns,column+1);
-            m_columns[column] = data;
+             header_columns++;
+             ArrayResize(m_columns, header_columns);
+             
+             m_columns[header_columns-1] = data;
            }
+         
+         columns++;
+                  
          if(rows>0)  //Avoid the first column which contains the column's header
-            mat_[rows-1,column] = (double(data)); //add a value to the matrix
-         column++;
+          {
+            if(all_size >= capacity)
+             {
+                 capacity += CHUNK_SIZE;
+                 ArrayResize(Arr, capacity);
+             }
+             
+             Arr[all_size++] = data;
+          }
+          
          //---
-         if(FileIsLineEnding(handle)) //At the end of the each line
-           {
-            rows++;
 
-            mat_.Resize(rows,column); //Resize the matrix to accomodate new values
-            column = 0;
+         if(FileIsLineEnding(handle))
+           {            
+            if (columns!=header_columns)
+             {
+                printf("%s there is a mismatch in the number of columns inside '%s'",__FUNCTION__,file_name);
+                return false;
+             }
+             
+            columns = 0; //reset columns count
+            Comment(StringFormat("Reading %s record [%d] ",file_name,rows++));
            }
-        }
-
-      if(verbosity)  //if verbosity is set to true, we print the information to let the user know the progress, Useful for debugging purposes
-         printf("Reading a CSV file... record [%d]",rows);
-
-      rows_total = rows;
-      FileClose(handle); //Close the file after reading it
+        }  
+        
+      FileClose(handle);
      }
+     
+//--- Finally resize to exact size:
 
-   mat_.Resize(rows_total-1,mat_.Cols());
-   m_values = mat_;
+   ArrayResize(Arr, all_size); 
+   Comment(""); //Clear the comment
+   
+//--- 
 
+   if(all_size % header_columns != 0)
+   {
+       printf("%s Error data size doesn't match column count",__FUNCTION__);
+       return false;
+   }
+   
+   int rows = all_size / header_columns;
+   m_values.Resize(rows, header_columns);
+   
+   string Col[]; //A column in strings format
+   vector col_vector = {};
+    
+//---
+   
+   int encoder_count=0;
+   for (int i=0; i<header_columns; i++)
+      {
+         string col_name = m_columns[i];
+         
+         GetCol(Arr, Col, i+1, header_columns); //Get the column in string format
+         
+         if (StringFind(datetime_columns, col_name)!=-1 && datetime_columns!="") //If the current column is in the list of datetime columns
+            {
+               printf("%s is a datetime column", col_name);
+               col_vector.Resize(Col.Size());
+               for (uint k=0; k<Col.Size(); k++)
+                  col_vector[k] = (double)StringToTime(Col[k]);
+               
+               m_values.Col(col_vector, i); //Store the column in a matrix
+               continue;
+            }
+            
+         if (StringFind(encode_columns, col_name)!=-1 && encode_columns!="") //If the current column is in the list of columns to encode
+            {
+               encoder_count++;
+               ArrayResize(m_columns_encoders, encoder_count);
+               
+               if (MQLInfoInteger(MQL_DEBUG))
+                  printf("Encoding column: %s",col_name);
+                  
+               col_vector = m_columns_encoders[encoder_count-1].fit_transform(Col); //Encode the column
+               
+               m_values.Col(col_vector, i); //Store the column in a matrix
+               continue;
+            }
+             
+          col_vector = ArrayToVector(Col);
+          m_values.Col(col_vector, i); //Store the column in a matrix
+      }
+   
+   
    return true;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix CDataFrame::Tail(uint count=5)
+matrix CDataFrame::tail(uint count=5)
   {
    ulong rows = m_values.Rows();
    if(count>=rows)
@@ -907,7 +1274,7 @@ matrix CDataFrame::Tail(uint count=5)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDataFrame::Info(void)
+void CDataFrame::info(void)
   {
    ulong rows = m_values.Rows(), cols = m_values.Cols();
 
@@ -931,7 +1298,7 @@ void CDataFrame::Info(void)
 
    for(ulong i = 0; i < cols; i++)  //--- Print each column's info with consistent padding
      {
-      int null_count = CountNaN(m_values.Col(i)); //we count all the NaN values
+      int null_count = CountNaN(m_values.Col(i)); //we count all the NAN values
       int non_null_count = (int)rows - null_count;
 
       string dtype = typename(double); // Since all columns are double
@@ -958,7 +1325,7 @@ int CDataFrame::CountNaN(const vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void CDataFrame::Describe(void)
+void CDataFrame::describe(void)
  {
    uint cols = m_columns.Size();
    if (cols == 0) return; // Handle edge case for empty DataFrame
