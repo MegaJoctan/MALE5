@@ -6,13 +6,11 @@
 #property copyright "Copyright 2022, Omega Joctan"
 #property link      "https://www.mql5.com/en/users/omegajoctan"
 
-#include <MALE5\preprocessing.mqh>
-
 //+------------------------------------------------------------------+
 //|   A class containing additional matrix manipulation functions    |
 //+------------------------------------------------------------------+
 
-class MatrixExtend
+class CUtils
   {
   
 protected:
@@ -27,12 +25,10 @@ protected:
    static void       GetCol(const T &Matrix[], T &Col[], int column, int cols);
    
    static bool       IsNumber(string text);
-   static vector     FixColumn(CLabelEncoder &encoder, string &Arr[], double threshold =0.3);
-
 
 public:
-                     MatrixExtend(void);
-                    ~MatrixExtend(void);
+                     CUtils(void);
+                    ~CUtils(void);
    
    template<typename T>
    static int Sign(T var)
@@ -74,7 +70,6 @@ public:
    static matrix     OneHotEncoding(const vector &v);    //ONe hot encoding 
    static matrix     Sign(matrix &x);
    static vector     Sign(vector &x);
-   static matrix     eye(uint num_features);
    
 //--- Detection
 
@@ -151,21 +146,21 @@ public:
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MatrixExtend::MatrixExtend(void)
+CUtils::CUtils(void)
   {
     
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MatrixExtend::~MatrixExtend(void)
+CUtils::~CUtils(void)
   {
   
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::VectorToMatrix(const vector &v, ulong cols=1)
+matrix CUtils::VectorToMatrix(const vector &v, ulong cols=1)
   {      
    ulong rows = 0;
    matrix mat = {};
@@ -194,7 +189,7 @@ matrix MatrixExtend::VectorToMatrix(const vector &v, ulong cols=1)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::MatrixToVector(const matrix<T> &mat)
+vector CUtils::MatrixToVector(const matrix<T> &mat)
   {
     vector<T> v = {};
     matrix<T> temp_mat = mat;
@@ -209,7 +204,7 @@ vector MatrixExtend::MatrixToVector(const matrix<T> &mat)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool MatrixExtend::RemoveCol(matrix<T> &mat, ulong col)
+bool CUtils::RemoveCol(matrix<T> &mat, ulong col)
   {
    matrix<T> new_matrix(mat.Rows(),mat.Cols()-1); //Remove the one Column
    if (col > mat.Cols())
@@ -237,7 +232,7 @@ bool MatrixExtend::RemoveCol(matrix<T> &mat, ulong col)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::RemoveMultCols(matrix &mat, int &cols[])
+void CUtils::RemoveMultCols(matrix &mat, int &cols[])
   {
    ulong size = (int)ArraySize(cols);
 
@@ -278,7 +273,7 @@ void MatrixExtend::RemoveMultCols(matrix &mat, int &cols[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-void MatrixExtend::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
+void CUtils::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
  {
    
    total = total==WHOLE_ARRAY ? (int)mat.Cols()-from : total;
@@ -317,7 +312,7 @@ void MatrixExtend::RemoveMultCols(matrix &mat, int from, int total=WHOLE_ARRAY)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::RemoveRow(matrix &mat,ulong row)
+void CUtils::RemoveRow(matrix &mat,ulong row)
   {
    matrix new_matrix(mat.Rows()-1,mat.Cols()); //Remove the one Row
  
@@ -337,7 +332,7 @@ void MatrixExtend::RemoveRow(matrix &mat,ulong row)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::VectorRemoveIndex(vector &v, ulong index)
+void CUtils::VectorRemoveIndex(vector &v, ulong index)
   {
    vector new_v(v.Size()-1);
 
@@ -354,7 +349,7 @@ void MatrixExtend::VectorRemoveIndex(vector &v, ulong index)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[], bool common=false, int digits=5)
+bool CUtils::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[], bool common=false, int digits=5)
   {
    string header_str = "";
    for (int i=0; i<ArraySize(header); i++)
@@ -366,7 +361,7 @@ bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string &header[
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="", bool common=false, int digits=5)
+bool CUtils::WriteCsv(string csv_name, matrix<T> &matrix_, string header_string="", bool common=false, int digits=5)
   {
    FileDelete(csv_name);
    int handle = FileOpen(csv_name,FILE_WRITE|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_IS_WRITABLE),",",CP_UTF8);
@@ -433,74 +428,9 @@ bool MatrixExtend::WriteCsv(string csv_name, matrix<T> &matrix_, string header_s
    return (true);
   }
 //+------------------------------------------------------------------+
-//| This Function is aimed at Detectin the Strings columns and it    |
-//| encodes them, while fixing the missing information in the column |
-//+------------------------------------------------------------------+
-vector MatrixExtend::FixColumn(CLabelEncoder &encoder, string &Arr[], double threshold =0.3)
- { 
-   int size = ArraySize(Arr);
-   int str_count =0;
-   
-   vector ret(size);
-   
-   for (int i=0; i<size; i++) //Check what percentage of data is strings
-      if (!IsNumber(Arr[i]))
-        str_count++;
-
-//---
-
-   bool is_strings_col = (str_count>=size*threshold);
-     
-   if (is_strings_col) //if a column is detected to be a column full of strings
-     {
-      //Encode it
-      return encoder.encode(Arr);;
-     }       
-     
-//---
-      
-   string value = "";
-   int total =0;
-   double mean=0;
-   
-   for (int i=0; i<size; i++) //Detect Missing values | Remove the rows
-     { 
-       value = Arr[i];
-        if (value == "NaN" || value == "-NaN" || value == "!VALUE" ||
-           value == "" || value == "NA" || value == "N/A" || value == "null" ||
-           value == "Inf" || value == "Infinity" || value == "-Inf" || value == "-Infinity" ||
-           value == "#DIV/0!" || value == "#VALUE!") //Check if there are NotANumber values 
-          continue;
-                
-        mean += (double)Arr[i];
-        total++;
-     }
-   
-   mean /= total;
-
-//---
-   
-   for (int i=0; i<size; i++) //Detect Missing values | Remove the rows
-     { 
-       value = Arr[i];
-        if (value == "NaN" || value == "-NaN" || value == "!VALUE" ||
-           value == "" || value == "NA" || value == "N/A" || value == "null" ||
-           value == "Inf" || value == "Infinity" || value == "-Inf" || value == "-Infinity" ||
-           value == "#DIV/0!" || value == "#VALUE!") //Check if there are NotANumber values 
-          {
-            ret[i] = mean;
-            continue;
-          }
-          
-          ret[i] = double(Arr[i]);       
-     }
-    
-   return ret;  
- }
-//+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool MatrixExtend::IsNumber(string text)
+bool CUtils::IsNumber(string text)
 {
     int length = StringLen(text);   // Get the length of the string.
     int pointcount = 0;             // Initialize a counter for the number of decimal points.
@@ -528,103 +458,8 @@ bool MatrixExtend::IsNumber(string text)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::ReadCsv(string file_name, string &headers, string delimiter=",",bool common=false, bool auto_encode=false)
-  {
-   CLabelEncoder encoder;
-  
-   string Arr[];
-   int all_size = 0;
-   
-   int cols_total=0;
-   
-   int handle = FileOpen(file_name,FILE_SHARE_READ|FILE_CSV|FILE_ANSI|(common?FILE_COMMON:FILE_ANSI),delimiter);
-      
-   datetime time_start = GetTickCount(), current_time;
-   string header_arr[]; 
-   int header_column = 0;
-   
-   if(handle == INVALID_HANDLE)
-     {
-      printf("Invalid %s handle Error %d ",file_name,GetLastError());
-      Print(GetLastError()==0?" TIP | File Might be in use Somewhere else or in another Directory":"");
-     }
-   else
-     {
-      int column = 0, rows=0;
-
-      while(!FileIsEnding(handle) && !IsStopped())
-        {
-         string data = FileReadString(handle); 
-         
-         //---
-         
-         if(rows ==0)
-           {
-             header_column++;
-             ArrayResize(header_arr, header_column);
-             
-             header_arr[header_column-1] = data;
-           }
-         
-         column++;
-                  
-         if(rows>0)  //Avoid the first column which contains the column's header
-          {
-            all_size++;
-            ArrayResize(Arr,all_size);
-            
-            Arr[all_size-1] = data;
-          }
-         //---
-
-         if(FileIsLineEnding(handle))
-           {
-            cols_total=column;
-               
-            rows++;               
-            column = 0;
-               
-            current_time = GetTickCount();
-            Comment("Reading ",file_name," record = ",rows," Time taken | ",ConvertTime((current_time - time_start) / 1000.0));
-           }
-        }  
-        
-      FileClose(handle);
-     }
-
-//--- Get the headers
-   
-   headers="";
-   for(uint i=0; i<header_arr.Size(); i++)
-      headers += header_arr[i] + ((i==header_arr.Size()-1) ? "" :delimiter);
-   
-//---
-
- 
-   int rows =all_size/cols_total;
-   
-   Comment("");
-      
-   matrix mat(rows, cols_total);
-   string Col[];
-   vector col_vector;
-   
-   for (int i=0; i<cols_total; i++)
-      {
-         GetCol(Arr, Col, i+1, cols_total);
-         
-         col_vector = auto_encode ? FixColumn(encoder, Col) : ArrayToVector(Col);
-         mat.Col(col_vector, i);
-      }
-   
-   
-   return(mat);
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::GetCol(const T &Matrix[], T &Col[], int column, int cols)
+void CUtils::GetCol(const T &Matrix[], T &Col[], int column, int cols)
  {
    int rows = ArraySize(Matrix)/cols;
    ArrayResize(Col,rows);
@@ -649,7 +484,7 @@ void MatrixExtend::GetCol(const T &Matrix[], T &Col[], int column, int cols)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::ArrayToVector(const T &Arr[])
+vector CUtils::ArrayToVector(const T &Arr[])
   {
    vector v(ArraySize(Arr));
    
@@ -662,7 +497,7 @@ vector MatrixExtend::ArrayToVector(const T &Arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool MatrixExtend::VectorToArray(const vector<T> &v, T &arr[])
+bool CUtils::VectorToArray(const vector<T> &v, T &arr[])
   {
    vector temp = v;
    if (!temp.Swap(arr))
@@ -677,7 +512,7 @@ bool MatrixExtend::VectorToArray(const vector<T> &v, T &arr[])
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool MatrixExtend::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
+bool CUtils::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatrix, vector<T> &y_vector,int y_column=-1)
   {
    y_column = int( y_column==-1 ? matrix_.Cols()-1 : y_column);
    
@@ -699,7 +534,7 @@ bool MatrixExtend::XandYSplitMatrices(const matrix<T> &matrix_, matrix<T> &xmatr
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
+void CUtils::Randomize(vector<T> &v, int random_state=-1, bool replace=false)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
      
@@ -731,7 +566,7 @@ void MatrixExtend::Randomize(vector<T> &v, int random_state=-1, bool replace=fal
 //| than once, simulating the bootstrapping process.                 |    
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
+void CUtils::Randomize(matrix<T> &matrix_,int random_state=-1, bool replace=false)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
   
@@ -767,7 +602,7 @@ void MatrixExtend::Randomize(matrix<T> &matrix_,int random_state=-1, bool replac
 //|                                                                  |
 //+------------------------------------------------------------------+
 template <typename T>
-void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1, bool shuffle=true)
+void CUtils::TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y, matrix<T> &x_train, vector<T> &y_train, matrix<T> &x_test, vector<T> &y_test, double train_size=0.7,int random_state=-1, bool shuffle=true)
   {
    ulong total = X.Rows(), cols = X.Cols();
    
@@ -804,7 +639,7 @@ void MatrixExtend::TrainTestSplitMatrices(const matrix<T> &X, const vector<T> &y
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::DesignMatrix(const matrix &x)
+matrix CUtils::DesignMatrix(const matrix &x)
   {
    matrix out_matrix(x.Rows(),x.Cols()+1);
 
@@ -825,7 +660,7 @@ matrix MatrixExtend::DesignMatrix(const matrix &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::OneHotEncoding(const vector &v)
+matrix CUtils::OneHotEncoding(const vector &v)
  {
    matrix mat = {}; 
    
@@ -852,7 +687,7 @@ matrix MatrixExtend::OneHotEncoding(const vector &v)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
+void CUtils::Unique(const string &Array[], string &classes_arr[])
  {
    string temp_arr[];
 
@@ -893,7 +728,7 @@ void MatrixExtend::Unique(const string &Array[], string &classes_arr[])
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Unique(const vector &v)
+vector CUtils::Unique(const vector &v)
  {
    vector temp_v = v; 
    vector v_classes={v[0]};
@@ -920,13 +755,13 @@ vector MatrixExtend::Unique(const vector &v)
        }
     }
  
-   return MatrixExtend::Sort(v_classes); //Sort the unique values in ascending order
+   return CUtils::Sort(v_classes); //Sort the unique values in ascending order
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-T MatrixExtend:: MathRandom(T mini, T maxi)
+T CUtils:: MathRandom(T mini, T maxi)
   {
      double  f  = (MathRand() / 32767.0);
      return (mini + (T)(f * (maxi - mini)));
@@ -935,7 +770,7 @@ T MatrixExtend:: MathRandom(T mini, T maxi)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T> 
-vector MatrixExtend::Random(T min, T max,int size,int random_state=-1)
+vector CUtils::Random(T min, T max,int size,int random_state=-1)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
     
@@ -949,7 +784,7 @@ vector MatrixExtend::Random(T min, T max,int size,int random_state=-1)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
+matrix CUtils::Random(double min,double max,ulong rows,ulong cols,int random_state=-1)
  {
    MathSrand(random_state!=-1?random_state:GetTickCount());
      
@@ -965,7 +800,7 @@ matrix MatrixExtend::Random(double min,double max,ulong rows,ulong cols,int rand
 //|   Appends vector v1 to the end of vector v2                      |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::concatenate(const vector<T> &v1, const vector<T> &v2)
+vector CUtils::concatenate(const vector<T> &v1, const vector<T> &v2)
  {
    vector v_out = v1; 
    
@@ -982,7 +817,7 @@ vector MatrixExtend::concatenate(const vector<T> &v1, const vector<T> &v2)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::concatenate(const vector &v, const double value) //Appends double value to a vector 
+vector CUtils::concatenate(const vector &v, const double value) //Appends double value to a vector 
  {
    vector v2 = {value};
    return concatenate(v, v2);
@@ -990,7 +825,7 @@ vector MatrixExtend::concatenate(const vector &v, const double value) //Appends 
 //+------------------------------------------------------------------+
 //|   Appends matrix mat1 to the end of mat2                         |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::concatenate(const matrix &mat1, const matrix &mat2, int axis = 0)
+matrix CUtils::concatenate(const matrix &mat1, const matrix &mat2, int axis = 0)
  {
      matrix m_out = {};
 
@@ -1034,7 +869,7 @@ matrix MatrixExtend::concatenate(const matrix &mat1, const matrix &mat2, int axi
 //|   while axis =1 along the colums concatenation
 //+------------------------------------------------------------------+
 template<typename T>
-matrix<T> MatrixExtend::concatenate(const matrix<T> &mat, const vector<T> &v, int axis=1)
+matrix<T> CUtils::concatenate(const matrix<T> &mat, const vector<T> &v, int axis=1)
  {
    matrix<T> ret= mat;
      
@@ -1085,7 +920,7 @@ matrix<T> MatrixExtend::concatenate(const matrix<T> &mat, const vector<T> &v, in
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-bool MatrixExtend::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulong total=WHOLE_ARRAY)
+bool CUtils::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulong total=WHOLE_ARRAY)
  {
    if (total == WHOLE_ARRAY)
       total = src.Size()-src_start;
@@ -1111,7 +946,7 @@ bool MatrixExtend::Copy(const vector<T> &src, vector<T> &dst,ulong src_start,ulo
 //| Such values was located                                          |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::Search(const vector<T> &v, T value)
+vector CUtils::Search(const vector<T> &v, T value)
  {
    vector<T> v_out ={};
    
@@ -1132,9 +967,9 @@ vector MatrixExtend::Search(const vector<T> &v, T value)
 //| Finds the unique values in a vector and returns a vector of      |
 //| the number of values found for each unique value                 |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Unique_count(vector &v)
+vector CUtils::Unique_count(vector &v)
  {
-  vector classes = MatrixExtend::Unique(v);
+  vector classes = CUtils::Unique(v);
   vector keys(classes.Size());
   
    for (ulong i=0; i<classes.Size(); i++)
@@ -1146,7 +981,7 @@ vector MatrixExtend::Unique_count(vector &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
+vector CUtils::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
  {
    T arr[];
    vector temp = v;
@@ -1158,11 +993,11 @@ vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
    switch(sort_mode)
      {
       case  SORT_ASCENDING:
-        temp = MatrixExtend::ArrayToVector(arr);  
+        temp = CUtils::ArrayToVector(arr);  
         break;
       case SORT_DESCENDING:
-        temp = MatrixExtend::ArrayToVector(arr);  
-        MatrixExtend::Reverse(temp);
+        temp = CUtils::ArrayToVector(arr);  
+        CUtils::Reverse(temp);
         break;
       default:
         printf("%s Unknown sort mode");
@@ -1175,7 +1010,7 @@ vector MatrixExtend::Sort(vector<T> &v,ENUM_SORT_MODE sort_mode=SORT_ASCENDING)
 //|  descending order                                                |
 //+------------------------------------------------------------------+
 template<typename T>
-vector MatrixExtend::ArgSort(vector<T> &v)
+vector CUtils::ArgSort(vector<T> &v)
  {   
 //---
 
@@ -1208,7 +1043,7 @@ vector MatrixExtend::ArgSort(vector<T> &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::Reverse(vector<T> &v)
+void CUtils::Reverse(vector<T> &v)
  {
   vector<T> v_temp = v;
   
@@ -1221,7 +1056,7 @@ void MatrixExtend::Reverse(vector<T> &v)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::Reverse(matrix<T> &mat)
+void CUtils::Reverse(matrix<T> &mat)
  {
    matrix<T> temp_mat = mat;
    
@@ -1234,7 +1069,7 @@ void MatrixExtend::Reverse(matrix<T> &mat)
 //|   of the same dimension as the operands. | This operation is     |
 //|  widely known as element wise multiplication                     |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::HadamardProduct(matrix &a,matrix &b)
+matrix CUtils::HadamardProduct(matrix &a,matrix &b)
  {  
   matrix c = {};
   if (a.Rows() != b.Rows() || a.Cols() != b.Cols())
@@ -1251,7 +1086,7 @@ matrix MatrixExtend::HadamardProduct(matrix &a,matrix &b)
 //+------------------------------------------------------------------+
 
 
-string MatrixExtend::CalcTimeElapsed(double seconds)
+string CUtils::CalcTimeElapsed(double seconds)
   {
    string time_str = "";
 
@@ -1270,7 +1105,7 @@ string MatrixExtend::CalcTimeElapsed(double seconds)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
+matrix CUtils::DBtoMatrix(int db_handle, string table_name,string &column_names[],int total=WHOLE_ARRAY)
  {
   matrix matrix_ = {};
   
@@ -1350,7 +1185,7 @@ matrix MatrixExtend::DBtoMatrix(int db_handle, string table_name,string &column_
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::NormalizeDouble_(vector<T> &v,int digits=3)
+void CUtils::NormalizeDouble_(vector<T> &v,int digits=3)
  {
    for (ulong i=0; i<v.Size(); i++)
       v[i] = NormalizeDouble(v[i], digits);
@@ -1359,7 +1194,7 @@ void MatrixExtend::NormalizeDouble_(vector<T> &v,int digits=3)
 //|                                                                  |
 //+------------------------------------------------------------------+
 template<typename T>
-void MatrixExtend::NormalizeDouble_(matrix<T> &mat,int digits=3)
+void CUtils::NormalizeDouble_(matrix<T> &mat,int digits=3)
  {
    for (ulong i=0; i<mat.Rows(); i++)
       for (ulong j=0; j<mat.Cols(); j++)
@@ -1368,7 +1203,7 @@ void MatrixExtend::NormalizeDouble_(matrix<T> &mat,int digits=3)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
+void CUtils::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
  {
    vector v = {};
     for (ulong i=0; i<rows; i++)
@@ -1382,7 +1217,7 @@ void MatrixExtend::PrintShort(matrix &matrix_, ulong rows=5,int digits=5)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void MatrixExtend::Swap(double &var1,double &var2)
+void CUtils::Swap(double &var1,double &var2)
  {
    double temp_1 = var1, temp2=var2;
    
@@ -1392,7 +1227,7 @@ void MatrixExtend::Swap(double &var1,double &var2)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int MatrixExtend::CopyBufferVector(int handle,int buff_num,int start_pos,int count,vector &v)
+int CUtils::CopyBufferVector(int handle,int buff_num,int start_pos,int count,vector &v)
  {
    double buff_arr[];
    
@@ -1404,7 +1239,7 @@ int MatrixExtend::CopyBufferVector(int handle,int buff_num,int start_pos,int cou
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-string MatrixExtend::Stringfy(vector &v, int digits = 2)
+string CUtils::Stringfy(vector &v, int digits = 2)
  {
    string str = "";
    for (ulong i=0; i<v.Size(); i++)
@@ -1417,7 +1252,7 @@ string MatrixExtend::Stringfy(vector &v, int digits = 2)
 //| in measuring the time taken for operations that takes a long     |
 //| time to complete, Such as reading and writing to a large csv file|
 //+------------------------------------------------------------------+
-string MatrixExtend::ConvertTime(double seconds)
+string CUtils::ConvertTime(double seconds)
 {
     string time_str = "";
     uint minutes = 0, hours = 0;
@@ -1447,7 +1282,7 @@ string MatrixExtend::ConvertTime(double seconds)
 //|  Obtains a part of the matrix starting from a start_index row to |
 //|   end_index row Inclusive                                        |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::Get(const matrix &mat, ulong start_index, ulong end_index)
+matrix CUtils::Get(const matrix &mat, ulong start_index, ulong end_index)
  {
   matrix ret_mat(MathAbs(end_index-start_index+1), mat.Cols());
   
@@ -1481,7 +1316,7 @@ matrix MatrixExtend::Get(const matrix &mat, ulong start_index, ulong end_index)
 //|   end_index row Inclusive                                        |
 //+------------------------------------------------------------------+
 
-vector MatrixExtend::Get(const vector &v, ulong start_index, ulong end_index)
+vector CUtils::Get(const vector &v, ulong start_index, ulong end_index)
  {
   vector ret_vec(MathAbs(end_index-start_index+1));
   
@@ -1511,7 +1346,7 @@ vector MatrixExtend::Get(const vector &v, ulong start_index, ulong end_index)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::Sign(matrix &x)
+matrix CUtils::Sign(matrix &x)
  {
    matrix ret_matrix = x;
    
@@ -1523,7 +1358,7 @@ matrix MatrixExtend::Sign(matrix &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Sign(vector &x)
+vector CUtils::Sign(vector &x)
  {
    vector v(x.Size());
    for (ulong i=0; i<x.Size(); i++)
@@ -1534,21 +1369,7 @@ vector MatrixExtend::Sign(vector &x)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::eye(uint num_features)
- {
-   matrix ret_matrix(num_features, num_features);
-   ret_matrix.Fill(0.0);
-   vector diag;
-   diag.Fill(1.0);
-   
-   ret_matrix.Diag(diag, 0);
-   
-   return ret_matrix;
- }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-bool MatrixExtend::write_bin(vector &v,string file)
+bool CUtils::write_bin(vector &v,string file)
  {
    FileDelete(file);
    int handle = FileOpen(file,FILE_READ|FILE_WRITE|FILE_BIN,",");
@@ -1573,7 +1394,7 @@ bool MatrixExtend::write_bin(vector &v,string file)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-matrix MatrixExtend::Slice(const matrix &mat, ulong start_index, int end_index, uint axis=0)
+matrix CUtils::Slice(const matrix &mat, ulong start_index, int end_index, uint axis=0)
  {
    matrix sliced = {};
    
@@ -1634,7 +1455,7 @@ matrix MatrixExtend::Slice(const matrix &mat, ulong start_index, int end_index, 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-vector MatrixExtend::Slice(const vector &vec, ulong start_index, int end_index)
+vector CUtils::Slice(const vector &vec, ulong start_index, int end_index)
  {
    vector sliced = {};
    
