@@ -11,7 +11,7 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-#include <MALE5\MatrixExtend.mqh>
+#include <MALE5\Numpy\Numpy.mqh>
 #include <MALE5\MqPlotLib\plots.mqh>
 
 struct roc_curve_struct
@@ -47,8 +47,8 @@ enum regression_metrics
 class Metrics
   {
 protected:   
+  
    static int SearchPatterns(const vector &True, int value_A, const vector &B, int value_B);
-
    static confusion_matrix_struct confusion_matrix(const vector &True, const vector &Preds);
    
 public:
@@ -126,7 +126,7 @@ confusion_matrix_struct Metrics::confusion_matrix(const vector &True, const vect
  {
   confusion_matrix_struct confusion_matrix; 
    
-  vector classes = MatrixExtend::Unique(True);
+  vector classes = CNumpy::unique(True).unique;
   confusion_matrix.CLASSES = classes;
   
 //--- Fill the confusion matrix
