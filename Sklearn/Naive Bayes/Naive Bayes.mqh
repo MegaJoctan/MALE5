@@ -9,13 +9,13 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 
-#include <MALE5\MatrixExtend.mqh> 
+#include <MALE5\Utils.mqh> 
 //+------------------------------------------------------------------+
-//|              N  A  I  V  E     B  A  Y  E                        |
+//|              N  A  I  V  E     B  A  Y  E S                      |
 //|                                                                  |
 //|   suitable for classification of discrete values, that have      |
 //|   been load to a matrix using the method ReadCSVEncode from      |
-//|   MatrixExtend::mqh                                               |
+//|   CUtils::mqh                                              |
 //|                                                                  |
 //+------------------------------------------------------------------+
 
@@ -58,7 +58,7 @@ void CNaiveBayes::fit(matrix &x, vector &y)
   ulong samples = x.Rows(),
         features = x.Cols();
   
-  vector unique = MatrixExtend::Unique_count(y);
+  vector unique = CUtils::Unique_count(y);
   
   this.class_proba = unique / samples;
   
@@ -71,7 +71,7 @@ void CNaiveBayes::fit(matrix &x, vector &y)
    y_target = y;
    n_features = x.Cols();
    
-   classes = MatrixExtend::Unique(y);
+   classes = CUtils::Unique(y);
    
    c_evidence.Resize((ulong)classes.Size());
    
@@ -84,7 +84,7 @@ void CNaiveBayes::fit(matrix &x, vector &y)
    vector v = {};
    for (ulong i=0; i<c_evidence.Size(); i++)
        {
-         v = MatrixExtend::Search(y,classes[i]);
+         v = CUtils::Search(y,classes[i]);
          
          c_evidence[i] = (int)v.Size();
        }
@@ -249,7 +249,6 @@ double CNormDistribution::PDF(double x)
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-#include <MALE5\preprocessing.mqh>
 
 /*
 class CGaussianNaiveBayes
@@ -291,7 +290,7 @@ CGaussianNaiveBayes::CGaussianNaiveBayes(void)
 void CGaussianNaiveBayes::fit(matrix &x, vector &y)
  { 
    
-   classes = MatrixExtend::Unique(y);
+   classes = CUtils::Unique(y);
    m_cols = n_features;
     
 //---
@@ -307,7 +306,7 @@ void CGaussianNaiveBayes::fit(matrix &x, vector &y)
    vector v = {};
    for (ulong i=0; i<c_evidence.Size(); i++)
        {          
-         v = MatrixExtend::Search(y, classes[i]);
+         v = CUtils::Search(y, classes[i]);
          
          c_evidence[i] = (int)v.Size();
        }
