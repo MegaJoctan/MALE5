@@ -10,7 +10,7 @@
 //+------------------------------------------------------------------+
 #include "base.mqh"
 #include <MALE5\MqPlotLib\plots.mqh>
-
+#include <MALE5\Numpy\Numpy.mqh>
 //+------------------------------------------------------------------+
 //|            Principal Component Analysis Class                    |
 //+------------------------------------------------------------------+
@@ -25,6 +25,7 @@ enum criterion
   };
   
 CPlots   plt;
+CNumpy   np;
 
 protected:
    uint              m_components;
@@ -97,10 +98,12 @@ matrix CPCA::fit_transform(matrix &X)
    
 //--- Sort eigenvectors by decreasing eigenvalues
    
-   vector args = MatrixExtend::ArgSort(eigen_values); MatrixExtend::Reverse(args);
+   vector args = np.argsort(eigen_values); 
+   args = np.reverse(args);
    
    eigen_values = BaseDimRed::Sort(eigen_values, args);
    eigen_vectors = BaseDimRed::Sort(eigen_vectors, args);
+   
 //---
 
    if (MQLInfoInteger(MQL_DEBUG))
@@ -147,10 +150,10 @@ matrix CPCA::transform(matrix &X)
 //+------------------------------------------------------------------+
 vector CPCA::transform(vector &X)
  {
-   matrix INPUT_MAT = MatrixExtend::VectorToMatrix(X, X.Size());
+   matrix INPUT_MAT = np.expand_dims(X, 0);
    matrix OUTPUT_MAT = transform(INPUT_MAT);
       
-   return MatrixExtend::MatrixToVector(OUTPUT_MAT);
+   return np.flatten(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|   Select the number of components based on some criterion        |
@@ -233,9 +236,9 @@ uint CPCA::extract_components(vector &eigen_values, double threshold=0.95)
 bool CPCA::save(string dir)
  { 
    
-   matrix m = MatrixExtend::VectorToMatrix(this.mean, this.mean.Size());
+   matrix m = CUtils::VectorToMatrix(this.mean, this.mean.Size());
    
-   if (!MatrixExtend::WriteCsv(dir+"\\PCA-Mean.csv",m,NULL,false,8))
+   if (!CUtils::WriteCsv(dir+"\\PCA-Mean.csv",m,NULL,false,8))
      {
        Print("Failed to Save PCA-Mean information to ",dir);
        return false;
@@ -243,7 +246,7 @@ bool CPCA::save(string dir)
 
 //---
 
-   if (!MatrixExtend::WriteCsv(dir+"\\PCA-ComponentsMatrix.csv",this.components_matrix,NULL,false,8))
+   if (!CUtils::WriteCsv(dir+"\\PCA-ComponentsMatrix.csv",this.components_matrix,NULL,false,8))
      {
        Print("Failed to Save PCA-ComponentsMatrix information to ",dir);
        return false;
@@ -257,17 +260,17 @@ bool CPCA::save(string dir)
 bool CPCA::load(string dir)
  {
    string header;
-   matrix m = MatrixExtend::ReadCsv(dir+"\\PCA-Mean.csv",header);
+   matrix m = CUtils::ReadCsv(dir+"\\PCA-Mean.csv",header);
    
    if (m.Rows()==0)
      return false;
      
-   this.mean = MatrixExtend::MatrixToVector(m);
+   this.mean = CUtils::MatrixToVector(m);
    this.n_features = (uint)this.mean.Size();
    
 //---
    
-   this.components_matrix = MatrixExtend::ReadCsv(dir+"\\PCA-ComponentsMatrix.csv",header);
+   this.components_matrix = CUtils::ReadCsv(dir+"\\PCA-ComponentsMatrix.csv",header);
    
    //printf("Components Matrix[%dx%d]",components_matrix.Rows(),components_matrix.Cols());
    

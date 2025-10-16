@@ -9,10 +9,15 @@
 //| defines                                                          |
 //+------------------------------------------------------------------+
 #include "base.mqh";
-
+#include <MALE5\Numpy\Numpy.mqh>
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 class CNMF
   {
 protected:
+
+   CNumpy np;
    uint m_components;
    uint m_max_iter;
    int m_randseed;
@@ -74,10 +79,10 @@ matrix CNMF::transform(matrix &X)
 //+------------------------------------------------------------------+
 vector CNMF::transform(vector &X)
  {
-   matrix INPUT_MAT = MatrixExtend::VectorToMatrix(X, X.Size());
+   matrix INPUT_MAT = np.expand_dims(X, 0);
    matrix OUTPUT_MAT = transform(INPUT_MAT);
    
-   return MatrixExtend::MatrixToVector(OUTPUT_MAT);
+   return np.flatten(OUTPUT_MAT);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -91,8 +96,9 @@ matrix CNMF::fit_transform(matrix &X, uint k=2)
    
 //--- Initialize Random values 
 
-   this.W = MatrixExtend::Random(0,1, m, this.m_components, this.m_randseed);  
-   this.H = MatrixExtend::Random(0,1,this.m_components, n, this.m_randseed);
+   np.random.seed(this.m_randseed);
+   this.W = np.random.randn((uint)m, this.m_components);  
+   this.H = np.random.randn(this.m_components, (uint)n);
    
 //--- Update factors
       

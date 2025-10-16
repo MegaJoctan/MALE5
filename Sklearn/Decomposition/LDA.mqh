@@ -10,6 +10,7 @@
 //+------------------------------------------------------------------+
 
 #include "base.mqh";
+#include <MALE5\Numpy\Numpy.mqh>
 #include <MALE5\MqPlotLib\plots.mqh>
 
 enum lda_criterion //selecting best components criteria selection
@@ -22,6 +23,7 @@ enum lda_criterion //selecting best components criteria selection
 class CLDA
   {  
 CPlots   plt;
+CNumpy np;
 
 protected:
    uint m_components;
@@ -67,7 +69,7 @@ CLDA::~CLDA(void)
 //+------------------------------------------------------------------+
 matrix  CLDA::fit_transform(const matrix &x, const vector &y)
  {
-   vector classes = MatrixExtend::Unique(y);
+   vector classes = np.unique(y).unique;
    ulong num_classes = classes.Size();
    num_features = x.Cols();
    
@@ -128,8 +130,8 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
   
 //--- Regularization to avoid errors while calculating Eigen values and vectors
    
-   SW += this.m_regparam * MatrixExtend::eye((uint)num_features);
-   SB += this.m_regparam * MatrixExtend::eye((uint)num_features);
+   SW += this.m_regparam * np.eye((uint)num_features, (uint)num_features, 1); 
+   SB += this.m_regparam * np.eye((uint)num_features, (uint)num_features, 1);
 
 //---
 
@@ -151,8 +153,8 @@ matrix  CLDA::fit_transform(const matrix &x, const vector &y)
     
 //--- Sort eigenvectors by decreasing eigenvalues
    
-   vector args = MatrixExtend::ArgSort(eigen_values);
-   MatrixExtend::Reverse(args);
+   vector args = np.argsort(eigen_values);
+   args = np.reverse(args);
    
    eigen_values = BaseDimRed::Sort(eigen_values, args);
    eigen_vectors = BaseDimRed::Sort(eigen_vectors, args);
@@ -195,7 +197,7 @@ matrix CLDA::transform(const matrix &x)
 //+------------------------------------------------------------------+
 vector CLDA::transform(const vector &x)
  {
-   matrix m = MatrixExtend::VectorToMatrix(x, this.num_features); 
+   matrix m = CUtils::VectorToMatrix(x, this.num_features); 
    
    if (m.Rows()==0)
     {
@@ -204,7 +206,7 @@ vector CLDA::transform(const vector &x)
     }
    
    m = transform(m);
-   return MatrixExtend::MatrixToVector(m);
+   return np.flatten(m);
  }
 //+------------------------------------------------------------------+
 //|                                                                  |

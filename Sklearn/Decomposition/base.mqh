@@ -10,7 +10,7 @@
 //| that are necessary for the algorithms in this folder             |
 //+------------------------------------------------------------------+
 
-#include <MALE5\MatrixExtend.mqh>
+#include <MALE5\Utils.mqh>
 
 class BaseDimRed
   {
