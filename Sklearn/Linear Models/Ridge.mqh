@@ -8,8 +8,8 @@
 
 //+------------------------------------------------------------------+
  
-#include <MALE5\preprocessing.mqh>
-#include <MALE5\MatrixExtend.mqh>
+#include <MALE5\Sklearn\preprocessing.mqh>
+#include <MALE5\Utils.mqh>
 #include "Linear Regression.mqh"
 
 //+------------------------------------------------------------------+
@@ -39,7 +39,7 @@ class CRidgeregression
   };
   
 //+------------------------------------------------------------------+
-
+/*
 CRidgeregression::CRidgeregression(matrix &_matrix)
  {
     n = _matrix.Rows();
@@ -56,7 +56,7 @@ CRidgeregression::CRidgeregression(matrix &_matrix)
     Id_matrix.Identity();
 
  }
- 
+*/
 //+------------------------------------------------------------------+
 
 CRidgeregression::~CRidgeregression(void)
@@ -68,7 +68,7 @@ CRidgeregression::~CRidgeregression(void)
  }
  
 //+------------------------------------------------------------------+
-
+/*
 vector CRidgeregression::L2Norm(double lambda)
  {    
    matrix design = MatrixExtend::DesignMatrix(XMatrix);
@@ -93,5 +93,5 @@ vector CRidgeregression::L2Norm(double lambda)
    
   return(MatrixExtend::MatrixToVector(Betas));
  }
- 
 //+------------------------------------------------------------------+
+*/
