@@ -31,7 +31,7 @@
   <a href="https://discord.gg/2qgcadfgrx" style="text-decoration:none">
     <img src="https://img.shields.io/badge/Discord-%237289DA?style=flat&logo=discord"/>
   </a>
-  <a href="https://t.me/fxalgebra_discussion" style="text-decoration:none">
+  <a href="https://t.me/omegafx_co" style="text-decoration:none">
     <img src="https://img.shields.io/badge/Telegram-%232CA5E0?style=flat&logo=telegram"/>
   </a>
 </p>
